@@ -5,19 +5,19 @@ import { PATHS } from "~/lib/constants";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getSession(request);
-  const userId = session.get("userId");
+  const tokenType = session.get("tokenType");
 
-  if (!userId) {
+  if (!tokenType) {
     throw redirect(PATHS.login);
   }
   
   return {
-    userId: userId as string,
+    tokenType: tokenType as string,
   };
 }
 
 export default function DashboardLayout() {
-  const { userId } = useLoaderData<typeof loader>();
+  const { tokenType } = useLoaderData<typeof loader>();
   
   return (
     <div className="min-h-screen bg-background">

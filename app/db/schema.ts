@@ -1,24 +1,14 @@
 import { pgTable, varchar, uuid, text, timestamp, boolean, date, time, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-// Base schema for consultorio app
-// This is a starting point - you can expand it based on your needs
+// Esquema base para la aplicación consultorio
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-  firstName: varchar("first_name", { length: 255 }).notNull(),
-  lastName: varchar("last_name", { length: 255 }).notNull(),
-  role: varchar("role", { length: 50 }).notNull().default("user"),
-  active: boolean("active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  emailIdx: index("users_email_idx").on(table.email),
-  createdAtIdx: index("users_created_at_idx").on(table.createdAt),
-}));
+// Tabla de tokens para autenticación
+export const tokens = pgTable("tokens", {
+  type: varchar("type", { length: 255 }).notNull(),
+  token: varchar("token", { length: 500 }).notNull(),
+});
 
-// Type inference from Drizzle schemas
-export type User = typeof users.$inferSelect;
-export type UserInsert = typeof users.$inferInsert;
+// Inferencia de tipos desde los esquemas de Drizzle
+export type Token = typeof tokens.$inferSelect;
+export type TokenInsert = typeof tokens.$inferInsert;

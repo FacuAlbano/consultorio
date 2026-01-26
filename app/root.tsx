@@ -12,9 +12,9 @@ import * as React from "react";
 import type { Route } from "./+types/root";
 import "./app.css";
 
-// Polyfill for Buffer in browser (needed for xlsx library)
+// Polyfill para Buffer en el navegador (necesario para la librería xlsx)
 if (typeof window !== "undefined" && typeof (globalThis as any).Buffer === "undefined") {
-  // Simple Buffer polyfill for browser
+  // Polyfill simple de Buffer para el navegador
   const BufferPolyfill = class {
     static from(data: any, encoding?: string): Uint8Array {
       if (typeof data === "string") {
@@ -51,7 +51,7 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
-  // Read theme from cookies
+  // Leer el tema desde las cookies
   const cookieHeader = request.headers.get("Cookie");
   const themeCookie = cookieHeader
     ?.split(";")
@@ -59,7 +59,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     ?.split("=")[1]
     ?.trim();
 
-  // If no cookie exists, default to "light" (we can't detect system preference in SSR)
+  // Si no existe la cookie, usar "light" por defecto (no podemos detectar la preferencia del sistema en SSR)
   const theme = themeCookie === "dark" ? "dark" : "light";
 
   return { theme };
@@ -86,7 +86,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const { theme } = useLoaderData<typeof loader>();
   
-  // Apply theme class to html element immediately (SSR + client hydration)
+  // Aplicar la clase del tema al elemento html inmediatamente (SSR + hidratación del cliente)
   React.useLayoutEffect(() => {
     const html = document.documentElement;
     if (theme === "dark") {

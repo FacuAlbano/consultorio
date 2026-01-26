@@ -3,7 +3,7 @@ import type { Route } from "./+types/_dashboard._index";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 
 /**
- * Meta tags for the home page
+ * Meta tags para la página de inicio
  */
 export function meta({}: Route.MetaArgs) {
   return [
@@ -13,14 +13,14 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  // Loader data can be added here as needed
+  // Los datos del loader se pueden agregar aquí según sea necesario
   return {
     message: "Bienvenido al sistema de Consultorio",
   };
 }
 
 /**
- * Dashboard home page component
+ * Componente de la página de inicio del dashboard
  */
 export default function Index() {
   const { message } = useLoaderData<typeof loader>();

@@ -1,6 +1,6 @@
 /**
- * Application route paths
- * Centralized route constants to avoid typos and maintain consistency
+ * Rutas de la aplicación
+ * Constantes de rutas centralizadas para evitar errores tipográficos y mantener consistencia
  */
 export const PATHS = {
   root: "/",

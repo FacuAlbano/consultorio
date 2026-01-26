@@ -1,16 +1,16 @@
 import { createCookieSessionStorage } from "react-router";
 import { PATHS } from "./constants";
 
-// Use process.env in server context, fallback for client-side HMR
+// Usar process.env en contexto del servidor, fallback para HMR del lado del cliente
 const getEnvVar = (key: string, defaultValue: string): string => {
   try {
     if (typeof process !== "undefined" && process.env) {
       return process.env[key] || defaultValue;
     }
   } catch {
-    // Ignore errors during HMR
+    // Ignorar errores durante HMR
   }
-  // Fallback for client-side (shouldn't happen in production, but helps with HMR)
+  // Fallback para el lado del cliente (no debería pasar en producción, pero ayuda con HMR)
   return defaultValue;
 };
 
@@ -18,10 +18,10 @@ const sessionSecret = getEnvVar("SESSION_SECRET", "default-secret-change-in-prod
 
 try {
   if (sessionSecret === "default-secret-change-in-production" && typeof process !== "undefined") {
-  console.warn("⚠️  Using default session secret. Set SESSION_SECRET in .env for production!");
+  console.warn("⚠️  Usando secreto de sesión por defecto. ¡Configura SESSION_SECRET en .env para producción!");
   }
 } catch {
-  // Ignore during HMR
+  // Ignorar durante HMR
 }
 
 let isProduction = false;
@@ -30,7 +30,7 @@ try {
     ? process.env.NODE_ENV === "production"
     : false;
 } catch {
-  // Ignore during HMR
+  // Ignorar durante HMR
 }
 
 export const sessionStorage = createCookieSessionStorage({
@@ -49,9 +49,9 @@ export async function getSession(request: Request) {
   return sessionStorage.getSession(request.headers.get("Cookie"));
 }
 
-export async function createUserSession(userId: string, redirectTo: string) {
+export async function createUserSession(tokenType: string, redirectTo: string) {
   const session = await sessionStorage.getSession();
-  session.set("userId", userId);
+  session.set("tokenType", tokenType);
   return {
     redirect: redirectTo,
     headers: {
@@ -72,11 +72,11 @@ export async function logout(request: Request) {
 
 export async function requireAuth(request: Request) {
   const session = await getSession(request);
-  const userId = session.get("userId");
+  const tokenType = session.get("tokenType");
 
-  if (!userId) {
+  if (!tokenType) {
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  return { userId: userId as string };
+  return { tokenType: tokenType as string };
 }

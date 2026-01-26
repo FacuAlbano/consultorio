@@ -5,13 +5,12 @@ import { useActionData, redirect, useSubmit, useNavigation } from "react-router"
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
 import type { Route } from "./+types/_auth.login";
-import { verifyCredentials } from "~/lib/auth";
+import { verifyTokenAuth } from "~/lib/auth";
 import { createUserSession } from "~/lib/session";
 import { PATHS } from "~/lib/constants";
 
 type LoginFormData = {
-  email: string;
-  password: string;
+  token: string;
 };
 
 export function meta({}: Route.MetaArgs) {
@@ -23,16 +22,19 @@ export function meta({}: Route.MetaArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const token = formData.get("token") as string;
 
-  const user = await verifyCredentials(email, password);
-  if (!user) {
-    return { error: "Credenciales inválidas" };
+  if (!token) {
+    return { error: "El token es obligatorio" };
   }
 
-  // Create user session and redirect to dashboard
-  const { redirect: redirectTo, headers } = await createUserSession(user.id, PATHS.dashboard);
+  const tokenRecord = await verifyTokenAuth(token);
+  if (!tokenRecord) {
+    return { error: "Token inválido" };
+  }
+
+  // Crear sesión usando el type del token como identificador
+  const { redirect: redirectTo, headers } = await createUserSession(tokenRecord.type, PATHS.dashboard);
   throw redirect(redirectTo, { headers });
 }
 
@@ -50,15 +52,13 @@ export default function Login() {
     formState: { errors },
   } = useForm<LoginFormData>({
     defaultValues: {
-      email: "",
-      password: "",
+      token: "",
     },
   });
 
   const onSubmit: SubmitHandler<LoginFormData> = (data) => {
     const formData = new FormData();
-    formData.append("email", data.email);
-    formData.append("password", data.password);
+    formData.append("token", data.token);
     submit(formData, { method: "post" });
   };
 
@@ -79,67 +79,36 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-3">
-              <label htmlFor="email" className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <label htmlFor="token" className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Lock className="size-4 text-primary" />
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                className={`w-full bg-input border text-foreground rounded-lg px-4 py-3 outline-none transition-all duration-200 ${
-                  errors.email
-                    ? "border-destructive focus:border-destructive focus:ring-2 focus:ring-destructive/20"
-                    : "border-border focus:border-primary focus:ring-2 focus:ring-ring"
-                }`}
-                placeholder="tu@email.com"
-                {...register("email", { 
-                  required: "El email es obligatorio",
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Email inválido"
-                  }
-                })}
-                aria-invalid={errors.email ? "true" : "false"}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive" role="alert">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <label htmlFor="password" className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Lock className="size-4 text-primary" />
-                Contraseña
+                Token
               </label>
               <div className="relative">
                 <input
-                  id="password"
+                  id="token"
                   type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
+                  autoComplete="off"
                   className={`w-full bg-input border text-foreground rounded-lg pr-12 pl-4 py-3 outline-none transition-all duration-200 ${
-                    errors.password
+                    errors.token
                       ? "border-destructive focus:border-destructive focus:ring-2 focus:ring-destructive/20"
                       : "border-border focus:border-primary focus:ring-2 focus:ring-ring"
                   }`}
-                  placeholder="Ingresa tu contraseña"
-                  {...register("password", { required: "La contraseña es obligatoria" })}
-                  aria-invalid={errors.password ? "true" : "false"}
+                  placeholder="Ingresa tu token de acceso"
+                  {...register("token", { required: "El token es obligatorio" })}
+                  aria-invalid={errors.token ? "true" : "false"}
                 />
                 <button
                   type="button"
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-label={showPassword ? "Ocultar token" : "Mostrar token"}
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute inset-y-0 right-0 my-auto h-full px-4 inline-flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-muted transition-all duration-300 rounded-r-lg"
                 >
                   {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                 </button>
               </div>
-              {errors.password && (
+              {errors.token && (
                 <p className="text-sm text-destructive" role="alert">
-                  {errors.password.message}
+                  {errors.token.message}
                 </p>
               )}
             </div>

@@ -1,39 +1,30 @@
 import { db } from "~/db/client";
-import { users } from "~/db/schema";
-import { eq } from "drizzle-orm";
-import { verify } from "argon2";
+import { tokens } from "~/db/schema";
+import { verifyToken as verifyTokenHash } from "~/lib/token-hash";
 
 /**
- * Verifica las credenciales del usuario
- * Retorna el usuario si las credenciales son válidas, null en caso contrario
+ * Verifica un token de autenticación
+ * Busca en todos los tokens y verifica si alguno coincide con el token ingresado
+ * Retorna el token si es válido, null en caso contrario
  */
-export async function verifyCredentials(email: string, password: string) {
+export async function verifyTokenAuth(plainToken: string) {
   try {
-    const userResult = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    // Obtener todos los tokens de la base de datos
+    const allTokens = await db.select().from(tokens);
 
-    if (userResult.length === 0) {
-      return null;
+    // Verificar cada token hasta encontrar uno que coincida
+    for (const tokenRecord of allTokens) {
+      const isValid = await verifyTokenHash(tokenRecord.token, plainToken);
+      
+      if (isValid) {
+        return tokenRecord;
+      }
     }
 
-    const user = userResult[0];
-
-    if (!user.active) {
-      return null;
-    }
-
-    const isValid = await verify(user.passwordHash, password);
-    
-    if (!isValid) {
-      return null;
-    }
-
-    return user;
+    // Si no se encontró ningún token válido
+    return null;
   } catch (error) {
-    console.error("Error verifying credentials:", error);
+    console.error("Error al verificar token:", error);
     return null;
   }
 }
