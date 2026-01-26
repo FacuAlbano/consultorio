@@ -1,0 +1,244 @@
+@import "tailwindcss";
+
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  
+  --color-consultorio-blue-50: #e3f2fd;
+  --color-consultorio-blue-100: #bbdefb;
+  --color-consultorio-blue-200: #90caf9;
+  --color-consultorio-blue-300: #64b5f6;
+  --color-consultorio-blue-400: #42a5f5;
+  --color-consultorio-blue-500: #2196f3;
+  --color-consultorio-blue-600: #1e88e5;
+  --color-consultorio-blue-700: #1976d2;
+  --color-consultorio-blue-800: #1565c0;
+  --color-consultorio-blue-900: #0d47a1;
+  --color-consultorio-blue-950: #0a3d91;
+}
+
+html,
+body {
+  @apply bg-background text-foreground;
+  font-family: "Poppins", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  @media (prefers-color-scheme: dark) {
+    color-scheme: dark;
+  }
+}
+
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-border: var(--input-border);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-header-bg: var(--header-bg);
+  --color-header-foreground: var(--header-foreground);
+}
+
+:root {
+  --radius: 0.5rem;
+  /* Light theme */
+  --background: #f7f7fa;
+  --foreground: rgb(33, 37, 41);
+  --card: #ffffff;
+  --card-foreground: rgb(33, 37, 41);
+  --popover: #ffffff;
+  --popover-foreground: rgb(33, 37, 41);
+  /* Primary color - Blue for medical/consultorio theme */
+  --primary: #1976d2;
+  --primary-foreground: #ffffff;
+  --secondary: #eff2f7;
+  --secondary-foreground: rgb(33, 37, 41);
+  --muted: #eff2f7;
+  --muted-foreground: #74788d;
+  --accent: #eff2f7;
+  --accent-foreground: rgb(33, 37, 41);
+  --destructive: #f46a6a;
+  --border: #e9ecef;
+  --input: #ffffff;
+  --input-border: #ced4da;
+  --ring: #1976d2;
+  --chart-1: #1976d2;
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  /* Header always white in light theme */
+  --header-bg: #ffffff;
+  --header-foreground: rgb(33, 37, 41);
+  /* Sidebar always dark */
+  --sidebar: #2a3042;
+  --sidebar-foreground: #a6b0cf;
+  --sidebar-primary: #1976d2;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #2a3042;
+  --sidebar-accent-foreground: #a6b0cf;
+  --sidebar-border: #32394e;
+  --sidebar-ring: #1976d2;
+}
+
+.dark {
+  /* Dark theme */
+  --background: #222736;
+  --foreground: #a6b0cf;
+  --card: #2a3042;
+  --card-foreground: #a6b0cf;
+  --popover: #2a3042;
+  --popover-foreground: #a6b0cf;
+  /* Primary color - Blue for medical/consultorio theme */
+  --primary: #1976d2;
+  --primary-foreground: #ffffff;
+  --secondary: #2a3042;
+  --secondary-foreground: #a6b0cf;
+  --muted: #32394e;
+  --muted-foreground: #c3cbe4;
+  --accent: #32394e;
+  --accent-foreground: #a6b0cf;
+  --destructive: #f46a6a;
+  --border: #32394e;
+  --input: #2a3042;
+  --input-border: #353d55;
+  --ring: #1976d2;
+  --chart-1: #1976d2;
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  /* Dark header in dark theme */
+  --header-bg: #262b3c;
+  --header-foreground: #a6b0cf;
+  /* Sidebar always dark */
+  --sidebar: #2a3042;
+  --sidebar-foreground: #a6b0cf;
+  --sidebar-primary: #1976d2;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #2a3042;
+  --sidebar-accent-foreground: #a6b0cf;
+  --sidebar-border: #32394e;
+  --sidebar-ring: #1976d2;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    font-family: "Poppins", ui-sans-serif, system-ui, sans-serif,
+      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Poppins", ui-sans-serif, system-ui, sans-serif,
+      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(209 213 219) transparent;
+  }
+  
+  .dark .scrollbar-thin {
+    scrollbar-color: rgb(75 85 99) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(209 213 219);
+    border-radius: 3px;
+    transition: background-color 0.2s;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(156 163 175);
+  }
+  
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(75 85 99);
+  }
+  
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(107 114 128);
+  }
+  
+  .scrollbar-thumb-gray-300 {
+    scrollbar-color: rgb(209 213 219) transparent;
+  }
+  
+  .scrollbar-thumb-gray-600 {
+    scrollbar-color: rgb(75 85 99) transparent;
+  }
+  
+  .scrollbar-track-transparent {
+    scrollbar-color: inherit transparent;
+  }
+  
+  .hover\:scrollbar-thumb-gray-400:hover {
+    scrollbar-color: rgb(156 163 175) transparent;
+  }
+  
+  .dark .hover\:scrollbar-thumb-gray-500:hover {
+    scrollbar-color: rgb(107 114 128) transparent;
+  }
+  
+  @keyframes loading-bar {
+    0% {
+      transform: translateX(-100%);
+    }
+    50% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  .animate-loading-bar {
+    animation: loading-bar 1.5s ease-in-out infinite;
+  }
+}
