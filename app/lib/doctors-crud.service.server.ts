@@ -135,7 +135,7 @@ export class DoctorCRUDService {
     const result = await createDoctor(data as DoctorInsert);
 
     if (!result.success) {
-      return { success: false, error: "Error al crear el médico" };
+      return { success: false, error: result.error || "Error al crear el médico" };
     }
 
     return { success: true, data: result.data };

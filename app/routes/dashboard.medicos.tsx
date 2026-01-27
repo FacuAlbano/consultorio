@@ -646,7 +646,7 @@ function DoctorProfileDialog({
   const [newUnavailableReason, setNewUnavailableReason] = useState("");
 
   const formatTime = (time: string | null) => {
-    if (!time) return "-";
+    if (!time) return "";
     return time.substring(0, 5);
   };
 
@@ -919,7 +919,10 @@ function DoctorProfileDialog({
                       >
                         <div>
                           <p className="font-medium text-sm">
-                            {new Date(day.date).toLocaleDateString("es-AR")}
+                            {(() => {
+                              const [year, month, dayNum] = day.date.split("-").map(Number);
+                              return new Date(year, month - 1, dayNum).toLocaleDateString("es-AR");
+                            })()}
                           </p>
                           {day.reason && (
                             <p className="text-xs text-muted-foreground">

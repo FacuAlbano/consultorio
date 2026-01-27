@@ -16,7 +16,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const userInfo = getUserInfo(tokenType);
 
   const url = new URL(request.url);
-  const date = url.searchParams.get("date") || new Date().toISOString().split("T")[0];
+  const today = new Date();
+  const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const date = url.searchParams.get("date") || localDate;
   const doctorId = url.searchParams.get("doctorId") || undefined;
 
   // Obtener turnos del día
@@ -67,7 +69,9 @@ export default function PoolAtencion() {
   };
 
   const clearFilters = () => {
-    setSelectedDate(new Date().toISOString().split("T")[0]);
+    const today = new Date();
+    const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    setSelectedDate(localDate);
     setSelectedDoctorId("");
     setSearchParams({}, { replace: true });
   };
