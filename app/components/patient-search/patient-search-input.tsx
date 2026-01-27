@@ -43,24 +43,46 @@ export function PatientSearchInput({
       return;
     }
 
+    // AbortController para cancelar peticiones anteriores
+    const abortController = new AbortController();
+
     // Debounce para búsqueda
     const timeoutId = setTimeout(async () => {
       setIsSearching(true);
       
       try {
-        const response = await fetch(`/api/patients/search?q=${encodeURIComponent(query)}`);
+        const response = await fetch(
+          `/api/patients/search?q=${encodeURIComponent(query)}`,
+          { signal: abortController.signal }
+        );
+        
+        // Verificar si la petición fue abortada
+        if (abortController.signal.aborted) {
+          return;
+        }
+        
         const data = await response.json();
         setSuggestions(data.patients || []);
         setShowSuggestions(true);
       } catch (error) {
+        // Ignorar errores de abort
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
         console.error("Error al buscar pacientes:", error);
         setSuggestions([]);
       } finally {
-        setIsSearching(false);
+        // Solo actualizar el estado si la petición no fue abortada
+        if (!abortController.signal.aborted) {
+          setIsSearching(false);
+        }
       }
     }, 300);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
   }, [query]);
 
   const handleSubmit = (e: React.FormEvent) => {

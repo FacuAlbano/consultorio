@@ -11,9 +11,12 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const theme = formData.get("theme") as string;
 
-  return {
-    headers: {
-      "Set-Cookie": await themeCookie.serialize(theme),
-    },
-  };
+  return Response.json(
+    { success: true, theme },
+    {
+      headers: {
+        "Set-Cookie": await themeCookie.serialize(theme),
+      },
+    }
+  );
 }

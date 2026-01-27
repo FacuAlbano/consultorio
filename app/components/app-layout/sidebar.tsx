@@ -166,8 +166,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       // Item con children directos (2 niveles)
       return (
         <div key={item.path || item.label}>
-          <button
-            onClick={() => toggleExpand(item.path || item.label)}
+          <div
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
               active
@@ -175,23 +174,40 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             )}
           >
-            <div className="flex items-center gap-3">
-              {item.icon && <item.icon className="h-5 w-5" />}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {item.icon && <item.icon className="h-5 w-5 flex-shrink-0" />}
               {item.path ? (
-                <Link to={item.path} className="flex-1 text-left">
+                <Link 
+                  to={item.path} 
+                  className="flex-1 text-left truncate"
+                  onClick={(e) => {
+                    // Si se hace click en el link, no expandir/colapsar
+                    e.stopPropagation();
+                  }}
+                >
                   {item.label}
                 </Link>
               ) : (
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
               )}
             </div>
-            <ChevronRight
-              className={cn(
-                "h-4 w-4 transition-transform",
-                isExpanded && "rotate-90"
-              )}
-            />
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpand(item.path || item.label);
+              }}
+              className="ml-2 p-1 rounded hover:bg-sidebar-accent/50 flex-shrink-0"
+              aria-label={isExpanded ? "Colapsar" : "Expandir"}
+              aria-expanded={isExpanded}
+            >
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  isExpanded && "rotate-90"
+                )}
+              />
+            </button>
+          </div>
           {isExpanded && (
             <div className="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-2">
               {item.children!.map((child) => renderMenuItem(child, level + 1))}

@@ -1,4 +1,4 @@
-import { createCookieSessionStorage, redirect } from "react-router";
+import { createCookieSessionStorage } from "react-router";
 import { PATHS } from "./constants";
 
 // Usar process.env en contexto del servidor, fallback para HMR del lado del cliente
@@ -70,17 +70,3 @@ export async function logout(request: Request) {
   };
 }
 
-/**
- * @deprecated Usar requireAuth de ~/lib/middleware en su lugar
- * Esta función se mantiene por compatibilidad pero redirige al login
- */
-export async function requireAuth(request: Request) {
-  const session = await getSession(request);
-  const tokenType = session.get("tokenType");
-
-  if (!tokenType) {
-    throw redirect(PATHS.login);
-  }
-
-  return { tokenType: tokenType as string };
-}

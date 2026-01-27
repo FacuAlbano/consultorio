@@ -18,6 +18,22 @@ export const CrudSelectField = forwardRef<HTMLSelectElement, CrudSelectFieldProp
   ({ name, label, options, error, className, ...props }, ref) => {
     const { register, formState } = useFormContext();
     const fieldError = error || formState.errors[name]?.message?.toString();
+    
+    // Extraer el ref de register y combinar con el ref externo
+    const { ref: registerRef, ...registerProps } = register(name);
+    
+    // Callback ref que combina ambos refs
+    const combinedRef = (element: HTMLSelectElement | null) => {
+      // Asignar el ref de react-hook-form (siempre es una función callback)
+      registerRef(element);
+      
+      // Asignar el ref externo
+      if (typeof ref === 'function') {
+        ref(element);
+      } else if (ref) {
+        ref.current = element;
+      }
+    };
 
     return (
       <div className="space-y-2">
@@ -27,9 +43,9 @@ export const CrudSelectField = forwardRef<HTMLSelectElement, CrudSelectFieldProp
         </label>
         <select
           id={name}
-          {...register(name)}
+          {...registerProps}
           {...props}
-          ref={ref}
+          ref={combinedRef}
           className={cn(
             "w-full px-3 py-2 bg-input border rounded-lg text-foreground",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
