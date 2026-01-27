@@ -73,7 +73,7 @@ export default function PoolAtencion() {
     const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     setSelectedDate(localDate);
     setSelectedDoctorId("");
-    setSearchParams({}, { replace: true });
+    setSearchParams({ date: localDate }, { replace: true });
   };
 
   const formatTime = (time: string | null) => {
