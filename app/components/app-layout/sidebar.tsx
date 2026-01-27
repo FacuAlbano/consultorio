@@ -5,7 +5,7 @@ import {
   Users, 
   Settings, 
   FileText,
-  X,
+  Menu,
   ChevronRight
 } from "lucide-react";
 import { PATHS } from "~/lib/constants";
@@ -14,7 +14,7 @@ import type { UserInfo } from "~/lib/user-info";
 
 interface SidebarProps {
   isOpen: boolean;
-  onClose: () => void;
+  onToggle: () => void;
   userInfo: UserInfo;
 }
 
@@ -102,7 +102,8 @@ const menuItems: MenuItem[] = [
 
 interface SidebarContentProps {
   userInfo: UserInfo;
-  onClose: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
   children: React.ReactNode;
 }
 
@@ -110,27 +111,38 @@ interface SidebarContentProps {
  * Componente de contenido del sidebar extraído para evitar remontajes
  * cuando cambian los estados de expansión del menú
  */
-function SidebarContent({ userInfo, onClose, children }: SidebarContentProps) {
+function SidebarContent({ userInfo, isOpen, onToggle, children }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
-        <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
+      <div className={cn(
+        "flex items-center border-b border-sidebar-border transition-all",
+        isOpen ? "justify-between px-4 py-4" : "justify-center px-2 py-4"
+      )}>
+        {isOpen && (
+          <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
+        )}
         <button
-          onClick={onClose}
-          className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground"
-          aria-label="Cerrar menú"
+          onClick={onToggle}
+          className={cn(
+            "p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors",
+            !isOpen && "mx-auto"
+          )}
+          aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
         >
-          <X className="h-5 w-5" />
+          <Menu className="h-5 w-5" />
         </button>
       </div>
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+      <nav className={cn(
+        "flex-1 py-4 space-y-1 overflow-y-auto transition-all",
+        isOpen ? "px-2" : "px-1"
+      )}>
         {children}
       </nav>
     </div>
   );
 }
 
-export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
+export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [expandedSubItems, setExpandedSubItems] = useState<string[]>([]);
@@ -162,6 +174,47 @@ export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
     const isExpanded = expandedItems.includes(item.path || item.label);
     const active = isActive(item.path);
 
+    // Cuando está cerrada, solo mostrar iconos
+    if (!isOpen) {
+      if (item.path) {
+        return (
+          <Link
+            key={item.path || item.label}
+            to={item.path}
+            className={cn(
+              "flex items-center justify-center p-2 rounded-lg transition-colors relative group",
+              active
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            )}
+            title={item.label}
+          >
+            {item.icon && <item.icon className="h-5 w-5" />}
+            {/* Tooltip cuando está cerrada */}
+            {!isOpen && (
+              <span className="absolute left-full ml-2 px-2 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[100] transition-opacity">
+                {item.label}
+              </span>
+            )}
+          </Link>
+        );
+      }
+      // Si no tiene path pero tiene icono, mostrar el icono
+      if (item.icon) {
+        return (
+          <div
+            key={item.path || item.label}
+            className="flex items-center justify-center p-2 rounded-lg text-sidebar-foreground/60"
+            title={item.label}
+          >
+            <item.icon className="h-5 w-5" />
+          </div>
+        );
+      }
+      return null;
+    }
+
+    // Cuando está abierta, mostrar contenido completo
     if (hasSubChildren) {
       // Item con submenús anidados (3 niveles)
       const subExpanded = expandedSubItems.includes(item.label);
@@ -176,7 +229,10 @@ export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
               level === 1 && "text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
             )}
           >
-            <span>{item.label}</span>
+            <div className="flex items-center gap-3">
+              {item.icon && <item.icon className="h-5 w-5 flex-shrink-0" />}
+              <span>{item.label}</span>
+            </div>
             <ChevronRight
               className={cn(
                 "h-4 w-4 transition-transform",
@@ -254,7 +310,6 @@ export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
         {item.path ? (
           <Link
             to={item.path}
-            onClick={onClose}
             className={cn(
               "flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
               isActive(item.path)
@@ -282,20 +337,17 @@ export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
   };
 
   return (
-    <>
-      {/* Sidebar - Desktop y Mobile con drawer */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ease-in-out",
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex flex-col h-full overflow-y-auto">
-          <SidebarContent userInfo={userInfo} onClose={onClose}>
-            {menuItems.map((item) => renderMenuItem(item))}
-          </SidebarContent>
-        </div>
-      </aside>
-    </>
+    <aside
+      className={cn(
+        "bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex-shrink-0",
+        isOpen ? "w-64" : "w-16"
+      )}
+    >
+      <div className="flex flex-col h-full overflow-y-auto">
+        <SidebarContent userInfo={userInfo} isOpen={isOpen} onToggle={onToggle}>
+          {menuItems.map((item) => renderMenuItem(item))}
+        </SidebarContent>
+      </div>
+    </aside>
   );
 }

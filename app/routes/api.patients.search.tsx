@@ -13,15 +13,19 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const url = new URL(request.url);
   const query = url.searchParams.get("q") || "";
+  const filter = url.searchParams.get("filter") || "all";
 
   if (query.length < 2) {
     return Response.json({ patients: [] });
   }
 
-  const patients = await searchPatients({
+  let searchOptions: Parameters<typeof searchPatients>[0] = {
     query,
     limit: 10, // Limitar a 10 resultados para autocompletado
-  });
+    filter: filter as "all" | "name" | "document" | "hc" | "insurance",
+  };
+
+  const patients = await searchPatients(searchOptions);
 
   // Formatear resultados para el autocompletado
   const formattedResults = patients.map((patient) => ({
