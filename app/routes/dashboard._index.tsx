@@ -12,20 +12,29 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { PATHS } from "~/lib/constants";
+import { requireAuth } from "~/lib/middleware";
+import { getUserInfo } from "~/lib/user-info";
 
 /**
  * Meta tags para la página de inicio
  */
-export function meta({}: Route.MetaArgs) {
+export function meta({ data }: Route.MetaArgs) {
+  const clinicName = data?.userInfo?.clinicName || "Consultorio";
   return [
-    { title: "Clínica Pendino - Sistema de Gestión" },
+    { title: `${clinicName} - Sistema de Gestión` },
     { name: "description", content: "Sistema de gestión de consultorio médico" },
   ];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const { tokenType } = await requireAuth(request);
+  
+  // Obtener información del usuario basada en el tokenType
+  const userInfo = getUserInfo(tokenType);
+  
   // TODO: Agregar estadísticas cuando tengamos datos
   return {
+    userInfo,
     // Estadísticas opcionales para el futuro
     stats: {
       turnosHoy: 0,
@@ -39,7 +48,7 @@ export async function loader({ request }: Route.LoaderArgs) {
  * Incluye buscador de pacientes, accesos rápidos y estadísticas
  */
 export default function Index() {
-  const { stats } = useLoaderData<typeof loader>();
+  const { stats, userInfo } = useLoaderData<typeof loader>();
 
   const quickActions = [
     {
@@ -99,11 +108,8 @@ export default function Index() {
         {/* Título principal */}
         <div className="text-center space-y-4">
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent drop-shadow-2xl">
-            CLÍNICA
+            {userInfo.clinicName.toUpperCase()}
           </h1>
-          <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold text-primary drop-shadow-lg">
-            PENDINO
-          </h2>
           <p className="text-lg md:text-xl text-muted-foreground mt-4">
             Sistema de Gestión de Consultorio Médico
           </p>

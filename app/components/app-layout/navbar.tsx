@@ -3,12 +3,14 @@ import { Form } from "react-router";
 import { PATHS } from "~/lib/constants";
 import { Button } from "~/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
+import type { UserInfo } from "~/lib/user-info";
 
 interface NavbarProps {
   onMenuClick: () => void;
+  userInfo: UserInfo;
 }
 
-export function Navbar({ onMenuClick }: NavbarProps) {
+export function Navbar({ onMenuClick, userInfo }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border bg-header-bg text-header-foreground shadow-sm">
@@ -24,7 +26,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
         {/* Logo/Título - solo visible en desktop cuando sidebar está visible */}
         <div className="hidden lg:block">
-          <h1 className="text-lg font-semibold text-primary">Clínica Pendino</h1>
+          <h1 className="text-lg font-semibold text-primary">{userInfo.clinicName}</h1>
         </div>
 
         {/* Spacer para centrar en mobile */}
@@ -77,7 +79,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
           {/* Nombre de la institución y usuario */}
           <div className="hidden md:flex items-center gap-2 px-3 text-sm">
-            <span className="text-muted-foreground">Centro Médico Cardiovascular</span>
+            <span className="text-muted-foreground">{userInfo.institutionName}</span>
           </div>
 
           {/* Botón de cerrar sesión */}
@@ -90,7 +92,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
               aria-label="Cerrar sesión"
             >
               <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">PENDINO LISANDRO</span>
+              <span className="hidden sm:inline">{userInfo.userName}</span>
             </Button>
           </Form>
         </div>

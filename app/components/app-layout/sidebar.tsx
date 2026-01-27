@@ -6,15 +6,16 @@ import {
   Settings, 
   FileText,
   X,
-  ChevronRight,
-  ChevronDown
+  ChevronRight
 } from "lucide-react";
 import { PATHS } from "~/lib/constants";
 import { cn } from "~/lib/utils";
+import type { UserInfo } from "~/lib/user-info";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  userInfo: UserInfo;
 }
 
 interface MenuItem {
@@ -99,7 +100,7 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [expandedSubItems, setExpandedSubItems] = useState<string[]>([]);
@@ -253,7 +254,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
-        <h2 className="text-xl font-bold text-sidebar-foreground">Clínica Pendino</h2>
+        <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
         <button
           onClick={onClose}
           className="lg:hidden p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground"

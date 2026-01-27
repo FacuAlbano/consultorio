@@ -1,6 +1,6 @@
 import { db } from "~/db/client";
 import { patients } from "~/db/schema";
-import { eq, and, or, like, ilike, desc } from "drizzle-orm";
+import { eq, or, ilike, desc } from "drizzle-orm";
 
 /**
  * Opciones para búsqueda de pacientes
@@ -132,7 +132,7 @@ export async function createPatient(data: typeof patients.$inferInsert) {
  * Actualiza un paciente existente
  * @param id ID del paciente
  * @param data Datos a actualizar
- * @returns El paciente actualizado
+ * @returns El paciente actualizado o error si no existe
  */
 export async function updatePatient(
   id: string,
@@ -147,6 +147,10 @@ export async function updatePatient(
     .where(eq(patients.id, id))
     .returning();
 
+  if (!updatedPatient) {
+    return { success: false, error: "Paciente no encontrado" };
+  }
+
   return { success: true, data: updatedPatient };
 }
 
@@ -156,6 +160,15 @@ export async function updatePatient(
  * @returns Resultado de la operación
  */
 export async function deletePatient(id: string) {
-  await db.delete(patients).where(eq(patients.id, id));
+  const [deletedPatient] = await db
+    .delete(patients)
+    .where(eq(patients.id, id))
+    .returning();
+  
+  // Verificar si se eliminó alguna fila
+  if (!deletedPatient) {
+    return { success: false, error: "Paciente no encontrado" };
+  }
+
   return { success: true };
 }
