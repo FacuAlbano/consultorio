@@ -1,7 +1,7 @@
 # Etapas del Proyecto - Sistema de Gestión de Consultorio Médico
 
 ## Etapa 1: Configuración Base y Autenticación
-**Estado:** 🔄 En progreso
+**Estado:** ✅ Completada
 
 ### 1.1 Configuración de Base de Datos
 - [x] Conexión a Supabase PostgreSQL
@@ -16,20 +16,42 @@
 - [x] Ejecutar migraciones de base de datos (`npm run db:push`)
 
 ### 1.2 Sistema de Autenticación
-- [ ] Implementar login con tokens
-- [ ] Middleware de autenticación
-- [ ] Gestión de sesiones
-- [ ] Protección de rutas
+- [x] Implementar login con tokens
+- [x] Middleware de autenticación
+- [x] Gestión de sesiones
+- [x] Protección de rutas
 
 ---
 
-## Etapa 2: Módulo de Inicio (Dashboard)
+## Etapa 2: Módulo de Inicio (Dashboard / Sistema de Gestión)
 **Estado:** ⏳ Pendiente
 
-### 2.1 Dashboard Principal
-- [ ] Página de inicio con resumen
-- [ ] Estadísticas generales
+### 2.1 Página Principal del Sistema
+- [ ] Diseño con título "DIGITAL SALUD" (estilo destacado)
+- [ ] Imagen de fondo con estetoscopio y elementos médicos
+- [ ] Buscador principal de pacientes
+  - [ ] Campo de búsqueda con placeholder "Haz tu busqueda por paciente..."
+  - [ ] Búsqueda en tiempo real
+  - [ ] Resultados de búsqueda
+  - [ ] Acceso rápido a perfil del paciente desde resultados
 - [ ] Accesos rápidos a funciones principales
+  - [ ] Pool de Atención
+  - [ ] Atender sin Turno
+  - [ ] Gestión de Pacientes
+  - [ ] Calendario
+- [ ] Estadísticas generales (opcional)
+  - [ ] Turnos del día
+  - [ ] Pacientes pendientes
+  - [ ] Resumen de actividad
+
+### 2.2 Funcionalidades del Buscador
+- [ ] Búsqueda por nombre de paciente
+- [ ] Búsqueda por número de documento
+- [ ] Búsqueda por número de historia clínica (HC)
+- [ ] Búsqueda por obra social
+- [ ] Autocompletado de resultados
+- [ ] Historial de búsquedas recientes
+- [ ] Filtros avanzados
 
 ---
 
@@ -89,6 +111,7 @@
 - [ ] Foto
 - [ ] Plantilla de Atención
 - [ ] Registrar Firma
+- [ ] Tipos de Turnos Asociados al Profesional
 - [ ] Ventana de Tiempo de Atención
 
 ---
@@ -184,6 +207,21 @@
 - [ ] Dashboard con métricas
 - [ ] Reportes personalizables
 - [ ] Exportación de datos
+
+### 7.4 Tutoriales y Ayuda
+- [ ] Sistema de tutoriales en video
+- [ ] Guías de uso de funcionalidades
+- [ ] Documentación integrada
+
+### 7.5 Comunicación del Sistema
+- [ ] Notas y comunicados del sistema
+- [ ] Mensajes importantes para usuarios
+- [ ] Historial de comunicaciones
+
+### 7.6 Información del Sistema
+- [ ] Modal "Acerca de"
+- [ ] Información de versión
+- [ ] Créditos y licencias
 
 ---
 

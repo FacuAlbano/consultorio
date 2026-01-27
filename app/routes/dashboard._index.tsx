@@ -1,5 +1,5 @@
 import { useLoaderData } from "react-router";
-import type { Route } from "./+types/_dashboard._index";
+import type { Route } from "./+types/dashboard._index";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 
 /**
