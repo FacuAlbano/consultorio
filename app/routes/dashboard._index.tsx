@@ -82,8 +82,7 @@ export default function Index() {
   ];
 
   const handleSearch = (query: string) => {
-    // TODO: Implementar navegación a resultados de búsqueda
-    console.log("Buscando:", query);
+    // La navegación es manejada internamente por PatientSearchInput
   };
 
   return (

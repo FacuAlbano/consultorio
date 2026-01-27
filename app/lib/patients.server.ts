@@ -23,7 +23,9 @@ export async function searchPatients(options: SearchPatientsOptions = {}) {
     return [];
   }
 
-  const searchTerm = `%${query}%`;
+  // Escapar caracteres especiales de LIKE (% y _)
+  const escapedQuery = query.replace(/[%_]/g, '\\$&');
+  const searchTerm = `%${escapedQuery}%`;
 
   const results = await db
     .select()

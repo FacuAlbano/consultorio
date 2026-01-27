@@ -251,29 +251,25 @@ export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
     );
   };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
-        <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
-        <button
-          onClick={onClose}
-          className="lg:hidden p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => renderMenuItem(item))}
-      </nav>
-    </div>
-  );
-
   return (
     <>
       {/* Sidebar Desktop */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
         <div className="flex flex-col flex-grow bg-sidebar border-r border-sidebar-border overflow-y-auto">
-          <SidebarContent />
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
+              <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
+              <button
+                onClick={onClose}
+                className="lg:hidden p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+              {menuItems.map((item) => renderMenuItem(item))}
+            </nav>
+          </div>
         </div>
       </aside>
 
@@ -284,7 +280,20 @@ export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <SidebarContent />
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
+            <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
+            <button
+              onClick={onClose}
+              className="lg:hidden p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+            {menuItems.map((item) => renderMenuItem(item))}
+          </nav>
+        </div>
       </aside>
     </>
   );

@@ -61,6 +61,12 @@ export function PatientSearchInput({
           return;
         }
         
+        if (!response.ok) {
+          console.error("Error al buscar pacientes:", response.statusText);
+          setSuggestions([]);
+          return;
+        }
+        
         const data = await response.json();
         setSuggestions(data.patients || []);
         setShowSuggestions(true);
