@@ -81,11 +81,6 @@ export default function Index() {
     },
   ];
 
-  const handleSearch = (query: string) => {
-    // TODO: Implementar navegación a resultados de búsqueda
-    console.log("Buscando:", query);
-  };
-
   return (
     <div className="relative min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-4 md:p-8">
       {/* Imagen de fondo con estetoscopio y elementos médicos */}
@@ -118,7 +113,6 @@ export default function Index() {
         {/* Buscador de pacientes */}
         <div className="flex justify-center">
           <PatientSearchInput
-            onSearch={handleSearch}
             className="w-full"
           />
         </div>

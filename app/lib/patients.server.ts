@@ -12,6 +12,16 @@ export interface SearchPatientsOptions {
 }
 
 /**
+ * Escapa caracteres especiales de SQL LIKE (% y _) para que sean tratados como literales
+ * @param str String a escapar
+ * @returns String con caracteres especiales escapados
+ */
+function escapeLikePattern(str: string): string {
+  // Escapar % y _ con backslash (estándar de PostgreSQL)
+  return str.replace(/[%_\\]/g, (char) => `\\${char}`);
+}
+
+/**
  * Busca pacientes por nombre, documento, HC u obra social
  * @param options Opciones de búsqueda
  * @returns Lista de pacientes que coinciden con la búsqueda
@@ -23,7 +33,9 @@ export async function searchPatients(options: SearchPatientsOptions = {}) {
     return [];
   }
 
-  const searchTerm = `%${query}%`;
+  // Escapar caracteres especiales antes de construir el patrón
+  const escapedQuery = escapeLikePattern(query);
+  const searchTerm = `%${escapedQuery}%`;
 
   const results = await db
     .select()

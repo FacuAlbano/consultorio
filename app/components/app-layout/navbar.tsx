@@ -15,17 +15,17 @@ export function Navbar({ onMenuClick, userInfo }: NavbarProps) {
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border bg-header-bg text-header-foreground shadow-sm">
       <div className="flex h-14 items-center justify-between px-4 lg:px-6">
-        {/* Botón de menú mobile */}
+        {/* Botón de menú - visible en todos los tamaños */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+          className="p-2 rounded-lg hover:bg-muted transition-colors"
           aria-label="Abrir menú"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* Logo/Título - solo visible en desktop cuando sidebar está visible */}
-        <div className="hidden lg:block">
+        {/* Logo/Título - visible en desktop */}
+        <div className="hidden lg:block ml-2">
           <h1 className="text-lg font-semibold text-primary">{userInfo.clinicName}</h1>
         </div>
 

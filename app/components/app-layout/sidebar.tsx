@@ -100,6 +100,36 @@ const menuItems: MenuItem[] = [
   },
 ];
 
+interface SidebarContentProps {
+  userInfo: UserInfo;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+
+/**
+ * Componente de contenido del sidebar extraído para evitar remontajes
+ * cuando cambian los estados de expansión del menú
+ */
+function SidebarContent({ userInfo, onClose, children }: SidebarContentProps) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
+        <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground"
+          aria-label="Cerrar menú"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+        {children}
+      </nav>
+    </div>
+  );
+}
+
 export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -251,40 +281,20 @@ export function Sidebar({ isOpen, onClose, userInfo }: SidebarProps) {
     );
   };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
-        <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
-        <button
-          onClick={onClose}
-          className="lg:hidden p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => renderMenuItem(item))}
-      </nav>
-    </div>
-  );
-
   return (
     <>
-      {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col flex-grow bg-sidebar border-r border-sidebar-border overflow-y-auto">
-          <SidebarContent />
-        </div>
-      </aside>
-
-      {/* Sidebar Mobile - Drawer */}
+      {/* Sidebar - Desktop y Mobile con drawer */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ease-in-out lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <SidebarContent />
+        <div className="flex flex-col h-full overflow-y-auto">
+          <SidebarContent userInfo={userInfo} onClose={onClose}>
+            {menuItems.map((item) => renderMenuItem(item))}
+          </SidebarContent>
+        </div>
       </aside>
     </>
   );

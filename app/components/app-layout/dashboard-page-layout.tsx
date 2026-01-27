@@ -16,23 +16,23 @@ export function DashboardPageLayout({ userInfo }: DashboardPageLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar - Desktop siempre visible, Mobile con drawer */}
+      {/* Sidebar - Drawer para desktop y mobile */}
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
         userInfo={userInfo}
       />
 
-      {/* Overlay para mobile cuando sidebar está abierto */}
+      {/* Overlay cuando sidebar está abierto */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Contenido principal */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Navbar */}
         <Navbar 
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}

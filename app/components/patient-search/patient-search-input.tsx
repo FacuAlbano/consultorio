@@ -61,6 +61,11 @@ export function PatientSearchInput({
           return;
         }
         
+        // Verificar si la respuesta es exitosa antes de parsear JSON
+        if (!response.ok) {
+          throw new Error(`Error en la búsqueda: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
         setSuggestions(data.patients || []);
         setShowSuggestions(true);
