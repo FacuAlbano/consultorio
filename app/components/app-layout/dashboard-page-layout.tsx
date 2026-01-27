@@ -12,30 +12,21 @@ interface DashboardPageLayoutProps {
  * Layout principal del dashboard con sidebar y navbar responsive
  */
 export function DashboardPageLayout({ userInfo }: DashboardPageLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Abierta por defecto
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar - Drawer para desktop y mobile */}
+      {/* Sidebar - Siempre visible, colapsable */}
       <Sidebar 
         isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
         userInfo={userInfo}
       />
-
-      {/* Overlay cuando sidebar está abierto */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
 
       {/* Contenido principal */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Navbar */}
         <Navbar 
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           userInfo={userInfo}
         />
 
