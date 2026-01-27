@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.patients.search";
 import { searchPatients } from "~/lib/patients.server";
-import { getSession } from "~/lib/session";
+import { requireAuthApi } from "~/lib/middleware";
 
 /**
  * API route para búsqueda de pacientes
@@ -9,12 +9,7 @@ import { getSession } from "~/lib/session";
  */
 export async function loader({ request }: Route.LoaderArgs) {
   // Verificar autenticación
-  const session = await getSession(request);
-  const tokenType = session.get("tokenType");
-
-  if (!tokenType) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  await requireAuthApi(request);
 
   const url = new URL(request.url);
   const query = url.searchParams.get("q") || "";
