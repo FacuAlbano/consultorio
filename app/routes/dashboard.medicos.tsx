@@ -53,32 +53,47 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get("intent") as string;
 
   if (intent === DOCTOR_ACTIONS.CREATE) {
-    return await DoctorCRUDService.createDoctor({ formData });
+    const result = await DoctorCRUDService.createDoctor({ formData });
+    return { ...result, actionType: DOCTOR_ACTIONS.CREATE };
   }
 
   if (intent === DOCTOR_ACTIONS.UPDATE) {
     const doctorId = formData.get("doctorId") as string;
-    return await DoctorCRUDService.updateDoctor({ doctorId, formData });
+    const result = await DoctorCRUDService.updateDoctor({ doctorId, formData });
+    return { ...result, actionType: DOCTOR_ACTIONS.UPDATE };
   }
 
   if (intent === DOCTOR_ACTIONS.DELETE) {
     const doctorId = formData.get("doctorId") as string;
-    return await DoctorCRUDService.deleteDoctor({ doctorId });
+    const result = await DoctorCRUDService.deleteDoctor({ doctorId });
+    return { ...result, actionType: DOCTOR_ACTIONS.DELETE };
   }
 
   if (intent === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY) {
     const doctorId = formData.get("doctorId") as string;
     const date = formData.get("date") as string;
     const reason = formData.get("reason") as string || undefined;
-    return await addDoctorUnavailableDay(doctorId, date, reason);
+    const result = await addDoctorUnavailableDay(doctorId, date, reason);
+    return {
+      success: result.success,
+      data: result.data,
+      error: result.error,
+      actionType: DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY,
+    };
   }
 
   if (intent === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY) {
     const dayId = formData.get("dayId") as string;
-    return await removeDoctorUnavailableDay(dayId);
+    const result = await removeDoctorUnavailableDay(dayId);
+    return {
+      success: result.success,
+      ...("data" in result && result.data ? { data: result.data } : {}),
+      ...("error" in result && result.error ? { error: result.error } : {}),
+      actionType: DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY,
+    };
   }
 
-  return { success: false, error: "Acción no válida" };
+  return { success: false, error: "Acción no válida", actionType: "" };
 }
 
 export default function Medicos() {
@@ -89,16 +104,26 @@ export default function Medicos() {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
-  const unavailableDaysFetcher = useFetcher<{ data: any[] }>();
+  const unavailableDaysFetcher = useFetcher<any[]>();
 
   const isSubmitting = navigation.state === "submitting";
 
-  // Cargar días no laborables cuando se abre el dialog
+  // Cargar días no laborables cuando se abre el dialog o cambia el médico seleccionado
+  // Usamos useRef para rastrear el último ID cargado y forzar recarga cuando cambia
+  const lastLoadedDoctorId = React.useRef<string | null>(null);
+  
   React.useEffect(() => {
-    if (profileDialogOpen && selectedDoctor && !unavailableDaysFetcher.data) {
-      unavailableDaysFetcher.load(`/api/doctors/${selectedDoctor.id}/unavailable-days`);
+    if (profileDialogOpen && selectedDoctor?.id) {
+      // Si el ID del médico cambió, forzar recarga incluso si hay datos en caché
+      if (lastLoadedDoctorId.current !== selectedDoctor.id) {
+        lastLoadedDoctorId.current = selectedDoctor.id;
+        unavailableDaysFetcher.load(`/api/doctors/${selectedDoctor.id}/unavailable-days`);
+      }
+    } else if (!profileDialogOpen) {
+      // Limpiar la referencia cuando se cierra el diálogo
+      lastLoadedDoctorId.current = null;
     }
-  }, [profileDialogOpen, selectedDoctor]);
+  }, [profileDialogOpen, selectedDoctor?.id]);
 
   // Recargar días no laborables después de acciones exitosas
   React.useEffect(() => {
@@ -107,7 +132,21 @@ export default function Medicos() {
     }
   }, [actionData, selectedDoctor]);
 
-  const doctorUnavailableDays = (unavailableDaysFetcher.data as any[]) || [];
+  // Estado local para los días no disponibles del médico actual
+  // Se limpia cuando cambia el médico para evitar mostrar datos del médico anterior
+  const [doctorUnavailableDays, setDoctorUnavailableDays] = React.useState<any[]>([]);
+  
+  // Limpiar días no disponibles cuando cambia el médico seleccionado
+  React.useEffect(() => {
+    setDoctorUnavailableDays([]);
+  }, [selectedDoctor?.id]);
+  
+  // Actualizar días no disponibles cuando el fetcher tiene datos
+  React.useEffect(() => {
+    if (unavailableDaysFetcher.data) {
+      setDoctorUnavailableDays((unavailableDaysFetcher.data as any[]) || []);
+    }
+  }, [unavailableDaysFetcher.data]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,19 +178,11 @@ export default function Medicos() {
     }
   };
 
-  const handleViewProfile = async (doctor: any) => {
+  const handleViewProfile = (doctor: any) => {
     setSelectedDoctor(doctor);
     setProfileDialogOpen(true);
-    // Cargar días no laborables
-    try {
-      const response = await fetch(`/api/doctors/${doctor.id}/unavailable-days`);
-      if (response.ok) {
-        const data = await response.json();
-        setDoctorUnavailableDays(data);
-      }
-    } catch {
-      setDoctorUnavailableDays([]);
-    }
+    // Los días no laborables se cargan automáticamente mediante el useEffect
+    // cuando profileDialogOpen y selectedDoctor cambian
   };
 
   const config: CrudLayoutConfig = {
@@ -631,7 +662,7 @@ function DoctorProfileDialog({
         {/* Mensajes */}
         {actionData?.success && (
           <div className="p-3 rounded-md bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200 text-sm">
-            {actionData.actionType === "update" && "Médico actualizado exitosamente"}
+            {actionData.actionType === DOCTOR_ACTIONS.UPDATE && "Médico actualizado exitosamente"}
             {actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY && "Día no laborable agregado"}
             {actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY && "Día no laborable eliminado"}
           </div>

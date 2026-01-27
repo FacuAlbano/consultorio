@@ -90,18 +90,36 @@ export async function getAllDoctors(options: SearchDoctorsOptions = {}) {
 /**
  * Crea un nuevo médico
  * @param data Datos del médico
- * @returns El médico creado
+ * @returns El médico creado o error si falla
  */
 export async function createDoctor(data: typeof doctors.$inferInsert) {
-  const [newDoctor] = await db
-    .insert(doctors)
-    .values({
-      ...data,
-      updatedAt: new Date(),
-    })
-    .returning();
+  try {
+    const [newDoctor] = await db
+      .insert(doctors)
+      .values({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .returning();
 
-  return { success: true, data: newDoctor };
+    return { success: true, data: newDoctor };
+  } catch (error: any) {
+    // Manejar errores de restricción única (documento duplicado)
+    if (error?.code === "23505") {
+      // Error de violación de restricción única
+      if (error?.constraint?.includes("document_number") || error?.message?.includes("document_number")) {
+        return { success: false, error: "Ya existe un médico con este número de documento" };
+      }
+      if (error?.constraint?.includes("license_number") || error?.message?.includes("license_number")) {
+        return { success: false, error: "Ya existe un médico con esta matrícula profesional" };
+      }
+      return { success: false, error: "Ya existe un registro con estos datos" };
+    }
+    
+    // Otros errores de base de datos
+    console.error("Error al crear médico:", error);
+    return { success: false, error: "Error al crear el médico. Por favor, intente nuevamente." };
+  }
 }
 
 /**
@@ -118,20 +136,37 @@ export async function updateDoctor(
     return { success: false, error: "ID de médico inválido" };
   }
 
-  const [updatedDoctor] = await db
-    .update(doctors)
-    .set({
-      ...data,
-      updatedAt: new Date(),
-    })
-    .where(eq(doctors.id, id))
-    .returning();
+  try {
+    const [updatedDoctor] = await db
+      .update(doctors)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(doctors.id, id))
+      .returning();
 
-  if (!updatedDoctor) {
-    return { success: false, error: "Médico no encontrado" };
+    if (!updatedDoctor) {
+      return { success: false, error: "Médico no encontrado" };
+    }
+
+    return { success: true, data: updatedDoctor };
+  } catch (error: any) {
+    // Manejar errores de restricción única (documento duplicado)
+    if (error?.code === "23505") {
+      if (error?.constraint?.includes("document_number") || error?.message?.includes("document_number")) {
+        return { success: false, error: "Ya existe un médico con este número de documento" };
+      }
+      if (error?.constraint?.includes("license_number") || error?.message?.includes("license_number")) {
+        return { success: false, error: "Ya existe un médico con esta matrícula profesional" };
+      }
+      return { success: false, error: "Ya existe un registro con estos datos" };
+    }
+    
+    // Otros errores de base de datos
+    console.error("Error al actualizar médico:", error);
+    return { success: false, error: "Error al actualizar el médico. Por favor, intente nuevamente." };
   }
-
-  return { success: true, data: updatedDoctor };
 }
 
 /**
@@ -217,16 +252,35 @@ export async function addDoctorUnavailableDay(
     return { success: false, error: "ID de médico inválido" };
   }
 
-  const [newUnavailableDay] = await db
-    .insert(doctorUnavailableDays)
-    .values({
-      doctorId,
-      date,
-      reason,
-    })
-    .returning();
+  try {
+    const [newUnavailableDay] = await db
+      .insert(doctorUnavailableDays)
+      .values({
+        doctorId,
+        date,
+        reason,
+      })
+      .returning();
 
-  return { success: true, data: newUnavailableDay };
+    return { success: true, data: newUnavailableDay };
+  } catch (error: any) {
+    // Manejar errores de restricción única (día duplicado para el mismo médico)
+    if (error?.code === "23505") {
+      return { success: false, error: "Este día ya está marcado como no laborable para este médico" };
+    }
+    
+    // Manejar errores de clave foránea
+    if (error?.code === "23503") {
+      if (error?.constraint?.includes("doctor_id") || error?.message?.includes("doctor_id")) {
+        return { success: false, error: "El médico seleccionado no existe" };
+      }
+      return { success: false, error: "Uno de los datos seleccionados no es válido" };
+    }
+    
+    // Otros errores de base de datos
+    console.error("Error al agregar día no laborable:", error);
+    return { success: false, error: "Error al agregar el día no laborable. Por favor, intente nuevamente." };
+  }
 }
 
 /**

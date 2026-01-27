@@ -141,18 +141,46 @@ export async function getAppointmentById(id: string) {
 /**
  * Crea un nuevo turno
  * @param data Datos del turno
- * @returns El turno creado
+ * @returns El turno creado o error si falla
  */
 export async function createAppointment(data: typeof appointments.$inferInsert) {
-  const [newAppointment] = await db
-    .insert(appointments)
-    .values({
-      ...data,
-      updatedAt: new Date(),
-    })
-    .returning();
+  try {
+    const [newAppointment] = await db
+      .insert(appointments)
+      .values({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .returning();
 
-  return { success: true, data: newAppointment };
+    return { success: true, data: newAppointment };
+  } catch (error: any) {
+    // Manejar errores de restricción única
+    if (error?.code === "23505") {
+      return { success: false, error: "Ya existe un turno con estos datos" };
+    }
+    
+    // Manejar errores de clave foránea (referencias inválidas)
+    if (error?.code === "23503") {
+      if (error?.constraint?.includes("doctor_id") || error?.message?.includes("doctor_id")) {
+        return { success: false, error: "El médico seleccionado no existe" };
+      }
+      if (error?.constraint?.includes("patient_id") || error?.message?.includes("patient_id")) {
+        return { success: false, error: "El paciente seleccionado no existe" };
+      }
+      if (error?.constraint?.includes("consulting_room_id") || error?.message?.includes("consulting_room_id")) {
+        return { success: false, error: "El consultorio seleccionado no existe" };
+      }
+      if (error?.constraint?.includes("appointment_type_id") || error?.message?.includes("appointment_type_id")) {
+        return { success: false, error: "El tipo de turno seleccionado no existe" };
+      }
+      return { success: false, error: "Uno de los datos seleccionados no es válido" };
+    }
+    
+    // Otros errores de base de datos
+    console.error("Error al crear turno:", error);
+    return { success: false, error: "Error al crear el turno. Por favor, intente nuevamente." };
+  }
 }
 
 /**
@@ -169,20 +197,48 @@ export async function updateAppointment(
     return { success: false, error: "ID de turno inválido" };
   }
 
-  const [updatedAppointment] = await db
-    .update(appointments)
-    .set({
-      ...data,
-      updatedAt: new Date(),
-    })
-    .where(eq(appointments.id, id))
-    .returning();
+  try {
+    const [updatedAppointment] = await db
+      .update(appointments)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(appointments.id, id))
+      .returning();
 
-  if (!updatedAppointment) {
-    return { success: false, error: "Turno no encontrado" };
+    if (!updatedAppointment) {
+      return { success: false, error: "Turno no encontrado" };
+    }
+
+    return { success: true, data: updatedAppointment };
+  } catch (error: any) {
+    // Manejar errores de restricción única
+    if (error?.code === "23505") {
+      return { success: false, error: "Ya existe un turno con estos datos" };
+    }
+    
+    // Manejar errores de clave foránea (referencias inválidas)
+    if (error?.code === "23503") {
+      if (error?.constraint?.includes("doctor_id") || error?.message?.includes("doctor_id")) {
+        return { success: false, error: "El médico seleccionado no existe" };
+      }
+      if (error?.constraint?.includes("patient_id") || error?.message?.includes("patient_id")) {
+        return { success: false, error: "El paciente seleccionado no existe" };
+      }
+      if (error?.constraint?.includes("consulting_room_id") || error?.message?.includes("consulting_room_id")) {
+        return { success: false, error: "El consultorio seleccionado no existe" };
+      }
+      if (error?.constraint?.includes("appointment_type_id") || error?.message?.includes("appointment_type_id")) {
+        return { success: false, error: "El tipo de turno seleccionado no existe" };
+      }
+      return { success: false, error: "Uno de los datos seleccionados no es válido" };
+    }
+    
+    // Otros errores de base de datos
+    console.error("Error al actualizar turno:", error);
+    return { success: false, error: "Error al actualizar el turno. Por favor, intente nuevamente." };
   }
-
-  return { success: true, data: updatedAppointment };
 }
 
 /**
