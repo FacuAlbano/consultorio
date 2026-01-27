@@ -9,11 +9,6 @@ interface NavbarProps {
 }
 
 export function Navbar({ onMenuClick }: NavbarProps) {
-  const submit = useSubmit();
-
-  const handleLogout = () => {
-    submit(null, { method: "post", action: PATHS.logout });
-  };
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border bg-header-bg text-header-foreground shadow-sm">
@@ -29,7 +24,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
         {/* Logo/Título - solo visible en desktop cuando sidebar está visible */}
         <div className="hidden lg:block">
-          <h1 className="text-lg font-semibold text-primary">Consultorio</h1>
+          <h1 className="text-lg font-semibold text-primary">Clínica Pendino</h1>
         </div>
 
         {/* Spacer para centrar en mobile */}
