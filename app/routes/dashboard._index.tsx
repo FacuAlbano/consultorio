@@ -147,33 +147,44 @@ export default function Index() {
           })}
         </div>
 
-        {/* Estadísticas (opcional, cuando tengamos datos) */}
-        {stats.turnosHoy > 0 || stats.pacientesPendientes > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Turnos del día</p>
-                    <p className="text-3xl font-bold text-foreground">{stats.turnosHoy}</p>
-                  </div>
-                  <Calendar className="h-12 w-12 text-primary opacity-50" />
+        {/* Estadísticas generales */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Turnos del día</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.turnosHoy}</p>
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pacientes pendientes</p>
-                    <p className="text-3xl font-bold text-foreground">{stats.pacientesPendientes}</p>
-                  </div>
-                  <Users className="h-12 w-12 text-primary opacity-50" />
+                <Calendar className="h-12 w-12 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Pacientes pendientes</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.pacientesPendientes}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : null}
+                <Users className="h-12 w-12 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Resumen de actividad</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {stats.turnosHoy + stats.pacientesPendientes}
+                  </p>
+                </div>
+                <Activity className="h-12 w-12 text-primary opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

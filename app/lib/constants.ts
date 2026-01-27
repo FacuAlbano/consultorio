@@ -7,4 +7,5 @@ export const PATHS = {
   login: "/login",
   logout: "/logout",
   dashboard: "/dashboard",
+  patientProfile: (id: string) => `/pacientes/${id}`,
 } as const;
