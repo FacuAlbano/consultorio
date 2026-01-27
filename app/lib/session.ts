@@ -70,13 +70,3 @@ export async function logout(request: Request) {
   };
 }
 
-export async function requireAuth(request: Request) {
-  const session = await getSession(request);
-  const tokenType = session.get("tokenType");
-
-  if (!tokenType) {
-    throw new Response("Unauthorized", { status: 401 });
-  }
-
-  return { tokenType: tokenType as string };
-}

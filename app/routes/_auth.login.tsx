@@ -8,6 +8,7 @@ import type { Route } from "./+types/_auth.login";
 import { verifyTokenAuth } from "~/lib/auth";
 import { createUserSession } from "~/lib/session";
 import { PATHS } from "~/lib/constants";
+import { requireGuest } from "~/lib/middleware";
 
 type LoginFormData = {
   token: string;
@@ -18,6 +19,11 @@ export function meta({}: Route.MetaArgs) {
     { title: "Login - Consultorio" },
     { name: "description", content: "Iniciar sesión en Consultorio" },
   ];
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
+  await requireGuest(request);
+  return {};
 }
 
 export async function action({ request }: Route.ActionArgs) {

@@ -44,3 +44,6 @@ coverage/
 
 # react-router
 .react-router/
+
+# Documentación del proyecto (no subir al repo)
+ETAPAS_PROYECTO.md
