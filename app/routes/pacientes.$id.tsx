@@ -2,6 +2,7 @@ import { useLoaderData } from "react-router";
 import type { Route } from "./+types/pacientes.$id";
 import { getPatientById } from "~/lib/patients.server";
 import { requireAuth } from "~/lib/middleware";
+import { isValidUUID } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { User, FileText, Phone, Mail, MapPin, Calendar, CreditCard } from "lucide-react";
 
@@ -11,6 +12,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   if (!id) {
     throw new Response("ID de paciente no proporcionado", { status: 400 });
+  }
+
+  // Validar que el ID sea un UUID válido antes de consultar la base de datos
+  if (!isValidUUID(id)) {
+    throw new Response("ID de paciente inválido", { status: 400 });
   }
 
   const patient = await getPatientById(id);

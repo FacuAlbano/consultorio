@@ -19,14 +19,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     return Response.json({ patients: [] });
   }
 
-  // Aplicar filtro si está especificado
   let searchOptions: Parameters<typeof searchPatients>[0] = {
     query,
     limit: 10, // Limitar a 10 resultados para autocompletado
+    filter: filter as "all" | "name" | "document" | "hc" | "insurance",
   };
 
-  // Nota: Los filtros se aplican en el frontend por ahora
-  // En el futuro se pueden optimizar en el backend
   const patients = await searchPatients(searchOptions);
 
   // Formatear resultados para el autocompletado

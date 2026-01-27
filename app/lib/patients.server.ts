@@ -9,6 +9,7 @@ export interface SearchPatientsOptions {
   query?: string;
   limit?: number;
   offset?: number;
+  filter?: "all" | "name" | "document" | "hc" | "insurance";
 }
 
 /**
@@ -27,7 +28,7 @@ function escapeLikePattern(str: string): string {
  * @returns Lista de pacientes que coinciden con la búsqueda
  */
 export async function searchPatients(options: SearchPatientsOptions = {}) {
-  const { query = "", limit = 20, offset = 0 } = options;
+  const { query = "", limit = 20, offset = 0, filter = "all" } = options;
 
   if (!query || query.length < 2) {
     return [];
@@ -37,18 +38,34 @@ export async function searchPatients(options: SearchPatientsOptions = {}) {
   const escapedQuery = escapeLikePattern(query);
   const searchTerm = `%${escapedQuery}%`;
 
+  // Aplicar filtro específico según la selección
+  let whereCondition;
+  if (filter === "name") {
+    whereCondition = or(
+      ilike(patients.firstName, searchTerm),
+      ilike(patients.lastName, searchTerm)
+    );
+  } else if (filter === "document") {
+    whereCondition = ilike(patients.documentNumber, searchTerm);
+  } else if (filter === "hc") {
+    whereCondition = ilike(patients.medicalRecordNumber, searchTerm);
+  } else if (filter === "insurance") {
+    whereCondition = ilike(patients.insuranceCompany, searchTerm);
+  } else {
+    // "all" - buscar en todos los campos
+    whereCondition = or(
+      ilike(patients.firstName, searchTerm),
+      ilike(patients.lastName, searchTerm),
+      ilike(patients.documentNumber, searchTerm),
+      ilike(patients.medicalRecordNumber, searchTerm),
+      ilike(patients.insuranceCompany, searchTerm)
+    );
+  }
+
   const results = await db
     .select()
     .from(patients)
-    .where(
-      or(
-        ilike(patients.firstName, searchTerm),
-        ilike(patients.lastName, searchTerm),
-        ilike(patients.documentNumber, searchTerm),
-        ilike(patients.medicalRecordNumber, searchTerm),
-        ilike(patients.insuranceCompany, searchTerm)
-      )
-    )
+    .where(whereCondition)
     .limit(limit)
     .offset(offset)
     .orderBy(desc(patients.createdAt));
