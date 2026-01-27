@@ -218,7 +218,7 @@ export default function Medicos() {
       <CrudLayout
         config={config}
         renderFilters={({ filters }) => (
-          <form onSubmit={handleSearch} className="flex gap-2">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
             <Input
               type="text"
               value={searchQuery}
@@ -226,22 +226,25 @@ export default function Medicos() {
               placeholder="Buscar por nombre, documento, matrícula, especialidad..."
               className="flex-1"
             />
-            <Button type="submit">
-              <Search className="h-4 w-4 mr-2" />
-              Buscar
-            </Button>
-            {searchQuery && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchParams({}, { replace: true });
-                }}
-              >
-                Limpiar
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1 sm:flex-initial">
+                <Search className="h-4 w-4 sm:mr-2" />
+                <span className="sm:inline">Buscar</span>
               </Button>
-            )}
+              {searchQuery && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSearchParams({}, { replace: true });
+                  }}
+                  className="sm:flex-initial"
+                >
+                  <span className="sm:inline">Limpiar</span>
+                </Button>
+              )}
+            </div>
           </form>
         )}
         renderList={({ items, onEdit }) => (
@@ -316,7 +319,7 @@ function CreateDoctorDialog({
         )}
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CrudInputField
               name="firstName"
               label="Nombre"
@@ -331,7 +334,7 @@ function CreateDoctorDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CrudSelectField
               name="documentType"
               label="Tipo Documento"
@@ -382,7 +385,7 @@ function CreateDoctorDialog({
             placeholder="https://..."
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CrudInputField
               name="attentionWindowStart"
               label="Hora Inicio Ventana de Atención"
@@ -407,15 +410,16 @@ function CreateDoctorDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
           >
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -463,7 +467,7 @@ function EditDoctorDialog({
         )}
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CrudInputField
               name="firstName"
               label="Nombre"
@@ -480,7 +484,7 @@ function EditDoctorDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CrudSelectField
               name="documentType"
               label="Tipo Documento"
@@ -537,7 +541,7 @@ function EditDoctorDialog({
             placeholder="https://..."
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CrudInputField
               name="attentionWindowStart"
               label="Hora Inicio Ventana de Atención"
@@ -565,15 +569,16 @@ function EditDoctorDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
           >
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -638,7 +643,7 @@ function DoctorProfileDialog({
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Columna principal */}
           <div className="lg:col-span-2 space-y-4">
             {/* Datos Personales */}
@@ -654,7 +659,7 @@ function DoctorProfileDialog({
                   <input type="hidden" name="intent" value={DOCTOR_ACTIONS.UPDATE} />
                   <input type="hidden" name="doctorId" value={doctor.id} />
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <CrudInputField
                       name="firstName"
                       label="Nombre"
@@ -669,7 +674,7 @@ function DoctorProfileDialog({
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <CrudSelectField
                       name="documentType"
                       label="Tipo Documento"
@@ -764,7 +769,7 @@ function DoctorProfileDialog({
                     defaultValue={doctor.signatureUrl || ""}
                   />
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <CrudInputField
                       name="attentionWindowStart"
                       label="Hora Inicio Ventana"

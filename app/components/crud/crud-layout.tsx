@@ -50,19 +50,19 @@ export function CrudLayout({
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{config.title}</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{config.title}</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             {config.pagination
               ? `Total: ${config.pagination.totalItems} ${config.itemName}${config.pagination.totalItems !== 1 ? "s" : ""}`
               : `${config.items.length} ${config.itemName}${config.items.length !== 1 ? "s" : ""}`}
           </p>
         </div>
         {renderCreateDialog && (
-          <Button onClick={handleCreateClick}>
+          <Button onClick={handleCreateClick} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Nuevo {config.itemName}
           </Button>
@@ -72,16 +72,16 @@ export function CrudLayout({
       {/* Filters */}
       {renderFilters && (
         <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Filtros</CardTitle>
           </CardHeader>
-          <CardContent>{renderFilters({ filters: config.filters })}</CardContent>
+          <CardContent className="pt-0">{renderFilters({ filters: config.filters })}</CardContent>
         </Card>
       )}
 
       {/* List */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="p-4 sm:p-6 sm:pt-6">
           {renderList({ 
             items: config.items,
             onEdit: renderEditDialog ? handleEditClick : undefined,
