@@ -110,6 +110,63 @@ export const doctorUnavailableDays = pgTable("doctor_unavailable_days", {
   doctorDateUniqueIdx: uniqueIndex("doctor_unavailable_days_doctor_date_unique_idx").on(table.doctorId, table.date),
 }));
 
+// Tabla de instituciones
+export const institutions = pgTable("institutions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  address: text("address"),
+  phone: varchar("phone", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  website: varchar("website", { length: 255 }),
+  logoUrl: text("logo_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  nameIdx: index("institutions_name_idx").on(table.name),
+}));
+
+// Tabla de obras sociales
+export const insuranceCompanies = pgTable("insurance_companies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  code: varchar("code", { length: 50 }), // Código de la obra social
+  description: text("description"),
+  phone: varchar("phone", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  website: varchar("website", { length: 255 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  nameIdx: index("insurance_companies_name_idx").on(table.name),
+  codeIdx: index("insurance_companies_code_idx").on(table.code),
+  isActiveIdx: index("insurance_companies_is_active_idx").on(table.isActive),
+}));
+
+// Tabla de relación médico-tipo de turno (muchos a muchos)
+export const doctorAppointmentTypes = pgTable("doctor_appointment_types", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  doctorId: uuid("doctor_id").notNull().references(() => doctors.id, { onDelete: "cascade" }),
+  appointmentTypeId: uuid("appointment_type_id").notNull().references(() => appointmentTypes.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  doctorIdIdx: index("doctor_appointment_types_doctor_id_idx").on(table.doctorId),
+  appointmentTypeIdIdx: index("doctor_appointment_types_appointment_type_id_idx").on(table.appointmentTypeId),
+  doctorAppointmentTypeUniqueIdx: uniqueIndex("doctor_appointment_types_doctor_appointment_type_unique_idx").on(table.doctorId, table.appointmentTypeId),
+}));
+
+// Tabla de días no laborables generales (de la institución)
+export const institutionUnavailableDays = pgTable("institution_unavailable_days", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  date: date("date").notNull(),
+  reason: text("reason"), // Motivo del día no laborable
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  dateIdx: index("institution_unavailable_days_date_idx").on(table.date),
+  dateUniqueIdx: uniqueIndex("institution_unavailable_days_date_unique_idx").on(table.date),
+}));
+
 // Tabla de turnos
 export const appointments = pgTable(
   "appointments",
@@ -143,6 +200,7 @@ export const appointments = pgTable(
 export const doctorsRelations = relations(doctors, ({ many }) => ({
   unavailableDays: many(doctorUnavailableDays),
   appointments: many(appointments),
+  appointmentTypes: many(doctorAppointmentTypes),
 }));
 
 export const patientsRelations = relations(patients, ({ many }) => ({
@@ -168,6 +226,22 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
   }),
 }));
 
+export const appointmentTypesRelations = relations(appointmentTypes, ({ many }) => ({
+  doctors: many(doctorAppointmentTypes),
+  appointments: many(appointments),
+}));
+
+export const doctorAppointmentTypesRelations = relations(doctorAppointmentTypes, ({ one }) => ({
+  doctor: one(doctors, {
+    fields: [doctorAppointmentTypes.doctorId],
+    references: [doctors.id],
+  }),
+  appointmentType: one(appointmentTypes, {
+    fields: [doctorAppointmentTypes.appointmentTypeId],
+    references: [appointmentTypes.id],
+  }),
+}));
+
 // Inferencia de tipos desde los esquemas de Drizzle
 export type Token = typeof tokens.$inferSelect;
 export type TokenInsert = typeof tokens.$inferInsert;
@@ -189,3 +263,15 @@ export type AppointmentInsert = typeof appointments.$inferInsert;
 
 export type DoctorUnavailableDay = typeof doctorUnavailableDays.$inferSelect;
 export type DoctorUnavailableDayInsert = typeof doctorUnavailableDays.$inferInsert;
+
+export type Institution = typeof institutions.$inferSelect;
+export type InstitutionInsert = typeof institutions.$inferInsert;
+
+export type InsuranceCompany = typeof insuranceCompanies.$inferSelect;
+export type InsuranceCompanyInsert = typeof insuranceCompanies.$inferInsert;
+
+export type DoctorAppointmentType = typeof doctorAppointmentTypes.$inferSelect;
+export type DoctorAppointmentTypeInsert = typeof doctorAppointmentTypes.$inferInsert;
+
+export type InstitutionUnavailableDay = typeof institutionUnavailableDays.$inferSelect;
+export type InstitutionUnavailableDayInsert = typeof institutionUnavailableDays.$inferInsert;
