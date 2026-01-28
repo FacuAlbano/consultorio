@@ -82,15 +82,25 @@ export async function removeDoctorAppointmentType(id: string) {
     return { success: false, error: "ID inválido" };
   }
 
-  const [deletedRelation] = await db
-    .delete(doctorAppointmentTypes)
-    .where(eq(doctorAppointmentTypes.id, id))
-    .returning();
+  try {
+    const [deletedRelation] = await db
+      .delete(doctorAppointmentTypes)
+      .where(eq(doctorAppointmentTypes.id, id))
+      .returning();
 
-  if (!deletedRelation) {
-    return { success: false, error: "Asociación no encontrada" };
+    if (!deletedRelation) {
+      return { success: false, error: "Asociación no encontrada" };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    // Manejar errores de clave foránea
+    if (error?.code === "23503") {
+      return { success: false, error: "No se puede eliminar la asociación porque tiene datos relacionados" };
+    }
+    
+    console.error("Error al eliminar asociación de tipo de turno:", error);
+    return { success: false, error: "Error al eliminar la asociación. Por favor, intente nuevamente." };
   }
-
-  return { success: true };
 }
 

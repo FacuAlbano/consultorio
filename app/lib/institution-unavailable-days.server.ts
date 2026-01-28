@@ -68,14 +68,24 @@ export async function removeInstitutionUnavailableDay(id: string) {
     return { success: false, error: "ID inválido" };
   }
 
-  const [deletedDay] = await db
-    .delete(institutionUnavailableDays)
-    .where(eq(institutionUnavailableDays.id, id))
-    .returning();
+  try {
+    const [deletedDay] = await db
+      .delete(institutionUnavailableDays)
+      .where(eq(institutionUnavailableDays.id, id))
+      .returning();
 
-  if (!deletedDay) {
-    return { success: false, error: "Día no laborable no encontrado" };
+    if (!deletedDay) {
+      return { success: false, error: "Día no laborable no encontrado" };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    // Manejar errores de clave foránea
+    if (error?.code === "23503") {
+      return { success: false, error: "No se puede eliminar el día no laborable porque tiene datos relacionados" };
+    }
+    
+    console.error("Error al eliminar día no laborable:", error);
+    return { success: false, error: "Error al eliminar el día no laborable. Por favor, intente nuevamente." };
   }
-
-  return { success: true };
 }
