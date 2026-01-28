@@ -354,6 +354,7 @@ export default function Medicos() {
           unavailableDays={doctorUnavailableDays}
           appointmentTypes={appointmentTypesFetcher.data || []}
           allAppointmentTypes={allAppointmentTypesFetcher.data || []}
+          appointmentTypesFetcherState={appointmentTypesFetcher.state}
           actionData={actionData}
           isSubmitting={isSubmitting}
         />
@@ -674,6 +675,7 @@ function DoctorProfileDialog({
   unavailableDays,
   appointmentTypes,
   allAppointmentTypes,
+  appointmentTypesFetcherState,
   actionData,
   isSubmitting,
 }: {
@@ -683,6 +685,7 @@ function DoctorProfileDialog({
   unavailableDays: any[];
   appointmentTypes: any[];
   allAppointmentTypes: any[];
+  appointmentTypesFetcherState: "idle" | "loading" | "submitting";
   actionData?: any;
   isSubmitting: boolean;
 }) {
@@ -692,7 +695,17 @@ function DoctorProfileDialog({
   const [showAppointmentTypeForm, setShowAppointmentTypeForm] = useState(false);
   const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState("");
 
+  // Resetear estado del formulario cuando cambia el doctor
+  React.useEffect(() => {
+    setShowUnavailableDayForm(false);
+    setNewUnavailableDate("");
+    setNewUnavailableReason("");
+    setShowAppointmentTypeForm(false);
+    setSelectedAppointmentTypeId("");
+  }, [doctor.id]);
+
   // Filtrar tipos de turnos disponibles (que no están ya asociados)
+  // Solo calcular cuando ambos fetchers hayan terminado de cargar para evitar race condition
   const availableAppointmentTypes = allAppointmentTypes.filter(
     (type) => !appointmentTypes.some((at) => at.appointmentType.id === type.id)
   );
@@ -1027,7 +1040,7 @@ function DoctorProfileDialog({
                     size="sm"
                     className="w-full"
                     onClick={() => setShowAppointmentTypeForm(true)}
-                    disabled={availableAppointmentTypes.length === 0}
+                    disabled={appointmentTypesFetcherState === "loading" || availableAppointmentTypes.length === 0}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Agregar Tipo de Turno
