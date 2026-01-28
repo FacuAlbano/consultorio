@@ -223,7 +223,7 @@ function CreateInsuranceCompanyDialog({
     if (open && actionData?.success && actionData.actionType === INSURANCE_COMPANY_ACTIONS.CREATE) {
       onOpenChange(false);
     }
-  }, [open, actionData, onOpenChange]);
+  }, [actionData, onOpenChange]);
 
   return (
     <ResponsiveDialog
@@ -342,7 +342,7 @@ function EditInsuranceCompanyDialog({
     if (open && actionData?.success && actionData.actionType === INSURANCE_COMPANY_ACTIONS.UPDATE) {
       onOpenChange(false);
     }
-  }, [open, actionData, onOpenChange]);
+  }, [actionData, onOpenChange]);
 
   return (
     <ResponsiveDialog

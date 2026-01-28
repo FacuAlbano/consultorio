@@ -217,7 +217,7 @@ function CreateAppointmentTypeDialog({
     if (open && actionData?.success && actionData.actionType === APPOINTMENT_TYPE_ACTIONS.CREATE) {
       onOpenChange(false);
     }
-  }, [open, actionData, onOpenChange]);
+  }, [actionData, onOpenChange]);
 
   return (
     <ResponsiveDialog
@@ -303,7 +303,7 @@ function EditAppointmentTypeDialog({
     if (open && actionData?.success && actionData.actionType === APPOINTMENT_TYPE_ACTIONS.UPDATE) {
       onOpenChange(false);
     }
-  }, [open, actionData, onOpenChange]);
+  }, [actionData, onOpenChange]);
 
   return (
     <ResponsiveDialog

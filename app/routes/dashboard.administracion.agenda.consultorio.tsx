@@ -204,7 +204,7 @@ function CreateConsultingRoomDialog({
     if (open && actionData?.success && actionData.actionType === CONSULTING_ROOM_ACTIONS.CREATE) {
       onOpenChange(false);
     }
-  }, [open, actionData, onOpenChange]);
+  }, [actionData, onOpenChange]);
 
   return (
     <ResponsiveDialog
@@ -282,7 +282,7 @@ function EditConsultingRoomDialog({
     if (open && actionData?.success && actionData.actionType === CONSULTING_ROOM_ACTIONS.UPDATE) {
       onOpenChange(false);
     }
-  }, [open, actionData, onOpenChange]);
+  }, [actionData, onOpenChange]);
 
   return (
     <ResponsiveDialog
