@@ -211,7 +211,7 @@ function CreateInstitutionDialog({
   isSubmitting: boolean;
 }) {
   React.useEffect(() => {
-    if (actionData?.success && actionData.actionType === INSTITUTION_ACTIONS.CREATE) {
+    if (open && actionData?.success && actionData.actionType === INSTITUTION_ACTIONS.CREATE) {
       onOpenChange(false);
     }
   }, [actionData, onOpenChange]);
@@ -324,7 +324,7 @@ function EditInstitutionDialog({
   isSubmitting: boolean;
 }) {
   React.useEffect(() => {
-    if (actionData?.success && actionData.actionType === INSTITUTION_ACTIONS.UPDATE) {
+    if (open && actionData?.success && actionData.actionType === INSTITUTION_ACTIONS.UPDATE) {
       onOpenChange(false);
     }
   }, [actionData, onOpenChange]);
