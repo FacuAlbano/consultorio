@@ -196,7 +196,10 @@ export default function Medicos() {
       key: "name",
       header: "Nombre",
       render: (doctor) => (
-        <div className="flex items-center gap-3">
+        <button
+          onClick={() => handleViewProfile(doctor)}
+          className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity w-full"
+        >
           {doctor.photoUrl ? (
             <img
               src={doctor.photoUrl}
@@ -216,7 +219,7 @@ export default function Medicos() {
               <div className="text-sm text-muted-foreground">{doctor.specialty}</div>
             )}
           </div>
-        </div>
+        </button>
       ),
     },
     {
@@ -282,7 +285,7 @@ export default function Medicos() {
           <CrudTable
             items={items}
             columns={columns}
-            onEdit={(doctor) => handleViewProfile(doctor)}
+            onEdit={onEdit}
             onDelete={handleDelete}
             emptyMessage="No se encontraron médicos"
           />
