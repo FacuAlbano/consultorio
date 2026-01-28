@@ -214,7 +214,7 @@ function CreateAppointmentTypeDialog({
   isSubmitting: boolean;
 }) {
   React.useEffect(() => {
-    if (actionData?.success && actionData.actionType === APPOINTMENT_TYPE_ACTIONS.CREATE) {
+    if (open && actionData?.success && actionData.actionType === APPOINTMENT_TYPE_ACTIONS.CREATE) {
       onOpenChange(false);
     }
   }, [actionData, onOpenChange]);
@@ -300,7 +300,7 @@ function EditAppointmentTypeDialog({
   isSubmitting: boolean;
 }) {
   React.useEffect(() => {
-    if (actionData?.success && actionData.actionType === APPOINTMENT_TYPE_ACTIONS.UPDATE) {
+    if (open && actionData?.success && actionData.actionType === APPOINTMENT_TYPE_ACTIONS.UPDATE) {
       onOpenChange(false);
     }
   }, [actionData, onOpenChange]);

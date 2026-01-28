@@ -76,14 +76,14 @@ export default function DiasNoLaborables() {
   React.useEffect(() => {
     if (actionData?.success) {
       if (actionData.actionType === UNAVAILABLE_DAY_ACTIONS.ADD && actionData.data) {
-        setDays([actionData.data, ...days]);
+        setDays(prev => [actionData.data, ...prev]);
         setShowAddForm(false);
         setNewDate("");
         setNewReason("");
       } else if (actionData.actionType === UNAVAILABLE_DAY_ACTIONS.REMOVE) {
         const dayId = actionData.data?.id || (actionData as any).dayId;
         if (dayId) {
-          setDays(days.filter((day) => day.id !== dayId));
+          setDays(prev => prev.filter((day) => day.id !== dayId));
         }
       }
       // Recargar datos desde el servidor

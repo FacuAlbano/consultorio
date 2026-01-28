@@ -220,7 +220,7 @@ function CreateInsuranceCompanyDialog({
   isSubmitting: boolean;
 }) {
   React.useEffect(() => {
-    if (actionData?.success && actionData.actionType === INSURANCE_COMPANY_ACTIONS.CREATE) {
+    if (open && actionData?.success && actionData.actionType === INSURANCE_COMPANY_ACTIONS.CREATE) {
       onOpenChange(false);
     }
   }, [actionData, onOpenChange]);
@@ -339,7 +339,7 @@ function EditInsuranceCompanyDialog({
   isSubmitting: boolean;
 }) {
   React.useEffect(() => {
-    if (actionData?.success && actionData.actionType === INSURANCE_COMPANY_ACTIONS.UPDATE) {
+    if (open && actionData?.success && actionData.actionType === INSURANCE_COMPANY_ACTIONS.UPDATE) {
       onOpenChange(false);
     }
   }, [actionData, onOpenChange]);
