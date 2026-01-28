@@ -93,7 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     return {
       success: false,
-      error: "Error al crear la consulta",
+      error: result.error || "Error al crear la consulta",
     };
   }
 

@@ -282,7 +282,7 @@ export default function Medicos() {
           <CrudTable
             items={items}
             columns={columns}
-            onEdit={(doctor) => handleViewProfile(doctor)}
+            onEdit={onEdit}
             onDelete={handleDelete}
             emptyMessage="No se encontraron médicos"
           />
