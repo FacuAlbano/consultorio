@@ -697,6 +697,14 @@ function DoctorProfileDialog({
     (type) => !appointmentTypes.some((at) => at.appointmentType.id === type.id)
   );
 
+  // Resetear formulario de tipo de turno después de agregar exitosamente
+  React.useEffect(() => {
+    if (actionData?.success && actionData.actionType === DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE) {
+      setShowAppointmentTypeForm(false);
+      setSelectedAppointmentTypeId("");
+    }
+  }, [actionData]);
+
   const formatTime = (time: string | null) => {
     if (!time) return "";
     return time.substring(0, 5);

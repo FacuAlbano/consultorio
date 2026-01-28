@@ -52,6 +52,7 @@ export async function action({ request }: Route.ActionArgs) {
       success: result.success,
       ...("data" in result && result.data ? { data: result.data } : {}),
       ...("error" in result && result.error ? { error: result.error } : {}),
+      dayId,
       actionType: UNAVAILABLE_DAY_ACTIONS.REMOVE,
     };
   }

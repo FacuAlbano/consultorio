@@ -48,10 +48,8 @@ function extractInsuranceCompanyData(formData: FormData): Partial<InsuranceCompa
     const value = formData.get("website") as string;
     data.website = value && value.trim().length > 0 ? value.trim() : undefined;
   }
-  if (formData.has("isActive")) {
-    const value = formData.get("isActive") as string;
-    data.isActive = value === "true" || value === "on";
-  }
+  // Los checkboxes desmarcados no se incluyen en FormData, así que isActive debe tratarse explícitamente
+  data.isActive = formData.has("isActive");
 
   return data;
 }
