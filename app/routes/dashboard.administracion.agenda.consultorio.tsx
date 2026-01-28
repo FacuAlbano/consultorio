@@ -201,10 +201,10 @@ function CreateConsultingRoomDialog({
   isSubmitting: boolean;
 }) {
   React.useEffect(() => {
-    if (actionData?.success && actionData.actionType === CONSULTING_ROOM_ACTIONS.CREATE) {
+    if (open && actionData?.success && actionData.actionType === CONSULTING_ROOM_ACTIONS.CREATE) {
       onOpenChange(false);
     }
-  }, [actionData, onOpenChange]);
+  }, [open, actionData, onOpenChange]);
 
   return (
     <ResponsiveDialog
@@ -279,10 +279,10 @@ function EditConsultingRoomDialog({
   isSubmitting: boolean;
 }) {
   React.useEffect(() => {
-    if (actionData?.success && actionData.actionType === CONSULTING_ROOM_ACTIONS.UPDATE) {
+    if (open && actionData?.success && actionData.actionType === CONSULTING_ROOM_ACTIONS.UPDATE) {
       onOpenChange(false);
     }
-  }, [actionData, onOpenChange]);
+  }, [open, actionData, onOpenChange]);
 
   return (
     <ResponsiveDialog
