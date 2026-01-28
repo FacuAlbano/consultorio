@@ -1,6 +1,6 @@
 import { db } from "~/db/client";
 import { insuranceCompanies } from "~/db/schema";
-import { eq, ilike, desc, and } from "drizzle-orm";
+import { eq, ilike, desc, and, or } from "drizzle-orm";
 import { isValidUUID } from "~/lib/utils";
 
 /**
@@ -24,8 +24,10 @@ export async function searchInsuranceCompanies(options: SearchInsuranceCompanies
   if (query && query.length >= 2) {
     const searchTerm = `%${query}%`;
     conditions.push(
-      ilike(insuranceCompanies.name, searchTerm),
-      ilike(insuranceCompanies.code, searchTerm)
+      or(
+        ilike(insuranceCompanies.name, searchTerm),
+        ilike(insuranceCompanies.code, searchTerm)
+      )
     );
   }
 
