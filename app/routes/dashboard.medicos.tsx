@@ -143,8 +143,8 @@ export default function Medicos() {
   
   // Actualizar días no disponibles cuando el fetcher tiene datos
   React.useEffect(() => {
-    if (unavailableDaysFetcher.data) {
-      setDoctorUnavailableDays((unavailableDaysFetcher.data as any[]) || []);
+    if (unavailableDaysFetcher.data && Array.isArray(unavailableDaysFetcher.data)) {
+      setDoctorUnavailableDays(unavailableDaysFetcher.data);
     }
   }, [unavailableDaysFetcher.data]);
 
@@ -346,7 +346,7 @@ function CreateDoctorDialog({
       <Form method="post" className="space-y-4">
         <input type="hidden" name="intent" value={DOCTOR_ACTIONS.CREATE} />
 
-        {actionData?.error && (
+        {actionData?.error && actionData.actionType === DOCTOR_ACTIONS.CREATE && (
           <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
             {actionData.error}
           </div>
@@ -494,7 +494,7 @@ function EditDoctorDialog({
         <input type="hidden" name="intent" value={DOCTOR_ACTIONS.UPDATE} />
         <input type="hidden" name="doctorId" value={doctor.id} />
 
-        {actionData?.error && (
+        {actionData?.error && actionData.actionType === DOCTOR_ACTIONS.UPDATE && (
           <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
             {actionData.error}
           </div>
@@ -671,7 +671,7 @@ function DoctorProfileDialog({
           </div>
         )}
 
-        {actionData?.error && (
+        {actionData?.error && (actionData.actionType === DOCTOR_ACTIONS.UPDATE || actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY || actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY) && (
           <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
             {actionData.error}
           </div>
