@@ -1,4 +1,4 @@
-import { pgTable, varchar, uuid, text, timestamp, boolean, date, time, index } from "drizzle-orm/pg-core";
+import { pgTable, varchar, uuid, text, timestamp, boolean, date, time, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // Esquema base para la aplicación consultorio
@@ -107,6 +107,7 @@ export const doctorUnavailableDays = pgTable("doctor_unavailable_days", {
 }, (table) => ({
   doctorIdIdx: index("doctor_unavailable_days_doctor_id_idx").on(table.doctorId),
   dateIdx: index("doctor_unavailable_days_date_idx").on(table.date),
+  doctorDateUniqueIdx: uniqueIndex("doctor_unavailable_days_doctor_date_unique_idx").on(table.doctorId, table.date),
 }));
 
 // Tabla de turnos

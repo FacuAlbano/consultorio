@@ -111,7 +111,10 @@ export default function AtenderSinTurno() {
 
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [formStep, setFormStep] = useState<"patient" | "appointment">("patient");
-  const [appointmentDate, setAppointmentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [appointmentDate, setAppointmentDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  });
   const [appointmentTime, setAppointmentTime] = useState(new Date().toTimeString().slice(0, 5));
 
   // Cuando se selecciona un paciente desde el buscador
