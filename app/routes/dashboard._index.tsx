@@ -55,14 +55,14 @@ export default function Index() {
       title: "Pool de Atención",
       description: "Ver turnos del día",
       icon: ClipboardList,
-      href: "/medicos/pool",
+      href: PATHS.poolAtencion,
       color: "bg-blue-500 hover:bg-blue-600",
     },
     {
       title: "Atender sin Turno",
       description: "Atención sin cita previa",
       icon: UserPlus,
-      href: "/medicos/atender",
+      href: PATHS.atenderSinTurno,
       color: "bg-green-500 hover:bg-green-600",
     },
     {

@@ -1,4 +1,4 @@
-import { LogOut, Video, MessageSquare, HelpCircle } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Form } from "react-router";
 import { PATHS } from "~/lib/constants";
 import { Button } from "~/components/ui/button";
@@ -26,46 +26,6 @@ export function Navbar({ userInfo }: NavbarProps) {
         <div className="flex items-center gap-2">
           {/* Toggle de tema */}
           <ThemeToggle />
-
-          {/* Tutoriales */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            title="Tutoriales"
-            aria-label="Tutoriales"
-          >
-            <Video className="h-4 w-4" />
-            <span className="hidden sm:inline">Tutoriales</span>
-          </Button>
-
-          {/* Comunicación */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            title="Comunicación con Digital Salud"
-            aria-label="Comunicación"
-          >
-            <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">Comunicación</span>
-          </Button>
-
-          {/* Acerca de */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            title="Acerca de"
-            aria-label="Acerca de"
-            onClick={() => {
-              // TODO: Implementar modal de "Acerca de"
-              alert("Digital Salud - Sistema de Gestión de Consultorio\nVersión 1.0.0");
-            }}
-          >
-            <HelpCircle className="h-4 w-4" />
-            <span className="hidden sm:inline">Ayuda</span>
-          </Button>
 
           {/* Nombre de la institución y usuario */}
           <div className="hidden md:flex items-center gap-2 px-3 text-sm">

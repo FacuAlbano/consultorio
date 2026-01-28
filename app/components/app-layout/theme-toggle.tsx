@@ -41,13 +41,13 @@ export function ThemeToggle() {
       className="gap-2"
       aria-label={`Cambiar a tema ${theme === "light" ? "oscuro" : "claro"}`}
     >
-      {theme === "light" ? (
+      {theme === "dark" ? (
         <Moon className="h-4 w-4" />
       ) : (
         <Sun className="h-4 w-4" />
       )}
       <span className="hidden sm:inline">
-        {theme === "light" ? "Oscuro" : "Claro"}
+        {theme === "dark" ? "Oscuro" : "Claro"}
       </span>
     </Button>
   );

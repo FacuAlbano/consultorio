@@ -8,4 +8,9 @@ export const PATHS = {
   logout: "/logout",
   dashboard: "/dashboard",
   patientProfile: (id: string) => `/pacientes/${id}`,
+  poolAtencion: "/dashboard/pool-atencion",
+  atenderSinTurno: "/dashboard/atender-sin-turno",
+  medicos: "/dashboard/medicos",
+  medicoNuevo: "/dashboard/medicos/nuevo",
+  medicoProfile: (id: string) => `/dashboard/medicos/${id}`,
 } as const;

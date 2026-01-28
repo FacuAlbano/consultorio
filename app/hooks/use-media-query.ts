@@ -1,34 +1,29 @@
 import { useState, useEffect } from "react";
 
 /**
- * Hook para detectar si una media query coincide
+ * Hook personalizado para detectar si una media query coincide
+ * Útil para hacer componentes responsive
+ * 
+ * @example
+ * const isMobile = useMediaQuery("(max-width: 767px)");
+ * const isDesktop = useMediaQuery("(min-width: 768px)");
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(query).matches;
+  });
 
   useEffect(() => {
-    const media = window.matchMedia(query);
+    if (typeof window === "undefined") return;
     
-    // Establecer el valor inicial
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
-
-    // Listener para cambios
-    const listener = (event: MediaQueryListEvent) => {
-      setMatches(event.matches);
-    };
-
-    // Agregar listener (usar addEventListener si está disponible, sino addListener)
-    if (media.addEventListener) {
-      media.addEventListener("change", listener);
-      return () => media.removeEventListener("change", listener);
-    } else {
-      // Fallback para navegadores antiguos
-      media.addListener(listener);
-      return () => media.removeListener(listener);
-    }
-  }, [matches, query]);
+    const media = window.matchMedia(query);
+    setMatches(media.matches);
+    
+    const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [query]);
 
   return matches;
 }

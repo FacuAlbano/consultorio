@@ -6,7 +6,9 @@ import {
   Settings, 
   FileText,
   Menu,
-  ChevronRight
+  ChevronRight,
+  Stethoscope,
+  UserPlus
 } from "lucide-react";
 import { PATHS } from "~/lib/constants";
 import { cn } from "~/lib/utils";
@@ -34,11 +36,12 @@ const menuItems: MenuItem[] = [
   },
   {
     label: "Médicos",
-    icon: Users,
-    path: "/medicos",
+    icon: Stethoscope,
+    path: PATHS.medicos,
     children: [
-      { label: "Pool de Atención", path: "/medicos/pool" },
-      { label: "Atender sin Turno", path: "/medicos/atender" },
+      { label: "Pool de Atención", path: PATHS.poolAtencion, icon: Stethoscope },
+      { label: "Atender sin Turno", path: PATHS.atenderSinTurno, icon: UserPlus },
+      { label: "Gestión de Médicos", path: PATHS.medicos, icon: Users },
     ],
   },
   {
