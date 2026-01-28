@@ -47,40 +47,28 @@ const menuItems: MenuItem[] = [
   {
     label: "Administración de Recursos",
     icon: Settings,
-    path: "/administracion",
+    path: PATHS.administracion.consultorio,
     children: [
       {
         label: "Recursos para Generación de Agenda",
         children: [
-          { label: "Asignación de Consultorio", path: "/administracion/agenda/consultorio", badge: "nuevo" },
-          { label: "Días no Laborables", path: "/administracion/agenda/dias-no-laborables" },
-          { label: "Solicitar Tipo de Turno", path: "/administracion/agenda/solicitar-turno" },
+          { label: "Asignación de Consultorio", path: PATHS.administracion.consultorio, badge: "nuevo" },
+          { label: "Días no Laborables", path: PATHS.administracion.diasNoLaborables },
+          { label: "Solicitar Tipo de Turno", path: PATHS.administracion.solicitarTurno },
         ],
       },
       {
         label: "Recursos para la Página Web",
         children: [
-          { label: "Datos de Institución", path: "/administracion/web/institucion" },
-          { label: "Tipos de Turnos de la Institución", path: "/administracion/web/tipos-turnos" },
+          { label: "Datos de Institución", path: PATHS.administracion.institucion },
+          { label: "Tipos de Turnos de la Institución", path: PATHS.administracion.tiposTurnos },
         ],
       },
       {
         label: "Recursos para Registro de Pacientes",
         children: [
-          { label: "Obras Sociales de la Institución", path: "/administracion/pacientes/obras-sociales" },
-          { label: "Solicitar Obra Social", path: "/administracion/pacientes/solicitar-obra-social" },
-        ],
-      },
-      {
-        label: "Recursos para Médicos",
-        children: [
-          { label: "Datos Personales", path: "/administracion/medicos/datos-personales" },
-          { label: "Días no Laborables como Profesional", path: "/administracion/medicos/dias-no-laborables", badge: "nuevo" },
-          { label: "Foto", path: "/administracion/medicos/foto" },
-          { label: "Plantilla de Atención", path: "/administracion/medicos/plantilla", badge: "nuevo" },
-          { label: "Registrar Firma", path: "/administracion/medicos/firma" },
-          { label: "Tipos de Turnos Asociados al Profesional", path: "/administracion/medicos/tipos-turnos" },
-          { label: "Ventana de Tiempo de Atención", path: "/administracion/medicos/ventana-tiempo" },
+          { label: "Obras Sociales de la Institución", path: PATHS.administracion.obrasSociales },
+          { label: "Solicitar Obra Social", path: PATHS.administracion.solicitarObraSocial },
         ],
       },
     ],

@@ -12,7 +12,7 @@ import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Users, Search, Edit, User, Loader2, Calendar, Image, FileText, Clock, Plus, X } from "lucide-react";
+import { Users, Search, Edit, User, Loader2, Calendar, Image, FileText, Clock, Plus, X, Stethoscope } from "lucide-react";
 import { useState } from "react";
 
 // Constantes de acciones
@@ -22,6 +22,8 @@ const DOCTOR_ACTIONS = {
   DELETE: "delete",
   ADD_UNAVAILABLE_DAY: "addUnavailableDay",
   REMOVE_UNAVAILABLE_DAY: "removeUnavailableDay",
+  ADD_APPOINTMENT_TYPE: "addAppointmentType",
+  REMOVE_APPOINTMENT_TYPE: "removeAppointmentType",
 } as const;
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -93,6 +95,31 @@ export async function action({ request }: Route.ActionArgs) {
     };
   }
 
+  if (intent === DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE) {
+    const { addDoctorAppointmentType } = await import("~/lib/doctor-appointment-types.server");
+    const doctorId = formData.get("doctorId") as string;
+    const appointmentTypeId = formData.get("appointmentTypeId") as string;
+    const result = await addDoctorAppointmentType(doctorId, appointmentTypeId);
+    return {
+      success: result.success,
+      data: result.data,
+      error: result.error,
+      actionType: DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE,
+    };
+  }
+
+  if (intent === DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE) {
+    const { removeDoctorAppointmentType } = await import("~/lib/doctor-appointment-types.server");
+    const relationId = formData.get("relationId") as string;
+    const result = await removeDoctorAppointmentType(relationId);
+    return {
+      success: result.success,
+      ...("data" in result && result.data ? { data: result.data } : {}),
+      ...("error" in result && result.error ? { error: result.error } : {}),
+      actionType: DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE,
+    };
+  }
+
   return { success: false, error: "Acción no válida", actionType: "" };
 }
 
@@ -105,10 +132,12 @@ export default function Medicos() {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
   const unavailableDaysFetcher = useFetcher<any[]>();
+  const appointmentTypesFetcher = useFetcher<any[]>();
+  const allAppointmentTypesFetcher = useFetcher<any[]>();
 
   const isSubmitting = navigation.state === "submitting";
 
-  // Cargar días no laborables cuando se abre el dialog o cambia el médico seleccionado
+  // Cargar días no laborables y tipos de turnos cuando se abre el dialog o cambia el médico seleccionado
   // Usamos useRef para rastrear el último ID cargado y forzar recarga cuando cambia
   const lastLoadedDoctorId = React.useRef<string | null>(null);
   
@@ -118,6 +147,8 @@ export default function Medicos() {
       if (lastLoadedDoctorId.current !== selectedDoctor.id) {
         lastLoadedDoctorId.current = selectedDoctor.id;
         unavailableDaysFetcher.load(`/api/doctors/${selectedDoctor.id}/unavailable-days`);
+        appointmentTypesFetcher.load(`/api/doctors/${selectedDoctor.id}/appointment-types`);
+        allAppointmentTypesFetcher.load("/api/appointment-types");
       }
     } else if (!profileDialogOpen) {
       // Limpiar la referencia cuando se cierra el diálogo
@@ -125,10 +156,15 @@ export default function Medicos() {
     }
   }, [profileDialogOpen, selectedDoctor?.id]);
 
-  // Recargar días no laborables después de acciones exitosas
+  // Recargar días no laborables y tipos de turnos después de acciones exitosas
   React.useEffect(() => {
-    if (actionData?.success && selectedDoctor && (actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY || actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY)) {
-      unavailableDaysFetcher.load(`/api/doctors/${selectedDoctor.id}/unavailable-days`);
+    if (actionData?.success && selectedDoctor) {
+      if (actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY || actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY) {
+        unavailableDaysFetcher.load(`/api/doctors/${selectedDoctor.id}/unavailable-days`);
+      }
+      if (actionData.actionType === DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE || actionData.actionType === DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE) {
+        appointmentTypesFetcher.load(`/api/doctors/${selectedDoctor.id}/appointment-types`);
+      }
     }
   }, [actionData, selectedDoctor]);
 
@@ -316,6 +352,8 @@ export default function Medicos() {
           onOpenChange={setProfileDialogOpen}
           doctor={selectedDoctor}
           unavailableDays={doctorUnavailableDays}
+          appointmentTypes={appointmentTypesFetcher.data || []}
+          allAppointmentTypes={allAppointmentTypesFetcher.data || []}
           actionData={actionData}
           isSubmitting={isSubmitting}
         />
@@ -634,6 +672,8 @@ function DoctorProfileDialog({
   onOpenChange,
   doctor,
   unavailableDays,
+  appointmentTypes,
+  allAppointmentTypes,
   actionData,
   isSubmitting,
 }: {
@@ -641,12 +681,21 @@ function DoctorProfileDialog({
   onOpenChange: (open: boolean) => void;
   doctor: any;
   unavailableDays: any[];
+  appointmentTypes: any[];
+  allAppointmentTypes: any[];
   actionData?: any;
   isSubmitting: boolean;
 }) {
   const [showUnavailableDayForm, setShowUnavailableDayForm] = useState(false);
   const [newUnavailableDate, setNewUnavailableDate] = useState("");
   const [newUnavailableReason, setNewUnavailableReason] = useState("");
+  const [showAppointmentTypeForm, setShowAppointmentTypeForm] = useState(false);
+  const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState("");
+
+  // Filtrar tipos de turnos disponibles (que no están ya asociados)
+  const availableAppointmentTypes = allAppointmentTypes.filter(
+    (type) => !appointmentTypes.some((at) => at.appointmentType.id === type.id)
+  );
 
   const formatTime = (time: string | null) => {
     if (!time) return "";
@@ -668,10 +717,12 @@ function DoctorProfileDialog({
             {actionData.actionType === DOCTOR_ACTIONS.UPDATE && "Médico actualizado exitosamente"}
             {actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY && "Día no laborable agregado"}
             {actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY && "Día no laborable eliminado"}
+            {actionData.actionType === DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE && "Tipo de turno asociado"}
+            {actionData.actionType === DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE && "Tipo de turno desasociado"}
           </div>
         )}
 
-        {actionData?.error && (actionData.actionType === DOCTOR_ACTIONS.UPDATE || actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY || actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY) && (
+        {actionData?.error && (actionData.actionType === DOCTOR_ACTIONS.UPDATE || actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY || actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY || actionData.actionType === DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE || actionData.actionType === DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE) && (
           <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
             {actionData.error}
           </div>
@@ -941,6 +992,119 @@ function DoctorProfileDialog({
                             size="sm"
                             variant="ghost"
                             className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </Form>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tipos de Turnos Asociados */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Stethoscope className="h-5 w-5" />
+                  Tipos de Turnos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!showAppointmentTypeForm ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowAppointmentTypeForm(true)}
+                    disabled={availableAppointmentTypes.length === 0}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Tipo de Turno
+                  </Button>
+                ) : (
+                  <Form method="post" className="space-y-3 p-3 bg-muted rounded-lg">
+                    <input type="hidden" name="intent" value={DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE} />
+                    <input type="hidden" name="doctorId" value={doctor.id} />
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Tipo de Turno
+                      </label>
+                      <select
+                        name="appointmentTypeId"
+                        value={selectedAppointmentTypeId}
+                        onChange={(e) => setSelectedAppointmentTypeId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm"
+                        required
+                      >
+                        <option value="">Seleccionar tipo de turno...</option>
+                        {availableAppointmentTypes.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.name} {type.duration && `(${type.duration.substring(0, 5)})`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button type="submit" size="sm" disabled={isSubmitting || !selectedAppointmentTypeId}>
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Agregando...
+                          </>
+                        ) : (
+                          "Agregar"
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setShowAppointmentTypeForm(false);
+                          setSelectedAppointmentTypeId("");
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </Form>
+                )}
+
+                <div className="space-y-2">
+                  {appointmentTypes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No hay tipos de turnos asociados
+                    </p>
+                  ) : (
+                    appointmentTypes.map((relation) => (
+                      <div
+                        key={relation.id}
+                        className="flex items-center justify-between p-2 bg-muted rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">
+                            {relation.appointmentType.name}
+                          </p>
+                          {relation.appointmentType.duration && (
+                            <p className="text-xs text-muted-foreground">
+                              Duración: {relation.appointmentType.duration.substring(0, 5)}
+                            </p>
+                          )}
+                        </div>
+                        <Form method="post">
+                          <input type="hidden" name="intent" value={DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE} />
+                          <input type="hidden" name="relationId" value={relation.id} />
+                          <Button
+                            type="submit"
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                            disabled={isSubmitting}
                           >
                             <X className="h-4 w-4" />
                           </Button>
