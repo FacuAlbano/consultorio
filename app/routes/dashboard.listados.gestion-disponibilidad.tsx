@@ -15,14 +15,22 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const doctors = await getAllDoctors({ limit: 100 });
   const today = new Date().toISOString().slice(0, 10);
-  const counts = await Promise.all(
-    doctors.map(async (d) => {
-      const days = await db.select().from(doctorUnavailableDays).where(eq(doctorUnavailableDays.doctorId, d.id)).limit(500);
-      const future = days.filter((row) => row.date >= today).length;
-      return { doctorId: d.id, unavailableCount: days.length, futureUnavailable: future };
-    })
-  );
-  const byId = Object.fromEntries(counts.map((c) => [c.doctorId, c]));
+  
+  // Obtener todos los días no laborables en una sola query
+  const allDays = await db.select().from(doctorUnavailableDays);
+  
+  // Agrupar por doctor ID en memoria
+  const byId: Record<string, { doctorId: string; unavailableCount: number; futureUnavailable: number }> = {};
+  for (const day of allDays) {
+    if (!byId[day.doctorId]) {
+      byId[day.doctorId] = { doctorId: day.doctorId, unavailableCount: 0, futureUnavailable: 0 };
+    }
+    byId[day.doctorId].unavailableCount++;
+    if (day.date >= today) {
+      byId[day.doctorId].futureUnavailable++;
+    }
+  }
+  
   return { doctors, byId };
 }
 
