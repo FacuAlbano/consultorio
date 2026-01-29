@@ -73,7 +73,6 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === INTENTS.MARK_PAID) {
     const invoiceId = formData.get("invoiceId") as string;
     if (!invoiceId) return { success: false, error: "ID de factura requerido" };
-    if (!isValidUUID(invoiceId)) return { success: false, error: "ID de factura inválido" };
     return await updateInvoice(invoiceId, { status: "paid" });
   }
 

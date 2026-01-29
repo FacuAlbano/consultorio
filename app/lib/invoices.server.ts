@@ -69,7 +69,10 @@ export async function addPayment(data: typeof payments.$inferInsert) {
     const sum = totalPaid.reduce((s, p) => s + parseFloat(p.amount || "0"), 0);
     const inv = await getInvoiceById(data.invoiceId);
     if (inv && sum >= parseFloat(inv.amount)) {
-      await updateInvoice(data.invoiceId, { status: "paid" });
+      const updateResult = await updateInvoice(data.invoiceId, { status: "paid" });
+      if (!updateResult.success) {
+        return { success: false, error: "Error al actualizar estado de factura" };
+      }
     }
     return { success: true, data: created };
   } catch (e) {
