@@ -42,9 +42,18 @@ export async function createInvoice(data: typeof invoices.$inferInsert) {
 }
 
 export async function updateInvoice(id: string, data: Partial<typeof invoices.$inferInsert>) {
-  const [updated] = await db.update(invoices).set({ ...data, updatedAt: new Date() }).where(eq(invoices.id, id)).returning();
-  if (!updated) return { success: false, error: "Factura no encontrada" };
-  return { success: true, data: updated };
+  if (!isValidUUID(id)) {
+    return { success: false, error: "ID de factura inválido" };
+  }
+
+  try {
+    const [updated] = await db.update(invoices).set({ ...data, updatedAt: new Date() }).where(eq(invoices.id, id)).returning();
+    if (!updated) return { success: false, error: "Factura no encontrada" };
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Error al actualizar factura:", error);
+    return { success: false, error: "Error al actualizar la factura. Por favor, intente nuevamente." };
+  }
 }
 
 export async function getPaymentsByInvoiceId(invoiceId: string) {

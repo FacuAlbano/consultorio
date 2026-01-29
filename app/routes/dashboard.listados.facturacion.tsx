@@ -17,14 +17,17 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { DollarSign, Plus, CreditCard, BarChart3 } from "lucide-react";
 import { useState } from "react";
+import { getTodayLocalISO, isValidUUID } from "~/lib/utils";
 
 const INTENTS = { CREATE_INVOICE: "createInvoice", ADD_PAYMENT: "addPayment", MARK_PAID: "markPaid" } as const;
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
-  const fromDate = url.searchParams.get("fromDate") || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
-  const toDate = url.searchParams.get("toDate") || new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA');
+  const fromDate = url.searchParams.get("fromDate") || firstDayOfMonth;
+  const toDate = url.searchParams.get("toDate") || getTodayLocalISO();
   const status = url.searchParams.get("status") || "";
 
   const [invoicesList, patients, report] = await Promise.all([
@@ -63,13 +66,14 @@ export async function action({ request }: Route.ActionArgs) {
       invoiceId,
       amount: amount.replace(",", "."),
       method,
-      paymentDate: new Date().toISOString().slice(0, 10),
+      paymentDate: getTodayLocalISO(),
     });
   }
 
   if (intent === INTENTS.MARK_PAID) {
     const invoiceId = formData.get("invoiceId") as string;
     if (!invoiceId) return { success: false, error: "ID de factura requerido" };
+    if (!isValidUUID(invoiceId)) return { success: false, error: "ID de factura inválido" };
     return await updateInvoice(invoiceId, { status: "paid" });
   }
 
