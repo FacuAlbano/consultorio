@@ -73,15 +73,17 @@ export default function DiasNoLaborables() {
   const isSubmitting = navigation.state === "submitting";
 
   // Actualizar días después de acciones exitosas
+  type DayItem = { id: string; date: string; reason: string | null; createdAt: Date };
   React.useEffect(() => {
     if (actionData?.success) {
       if (actionData.actionType === UNAVAILABLE_DAY_ACTIONS.ADD && actionData.data) {
-        setDays(prev => [actionData.data, ...prev]);
+        const newDay = actionData.data as DayItem;
+        setDays(prev => [newDay, ...prev]);
         setShowAddForm(false);
         setNewDate("");
         setNewReason("");
       } else if (actionData.actionType === UNAVAILABLE_DAY_ACTIONS.REMOVE) {
-        const dayId = actionData.data?.id || (actionData as any).dayId;
+        const dayId = (actionData as { dayId?: string }).dayId ?? (actionData.data as { id?: string } | undefined)?.id;
         if (dayId) {
           setDays(prev => prev.filter((day) => day.id !== dayId));
         }

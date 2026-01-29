@@ -1,6 +1,6 @@
 import { db } from "~/db/client";
 import { patients } from "~/db/schema";
-import { eq, or, ilike, desc } from "drizzle-orm";
+import { eq, or, ilike, desc, count } from "drizzle-orm";
 
 /**
  * Opciones para búsqueda de pacientes
@@ -30,7 +30,9 @@ function escapeLikePattern(str: string): string {
 export async function searchPatients(options: SearchPatientsOptions = {}) {
   const { query = "", limit = 20, offset = 0, filter = "all" } = options;
 
-  if (!query || query.length < 2) {
+  // Búsqueda por DNI: permitir desde 1 carácter cuando el filtro es documento
+  const minLength = filter === "document" ? 1 : 2;
+  if (!query || query.trim().length < minLength) {
     return [];
   }
 
@@ -200,4 +202,16 @@ export async function deletePatient(id: string) {
   }
 
   return { success: true };
+}
+
+/**
+ * Obtiene el total de pacientes registrados
+ * @returns El número total de pacientes
+ */
+export async function getPatientsCount() {
+  const [result] = await db
+    .select({ count: count() })
+    .from(patients);
+  
+  return result?.count ?? 0;
 }
