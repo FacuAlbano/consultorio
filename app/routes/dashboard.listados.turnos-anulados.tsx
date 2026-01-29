@@ -20,11 +20,11 @@ function exportToCSV(
     patient ? `${patient.firstName} ${patient.lastName}` : "",
     patient?.documentNumber ?? "",
     doctor ? `${doctor.firstName} ${doctor.lastName}` : "",
-    (appointment.notes ?? "").replace(/"/g, '""'),
+    appointment.notes ?? "",
   ]);
   const csv = [
     headers.join(","),
-    ...rows.map((r) => r.map((c) => `"${String(c)}"`).join(",")),
+    ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")),
   ].join("\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement("a");

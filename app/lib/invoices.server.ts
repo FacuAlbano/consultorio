@@ -1,6 +1,6 @@
 import { db } from "~/db/client";
 import { invoices, payments, patients } from "~/db/schema";
-import { eq, desc, gte, lte, and } from "drizzle-orm";
+import { eq, desc, gte, lte, and, count, sum, sql } from "drizzle-orm";
 import { isValidUUID } from "~/lib/utils";
 
 export async function getInvoices(options: { patientId?: string; status?: string; fromDate?: string; toDate?: string; limit?: number } = {}) {
@@ -53,24 +53,40 @@ export async function getPaymentsByInvoiceId(invoiceId: string) {
 }
 
 export async function addPayment(data: typeof payments.$inferInsert) {
-  const [created] = await db.insert(payments).values(data).returning();
-  if (!created) return { success: false, error: "Error al registrar pago" };
-  const totalPaid = await db.select().from(payments).where(eq(payments.invoiceId, data.invoiceId));
-  const sum = totalPaid.reduce((s, p) => s + parseFloat(p.amount || "0"), 0);
-  const inv = await getInvoiceById(data.invoiceId);
-  if (inv && sum >= parseFloat(inv.amount)) {
-    await updateInvoice(data.invoiceId, { status: "paid" });
+  try {
+    const [created] = await db.insert(payments).values(data).returning();
+    if (!created) return { success: false, error: "Error al registrar pago" };
+    const totalPaid = await db.select().from(payments).where(eq(payments.invoiceId, data.invoiceId));
+    const sum = totalPaid.reduce((s, p) => s + parseFloat(p.amount || "0"), 0);
+    const inv = await getInvoiceById(data.invoiceId);
+    if (inv && sum >= parseFloat(inv.amount)) {
+      await updateInvoice(data.invoiceId, { status: "paid" });
+    }
+    return { success: true, data: created };
+  } catch (e) {
+    return { success: false, error: "Error al registrar pago" };
   }
-  return { success: true, data: created };
 }
 
 export async function getFacturacionReport(fromDate: string, toDate: string) {
-  const list = await getInvoices({ fromDate, toDate, limit: 1000 });
-  let totalFacturado = 0;
-  let totalPagado = 0;
-  for (const { invoice } of list) {
-    totalFacturado += parseFloat(invoice.amount || "0");
-    if (invoice.status === "paid") totalPagado += parseFloat(invoice.amount || "0");
-  }
-  return { totalFacturado, totalPagado, cantidad: list.length };
+  const conditions = [];
+  if (fromDate) conditions.push(gte(invoices.invoiceDate, fromDate));
+  if (toDate) conditions.push(lte(invoices.invoiceDate, toDate));
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Usar agregaciones SQL para calcular los totales de manera eficiente
+  const [result] = await db
+    .select({
+      cantidad: count(),
+      totalFacturado: sum(sql`CAST(${invoices.amount} AS NUMERIC)`),
+      totalPagado: sum(sql`CASE WHEN ${invoices.status} = 'paid' THEN CAST(${invoices.amount} AS NUMERIC) ELSE 0 END`),
+    })
+    .from(invoices)
+    .where(where);
+
+  return {
+    totalFacturado: parseFloat(String(result?.totalFacturado ?? 0)),
+    totalPagado: parseFloat(String(result?.totalPagado ?? 0)),
+    cantidad: result?.cantidad ?? 0,
+  };
 }

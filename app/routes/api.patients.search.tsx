@@ -1,6 +1,7 @@
 import type { Route } from "./+types/api.patients.search";
 import { searchPatients } from "~/lib/patients.server";
 import { requireAuthApi } from "~/lib/middleware";
+import { calculateAge } from "~/lib/utils";
 
 /**
  * API route para búsqueda de pacientes
@@ -31,17 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // Formatear resultados para el autocompletado (incluir datos filiatorios: edad, teléfono)
   const formattedResults = patients.map((patient) => {
-    const birthDate = patient.birthDate;
-    const age = birthDate
-      ? (() => {
-          const birth = new Date(birthDate);
-          const today = new Date();
-          let a = today.getFullYear() - birth.getFullYear();
-          const m = today.getMonth() - birth.getMonth();
-          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
-          return a >= 0 ? a : null;
-        })()
-      : null;
+    const age = calculateAge(patient.birthDate);
     return {
       id: patient.id,
       label: `${patient.firstName} ${patient.lastName}`,
