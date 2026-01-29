@@ -71,7 +71,7 @@ export async function addPayment(data: typeof payments.$inferInsert) {
     if (inv && sum >= parseFloat(inv.amount)) {
       const updateResult = await updateInvoice(data.invoiceId, { status: "paid" });
       if (!updateResult.success) {
-        return { success: false, error: "Error al actualizar estado de factura" };
+        console.error("Error al actualizar estado de factura, pero el pago fue registrado correctamente");
       }
     }
     return { success: true, data: created };
