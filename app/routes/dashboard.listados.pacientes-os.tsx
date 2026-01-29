@@ -16,19 +16,25 @@ export async function loader({ request }: Route.LoaderArgs) {
   const insuranceCompany = url.searchParams.get("insuranceCompany") || "";
   const date = url.searchParams.get("date") || "";
 
-  const [appointments, insuranceCompanies] = await Promise.all([
+  const [appointments, appointmentsForStats, insuranceCompanies] = await Promise.all([
     getAppointments({
       status: "attended",
       insuranceCompany: insuranceCompany || undefined,
       date: date || undefined,
       limit: 200,
     }),
+    getAppointments({
+      status: "attended",
+      insuranceCompany: insuranceCompany || undefined,
+      date: date || undefined,
+      limit: 2000,
+    }),
     getAllInsuranceCompanies({ limit: 200 }),
   ]);
 
   const statsByOS: { obraSocial: string; cantidad: number }[] = [];
   const map = new Map<string, number>();
-  for (const { patient } of appointments) {
+  for (const { patient } of appointmentsForStats) {
     const os = (patient as { insuranceCompany?: string })?.insuranceCompany ?? "Sin obra social";
     map.set(os, (map.get(os) ?? 0) + 1);
   }
