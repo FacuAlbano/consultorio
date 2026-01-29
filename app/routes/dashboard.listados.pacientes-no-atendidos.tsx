@@ -11,6 +11,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { UserX, ExternalLink } from "lucide-react";
 import { useState } from "react";
+import { formatDate } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
@@ -125,7 +126,7 @@ export default function PacientesNoAtendidos() {
                     const noShowFollowUp = appointment.noShowFollowUp ?? "";
                     return (
                       <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
-                        <td className="py-3 px-2">{new Date(appointment.appointmentDate).toLocaleDateString("es-AR")}</td>
+                        <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                         <td className="py-3 px-2">{appointment.appointmentTime}</td>
                         <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
                         <td className="py-3 px-2">{patient?.documentNumber ?? "—"}</td>

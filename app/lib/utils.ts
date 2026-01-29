@@ -24,6 +24,22 @@ export function getTodayLocalISO(): string {
 }
 
 /**
+ * Formatea una fecha en formato YYYY-MM-DD a string localizado en zona horaria local
+ * @param dateString Fecha en formato YYYY-MM-DD
+ * @param locale Locale para el formato (por defecto 'es-AR')
+ * @param options Opciones de formato (opcional)
+ * @returns Fecha formateada como string
+ */
+export function formatDate(
+  dateString: string,
+  locale: string = "es-AR",
+  options?: Intl.DateTimeFormatOptions
+): string {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(locale, options);
+}
+
+/**
  * Calcula la edad en años a partir de la fecha de nacimiento
  * @param birthDate Fecha de nacimiento (string ISO, Date o null)
  * @returns Edad en años o null si no hay fecha
