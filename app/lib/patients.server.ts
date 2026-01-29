@@ -30,7 +30,9 @@ function escapeLikePattern(str: string): string {
 export async function searchPatients(options: SearchPatientsOptions = {}) {
   const { query = "", limit = 20, offset = 0, filter = "all" } = options;
 
-  if (!query || query.length < 2) {
+  // Búsqueda por DNI: permitir desde 1 carácter cuando el filtro es documento
+  const minLength = filter === "document" ? 1 : 2;
+  if (!query || query.trim().length < minLength) {
     return [];
   }
 

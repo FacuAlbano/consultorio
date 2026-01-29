@@ -15,7 +15,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const query = url.searchParams.get("q") || "";
   const filter = url.searchParams.get("filter") || "all";
 
-  if (query.length < 2) {
+  // Búsqueda por DNI: permitir desde 1 carácter cuando el filtro es documento
+  const minLength = filter === "document" ? 1 : 2;
+  if (query.trim().length < minLength) {
     return Response.json({ patients: [] });
   }
 
@@ -27,15 +29,32 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const patients = await searchPatients(searchOptions);
 
-  // Formatear resultados para el autocompletado
-  const formattedResults = patients.map((patient) => ({
-    id: patient.id,
-    label: `${patient.firstName} ${patient.lastName}`,
-    documentNumber: patient.documentNumber,
-    medicalRecordNumber: patient.medicalRecordNumber,
-    insuranceCompany: patient.insuranceCompany,
-    fullInfo: `${patient.firstName} ${patient.lastName} - DNI: ${patient.documentNumber}${patient.medicalRecordNumber ? ` - HC: ${patient.medicalRecordNumber}` : ""}`,
-  }));
+  // Formatear resultados para el autocompletado (incluir datos filiatorios: edad, teléfono)
+  const formattedResults = patients.map((patient) => {
+    const birthDate = patient.birthDate;
+    const age = birthDate
+      ? (() => {
+          const birth = new Date(birthDate);
+          const today = new Date();
+          let a = today.getFullYear() - birth.getFullYear();
+          const m = today.getMonth() - birth.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
+          return a >= 0 ? a : null;
+        })()
+      : null;
+    return {
+      id: patient.id,
+      label: `${patient.firstName} ${patient.lastName}`,
+      documentNumber: patient.documentNumber,
+      medicalRecordNumber: patient.medicalRecordNumber,
+      insuranceCompany: patient.insuranceCompany,
+      insuranceNumber: patient.insuranceNumber,
+      birthDate: patient.birthDate,
+      age: age ?? undefined,
+      phone: patient.phone ?? undefined,
+      fullInfo: `${patient.firstName} ${patient.lastName} - DNI: ${patient.documentNumber}${patient.medicalRecordNumber ? ` - HC: ${patient.medicalRecordNumber}` : ""}`,
+    };
+  });
 
   return Response.json({ patients: formattedResults });
 }

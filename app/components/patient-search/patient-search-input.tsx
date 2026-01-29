@@ -3,6 +3,7 @@ import { Search, Loader2, Clock, X } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
+import { PATHS } from "~/lib/constants";
 
 interface PatientSearchInputProps {
   placeholder?: string;
@@ -22,6 +23,10 @@ interface PatientSuggestion {
   documentNumber: string;
   medicalRecordNumber?: string | null;
   insuranceCompany?: string | null;
+  insuranceNumber?: string | null;
+  birthDate?: string | null;
+  age?: number;
+  phone?: string | null;
   fullInfo: string;
 }
 
@@ -64,7 +69,7 @@ function clearSearchHistory() {
 }
 
 export function PatientSearchInput({
-  placeholder = "Haz tu búsqueda por paciente...",
+  placeholder = "Ingresar DNI, nombre, HC u obra social...",
   onSearch,
   onPatientSelect,
   className = "",
@@ -80,6 +85,9 @@ export function PatientSearchInput({
   const [filterType, setFilterType] = useState<"all" | "name" | "document" | "hc" | "insurance">("all");
   const navigate = useNavigate();
 
+  // Cuando el usuario escribe solo números, priorizar búsqueda por DNI (documento)
+  const effectiveFilter = query.trim() !== "" && /^\d+$/.test(query.trim()) ? "document" : filterType;
+
   // Cargar historial al montar
   useEffect(() => {
     if (showHistory) {
@@ -87,9 +95,10 @@ export function PatientSearchInput({
     }
   }, [showHistory]);
 
-  // Búsqueda real en la base de datos
+  // Búsqueda real en la base de datos (DNI desde 1 carácter cuando filtro es documento)
+  const minSearchLength = effectiveFilter === "document" ? 1 : 2;
   useEffect(() => {
-    if (query.length < 2) {
+    if (query.length < minSearchLength) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -103,8 +112,8 @@ export function PatientSearchInput({
       setIsSearching(true);
       
       try {
-        // Agregar filtro si está seleccionado
-        const filterParam = filterType !== "all" ? `&filter=${filterType}` : "";
+        // Agregar filtro (priorizar DNI cuando se escriben solo números)
+        const filterParam = effectiveFilter !== "all" ? `&filter=${effectiveFilter}` : "";
         const response = await fetch(
           `/api/patients/search?q=${encodeURIComponent(query)}${filterParam}`,
           { signal: abortController.signal }
@@ -142,7 +151,7 @@ export function PatientSearchInput({
       clearTimeout(timeoutId);
       abortController.abort();
     };
-  }, [query, filterType]);
+  }, [query, effectiveFilter, minSearchLength]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,7 +165,7 @@ export function PatientSearchInput({
         handlePatientSelect(exactMatch);
       } else {
         // Navegar a resultados de búsqueda
-        navigate(`/listados/pacientes?q=${encodeURIComponent(query)}`);
+        navigate(`${PATHS.listadosPacientes}?q=${encodeURIComponent(query)}`);
       }
     }
   };
@@ -221,7 +230,7 @@ export function PatientSearchInput({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => {
-              if (query.length >= 2) {
+              if (query.length >= minSearchLength) {
                 setShowSuggestions(true);
               } else if (showHistory && searchHistory.length > 0) {
                 setShowHistoryDropdown(true);
@@ -273,6 +282,7 @@ export function PatientSearchInput({
               <div className="text-sm text-muted-foreground">
                 DNI: {patient.documentNumber}
                 {patient.medicalRecordNumber && ` • HC: ${patient.medicalRecordNumber}`}
+                {patient.age != null && ` • ${patient.age} años`}
                 {patient.insuranceCompany && ` • ${patient.insuranceCompany}`}
               </div>
             </button>
@@ -294,7 +304,9 @@ export function PatientSearchInput({
               <div className="text-sm text-muted-foreground">
                 DNI: {patient.documentNumber}
                 {patient.medicalRecordNumber && ` • HC: ${patient.medicalRecordNumber}`}
-                {patient.insuranceCompany && ` • ${patient.insuranceCompany}`}
+                {patient.birthDate != null && patient.age != null && ` • ${patient.age} años`}
+                {patient.phone && ` • Tel: ${patient.phone}`}
+                {patient.insuranceCompany && ` • ${patient.insuranceCompany}${patient.insuranceNumber ? ` (${patient.insuranceNumber})` : ""}`}
               </div>
             </button>
           ))}
@@ -302,7 +314,7 @@ export function PatientSearchInput({
       )}
 
       {/* Mensaje cuando no hay resultados */}
-      {showSuggestions && query.length >= 2 && suggestions.length === 0 && !isSearching && (
+      {showSuggestions && query.length >= minSearchLength && suggestions.length === 0 && !isSearching && (
         <div className="absolute z-50 w-full mt-2 bg-popover border border-border rounded-lg shadow-lg p-4 text-center text-muted-foreground">
           No se encontraron resultados
         </div>
