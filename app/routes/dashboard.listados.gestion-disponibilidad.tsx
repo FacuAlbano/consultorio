@@ -10,11 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Settings, Clock, CalendarOff } from "lucide-react";
 import { PATHS } from "~/lib/constants";
+import { getTodayLocalISO } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const doctors = await getAllDoctors({ limit: 100 });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayLocalISO();
   
   // Obtener todos los días no laborables en una sola query
   const allDays = await db.select().from(doctorUnavailableDays);

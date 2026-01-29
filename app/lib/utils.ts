@@ -16,13 +16,37 @@ export function isValidUUID(uuid: string): boolean {
 }
 
 /**
+ * Obtiene la fecha actual en formato YYYY-MM-DD en la zona horaria local
+ * @returns Fecha actual en formato ISO (YYYY-MM-DD)
+ */
+export function getTodayLocalISO(): string {
+  return new Date().toLocaleDateString('en-CA');
+}
+
+/**
  * Calcula la edad en años a partir de la fecha de nacimiento
  * @param birthDate Fecha de nacimiento (string ISO, Date o null)
  * @returns Edad en años o null si no hay fecha
  */
 export function calculateAge(birthDate: string | Date | null | undefined): number | null {
   if (!birthDate) return null;
-  const birth = typeof birthDate === "string" ? new Date(birthDate) : birthDate;
+  
+  let birth: Date;
+  if (typeof birthDate === "string") {
+    // Parsear manualmente para evitar problemas de zona horaria
+    const parts = birthDate.split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      birth = new Date(year, month - 1, day);
+    } else {
+      birth = new Date(birthDate);
+    }
+  } else {
+    birth = birthDate;
+  }
+  
   if (Number.isNaN(birth.getTime())) return null;
   const today = new Date();
   let age = today.getFullYear() - birth.getFullYear();

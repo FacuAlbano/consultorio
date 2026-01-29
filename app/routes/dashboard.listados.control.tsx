@@ -6,14 +6,11 @@ import { getAppointments } from "~/lib/appointments.server";
 import { getPatientsCount } from "~/lib/patients.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { BarChart3, Calendar, Users, UserCheck, UserX, ClipboardX } from "lucide-react";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { getTodayLocalISO } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const today = todayISO();
+  const today = getTodayLocalISO();
 
   const [turnosHoy, totalPacientes] = await Promise.all([
     getAppointments({ date: today, limit: 500 }),
