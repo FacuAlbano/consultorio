@@ -16,13 +16,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const insuranceCompany = url.searchParams.get("insuranceCompany") || "";
   const date = url.searchParams.get("date") || "";
 
-  const [appointments, appointmentsForStats, insuranceCompanies] = await Promise.all([
-    getAppointments({
-      status: "attended",
-      insuranceCompany: insuranceCompany || undefined,
-      date: date || undefined,
-      limit: 200,
-    }),
+  const [appointmentsForStats, insuranceCompanies] = await Promise.all([
     getAppointments({
       status: "attended",
       insuranceCompany: insuranceCompany || undefined,
@@ -31,6 +25,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     }),
     getAllInsuranceCompanies({ limit: 200 }),
   ]);
+
+  const appointments = appointmentsForStats.slice(0, 200);
 
   const statsByOS: { obraSocial: string; cantidad: number }[] = [];
   const map = new Map<string, number>();
