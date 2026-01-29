@@ -17,9 +17,18 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { DollarSign, Plus, CreditCard, BarChart3 } from "lucide-react";
 import { useState } from "react";
-import { getTodayLocalISO, isValidUUID } from "~/lib/utils";
+import { getTodayLocalISO, isValidUUID, formatDate } from "~/lib/utils";
 
 const INTENTS = { CREATE_INVOICE: "createInvoice", ADD_PAYMENT: "addPayment", MARK_PAID: "markPaid" } as const;
+
+function validateAmount(amount: string): { valid: boolean; normalized: string; error?: string } {
+  const normalized = amount.replace(",", ".");
+  const numValue = parseFloat(normalized);
+  if (isNaN(numValue) || !isFinite(numValue)) {
+    return { valid: false, normalized, error: "El monto debe ser un número válido" };
+  }
+  return { valid: true, normalized };
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
@@ -48,9 +57,13 @@ export async function action({ request }: Route.ActionArgs) {
     const amount = formData.get("amount") as string;
     const notes = (formData.get("notes") as string) || null;
     if (!patientId || !amount) return { success: false, error: "Paciente y monto son obligatorios" };
+    const validation = validateAmount(amount);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
     const result = await createInvoice({
       patientId,
-      amount: amount.replace(",", "."),
+      amount: validation.normalized,
       notes,
       status: "pending",
     });
@@ -62,9 +75,13 @@ export async function action({ request }: Route.ActionArgs) {
     const amount = formData.get("amount") as string;
     const method = (formData.get("method") as string) || null;
     if (!invoiceId || !amount) return { success: false, error: "Monto obligatorio" };
+    const validation = validateAmount(amount);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
     return await addPayment({
       invoiceId,
-      amount: amount.replace(",", "."),
+      amount: validation.normalized,
       method,
       paymentDate: getTodayLocalISO(),
     });
@@ -222,7 +239,7 @@ export default function FacturacionTurnos() {
                 <tbody>
                   {invoices.map(({ invoice, patient }) => (
                     <tr key={invoice.id} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-2">{new Date(invoice.invoiceDate).toLocaleDateString("es-AR")}</td>
+                      <td className="py-3 px-2">{formatDate(invoice.invoiceDate)}</td>
                       <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
                       <td className="py-3 px-2">${invoice.amount}</td>
                       <td className="py-3 px-2">

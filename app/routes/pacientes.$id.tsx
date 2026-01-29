@@ -2,7 +2,7 @@ import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/pacientes.$id";
 import { getPatientById } from "~/lib/patients.server";
 import { requireAuth } from "~/lib/middleware";
-import { isValidUUID, calculateAge } from "~/lib/utils";
+import { isValidUUID, calculateAge, formatDate } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { User, FileText, Phone, Mail, MapPin, Calendar, CreditCard, MessageCircle, Pencil } from "lucide-react";
@@ -75,7 +75,7 @@ export default function PatientProfile() {
               <div>
                 <p className="text-sm text-muted-foreground">Fecha de nacimiento</p>
                 <p className="font-medium">
-                  {new Date(patient.birthDate).toLocaleDateString("es-AR")}
+                  {formatDate(patient.birthDate)}
                   {age != null && (
                     <span className="text-muted-foreground font-normal ml-2">({age} años)</span>
                   )}
@@ -121,7 +121,7 @@ export default function PatientProfile() {
               <div>
                 <p className="text-sm text-muted-foreground">Fecha de nacimiento / Edad</p>
                 <p className="font-medium">
-                  {new Date(patient.birthDate).toLocaleDateString("es-AR")}
+                  {formatDate(patient.birthDate)}
                   {age != null && ` (${age} años)`}
                 </p>
               </div>

@@ -24,6 +24,37 @@ export function getTodayLocalISO(): string {
 }
 
 /**
+ * Parsea una fecha en formato YYYY-MM-DD a un objeto Date en zona horaria local
+ * @param dateString Fecha en formato YYYY-MM-DD
+ * @returns Objeto Date o null si el formato es inválido
+ */
+function parseLocalDate(dateString: string): Date | null {
+  const parts = dateString.split("-");
+  if (parts.length !== 3) return null;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Formatea una fecha en formato YYYY-MM-DD a string localizado en zona horaria local
+ * @param dateString Fecha en formato YYYY-MM-DD
+ * @param locale Locale para el formato (por defecto 'es-AR')
+ * @param options Opciones de formato (opcional)
+ * @returns Fecha formateada como string
+ */
+export function formatDate(
+  dateString: string,
+  locale: string = "es-AR",
+  options?: Intl.DateTimeFormatOptions
+): string {
+  const date = parseLocalDate(dateString);
+  if (!date) return dateString;
+  return date.toLocaleDateString(locale, options);
+}
+
+/**
  * Calcula la edad en años a partir de la fecha de nacimiento
  * @param birthDate Fecha de nacimiento (string ISO, Date o null)
  * @returns Edad en años o null si no hay fecha
@@ -33,13 +64,9 @@ export function calculateAge(birthDate: string | Date | null | undefined): numbe
   
   let birth: Date;
   if (typeof birthDate === "string") {
-    // Parsear manualmente para evitar problemas de zona horaria
-    const parts = birthDate.split("-");
-    if (parts.length === 3) {
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10);
-      const day = parseInt(parts[2], 10);
-      birth = new Date(year, month - 1, day);
+    const parsed = parseLocalDate(birthDate);
+    if (parsed) {
+      birth = parsed;
     } else {
       birth = new Date(birthDate);
     }

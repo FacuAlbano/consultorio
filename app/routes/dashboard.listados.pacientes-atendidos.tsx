@@ -9,6 +9,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Users, ExternalLink, Download } from "lucide-react";
 import { useState } from "react";
+import { formatDate } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
@@ -30,7 +31,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 function exportToCSV(appointments: Awaited<ReturnType<typeof getAppointments>>) {
   const headers = ["Fecha", "Hora", "Paciente", "DNI", "HC", "Médico"];
   const rows = appointments.map(({ appointment, patient, doctor }) => [
-    new Date(appointment.appointmentDate).toLocaleDateString("es-AR"),
+    formatDate(appointment.appointmentDate),
     appointment.appointmentTime,
     patient ? `${patient.firstName} ${patient.lastName}` : "",
     patient?.documentNumber ?? "",
@@ -129,7 +130,7 @@ export default function PacientesAtendidos() {
                 <tbody>
                   {appointments.map(({ appointment, patient, doctor }) => (
                     <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-2">{new Date(appointment.appointmentDate).toLocaleDateString("es-AR")}</td>
+                      <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
                       <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
                       <td className="py-3 px-2">{patient?.documentNumber ?? "—"}</td>
