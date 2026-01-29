@@ -9,11 +9,12 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Calendar, Stethoscope, ExternalLink } from "lucide-react";
 import { useState } from "react";
+import { getTodayLocalISO, formatDate } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
-  const date = url.searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  const date = url.searchParams.get("date") || getTodayLocalISO();
   const doctorId = url.searchParams.get("doctorId") || "";
 
   if (!doctorId) {
@@ -93,7 +94,7 @@ export default function AgendaProfesional() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Stethoscope className="h-5 w-5" />
-              {selectedDoctor ? `${selectedDoctor.firstName} ${selectedDoctor.lastName}` : "Médico"} — {new Date(date).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              {selectedDoctor ? `${selectedDoctor.firstName} ${selectedDoctor.lastName}` : "Médico"} — {formatDate(date, "es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </CardTitle>
           </CardHeader>
           <CardContent>
