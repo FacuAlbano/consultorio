@@ -21,6 +21,15 @@ import { getTodayLocalISO, isValidUUID, formatDate } from "~/lib/utils";
 
 const INTENTS = { CREATE_INVOICE: "createInvoice", ADD_PAYMENT: "addPayment", MARK_PAID: "markPaid" } as const;
 
+function validateAmount(amount: string): { valid: boolean; normalized: string; error?: string } {
+  const normalized = amount.replace(",", ".");
+  const numValue = parseFloat(normalized);
+  if (isNaN(numValue) || !isFinite(numValue)) {
+    return { valid: false, normalized, error: "El monto debe ser un número válido" };
+  }
+  return { valid: true, normalized };
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
@@ -48,13 +57,13 @@ export async function action({ request }: Route.ActionArgs) {
     const amount = formData.get("amount") as string;
     const notes = (formData.get("notes") as string) || null;
     if (!patientId || !amount) return { success: false, error: "Paciente y monto son obligatorios" };
-    const normalizedAmount = amount.replace(",", ".");
-    if (isNaN(parseFloat(normalizedAmount)) || !isFinite(parseFloat(normalizedAmount))) {
-      return { success: false, error: "El monto debe ser un número válido" };
+    const validation = validateAmount(amount);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
     }
     const result = await createInvoice({
       patientId,
-      amount: normalizedAmount,
+      amount: validation.normalized,
       notes,
       status: "pending",
     });
@@ -66,13 +75,13 @@ export async function action({ request }: Route.ActionArgs) {
     const amount = formData.get("amount") as string;
     const method = (formData.get("method") as string) || null;
     if (!invoiceId || !amount) return { success: false, error: "Monto obligatorio" };
-    const normalizedAmount = amount.replace(",", ".");
-    if (isNaN(parseFloat(normalizedAmount)) || !isFinite(parseFloat(normalizedAmount))) {
-      return { success: false, error: "El monto debe ser un número válido" };
+    const validation = validateAmount(amount);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
     }
     return await addPayment({
       invoiceId,
-      amount: normalizedAmount,
+      amount: validation.normalized,
       method,
       paymentDate: getTodayLocalISO(),
     });
