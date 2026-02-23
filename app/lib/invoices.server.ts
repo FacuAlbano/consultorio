@@ -66,12 +66,15 @@ export async function addPayment(data: typeof payments.$inferInsert) {
     const [created] = await db.insert(payments).values(data).returning();
     if (!created) return { success: false, error: "Error al registrar pago" };
     const totalPaid = await db.select().from(payments).where(eq(payments.invoiceId, data.invoiceId));
-    const sum = totalPaid.reduce((s, p) => s + parseFloat(p.amount || "0"), 0);
+    const sumCents = Math.round(totalPaid.reduce((s, p) => s + parseFloat(p.amount || "0"), 0) * 100);
     const inv = await getInvoiceById(data.invoiceId);
-    if (inv && sum >= parseFloat(inv.amount)) {
-      const updateResult = await updateInvoice(data.invoiceId, { status: "paid" });
-      if (!updateResult.success) {
-        console.error("Error al actualizar estado de factura, pero el pago fue registrado correctamente");
+    if (inv) {
+      const invoiceAmountCents = Math.round(parseFloat(inv.amount) * 100);
+      if (sumCents >= invoiceAmountCents) {
+        const updateResult = await updateInvoice(data.invoiceId, { status: "paid" });
+        if (!updateResult.success) {
+          console.error("Error al actualizar estado de factura, pero el pago fue registrado correctamente");
+        }
       }
     }
     return { success: true, data: created };
