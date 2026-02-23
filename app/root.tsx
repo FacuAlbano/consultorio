@@ -63,7 +63,27 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Si no existe la cookie, usar "light" por defecto (no podemos detectar la preferencia del sistema en SSR)
   const theme = themeCookie === "dark" ? "dark" : "light";
 
-  return { theme };
+  const origin = new URL(request.url).origin;
+  return { theme, origin };
+}
+
+export function meta({ data }: Route.MetaArgs) {
+  const origin = data?.origin ?? "";
+  const imageUrl = origin ? `${origin}/clinica.png` : "/clinica.png";
+  return [
+    { title: "Consultorio - Sistema de Gestión" },
+    { name: "description", content: "Sistema de gestión de consultorio médico" },
+    { property: "og:type", content: "website" },
+    { property: "og:title", content: "Consultorio - Sistema de Gestión" },
+    { property: "og:description", content: "Sistema de gestión de consultorio médico" },
+    { property: "og:image", content: imageUrl },
+    { property: "og:image:secure_url", content: imageUrl },
+    { property: "og:url", content: origin },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: "Consultorio - Sistema de Gestión" },
+    { name: "twitter:description", content: "Sistema de gestión de consultorio médico" },
+    { name: "twitter:image", content: imageUrl },
+  ];
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
