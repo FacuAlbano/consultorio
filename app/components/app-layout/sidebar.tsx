@@ -113,6 +113,7 @@ function SidebarContent({ userInfo, isOpen, onToggle, children }: SidebarContent
           <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
         )}
         <button
+          type="button"
           onClick={onToggle}
           className={cn(
             "p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors",
@@ -205,6 +206,7 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
       if (item.icon) {
         return (
           <button
+            type="button"
             key={item.path || item.label}
             onClick={onToggle}
             className={cn(
@@ -234,6 +236,7 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
       return (
         <div key={item.path || item.label}>
           <button
+            type="button"
             onClick={() => toggleSubExpand(item.label)}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
@@ -291,6 +294,7 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
               )}
             </div>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleExpand(item.path || item.label);

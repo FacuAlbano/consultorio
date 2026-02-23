@@ -28,7 +28,7 @@ setTimeout(ping, 30_000);
 // Luego cada 4 días
 setInterval(ping, INTERVAL_MS);
 
-const child = spawn("npx", ["react-router-serve", "./build/server/index.js"], {
+const child = spawn("node_modules/.bin/react-router-serve", ["./build/server/index.js"], {
   stdio: "inherit",
   env: process.env,
   cwd: process.cwd(),
