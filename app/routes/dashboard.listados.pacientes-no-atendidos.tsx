@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useLoaderData, useSearchParams, Form, Link } from "react-router";
+import { useLoaderData, useActionData, useSearchParams, Form, Link } from "react-router";
 import type { Route } from "./+types/dashboard.listados.pacientes-no-atendidos";
 import { requireAuth } from "~/lib/middleware";
 import { getAppointments } from "~/lib/appointments.server";
@@ -10,7 +10,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { UserX, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDate } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -44,10 +44,17 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function PacientesNoAtendidos() {
   const { appointments, doctors, date: initialDate, doctorId: initialDoctorId } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [date, setDate] = useState(initialDate);
   const [doctorId, setDoctorId] = useState(initialDoctorId);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (actionData?.success) {
+      setEditingId(null);
+    }
+  }, [actionData]);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +75,13 @@ export default function PacientesNoAtendidos() {
           Listado de inasistencias (no asistieron al turno). Filtros por fecha y médico.
         </p>
       </div>
+
+      {actionData?.success === false && actionData?.error && (
+        <div className="rounded-lg bg-destructive/10 text-destructive px-4 py-3 text-sm">{actionData.error}</div>
+      )}
+      {actionData?.success && (
+        <div className="rounded-lg bg-green-500/10 text-green-700 dark:text-green-400 px-4 py-3 text-sm">Actualización realizada correctamente.</div>
+      )}
 
       <Card>
         <CardHeader>
@@ -133,12 +147,15 @@ export default function PacientesNoAtendidos() {
                         <td className="py-3 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>
                         <td className="py-3 px-2 max-w-[180px]">
                           {isEditing ? (
-                            <Form method="post" className="space-y-1" onSubmit={() => setEditingId(null)}>
+                            <Form method="post" className="space-y-1">
                               <input type="hidden" name="intent" value="updateNoShow" />
                               <input type="hidden" name="appointmentId" value={appointment.id} />
                               <Input name="noShowReason" defaultValue={noShowReason} placeholder="Motivo" className="text-sm" />
                               <Input name="noShowFollowUp" defaultValue={noShowFollowUp} placeholder="Seguimiento" className="text-sm mt-1" />
-                              <Button type="submit" size="sm" className="mt-1">Guardar</Button>
+                              <div className="flex gap-1 mt-1">
+                                <Button type="submit" size="sm">Guardar</Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancelar</Button>
+                              </div>
                             </Form>
                           ) : (
                             <>
