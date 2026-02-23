@@ -1,5 +1,5 @@
-import { pgTable, varchar, uuid, text, timestamp, boolean, date, time, index, uniqueIndex } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, varchar, uuid, text, timestamp, boolean, date, time, index, uniqueIndex, numeric } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 
 // Esquema base para la aplicación consultorio
 
@@ -206,8 +206,8 @@ export const invoices = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
     appointmentId: uuid("appointment_id").references(() => appointments.id, { onDelete: "set null" }),
-    amount: varchar("amount", { length: 50 }).notNull(), // Monto (ej: "1500.00")
-    invoiceDate: date("invoice_date").notNull().defaultNow(),
+    amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+    invoiceDate: date("invoice_date").notNull().default(sql`CURRENT_DATE`),
     status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, paid, cancelled
     notes: text("notes"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -227,8 +227,8 @@ export const payments = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
-    amount: varchar("amount", { length: 50 }).notNull(),
-    paymentDate: date("payment_date").notNull().defaultNow(),
+    amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+    paymentDate: date("payment_date").notNull().default(sql`CURRENT_DATE`),
     method: varchar("method", { length: 50 }), // efectivo, transferencia, tarjeta, etc.
     notes: text("notes"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
