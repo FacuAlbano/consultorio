@@ -85,8 +85,8 @@ export function PatientSearchInput({
   const [filterType, setFilterType] = useState<"all" | "name" | "document" | "hc" | "insurance">("all");
   const navigate = useNavigate();
 
-  // Cuando el usuario escribe solo números, priorizar búsqueda por DNI (documento)
-  const effectiveFilter = query.trim() !== "" && /^\d+$/.test(query.trim()) ? "document" : filterType;
+  // Cuando el usuario escribe solo números, priorizar búsqueda por DNI (documento) solo si no hay filtro específico
+  const effectiveFilter = filterType === "all" && query.trim() !== "" && /^\d+$/.test(query.trim()) ? "document" : filterType;
 
   // Cargar historial al montar
   useEffect(() => {
