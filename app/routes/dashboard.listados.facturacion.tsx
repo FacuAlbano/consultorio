@@ -25,7 +25,7 @@ function validateAmount(amount: string): { valid: boolean; normalized: string; e
   const dotCount = (normalized.match(/\./g) || []).length;
   
   if (commaCount > 1 || dotCount > 1) {
-    normalized = normalized.replace(/,/g, "");
+    normalized = normalized.replace(/,/g, "").replace(/\./g, "");
   } else if (commaCount === 1 && dotCount === 0) {
     normalized = normalized.replace(",", ".");
   } else if (commaCount === 1 && dotCount === 1) {
