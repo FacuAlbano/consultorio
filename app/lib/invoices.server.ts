@@ -66,10 +66,11 @@ export async function getFacturacionReport(fromDate: string, toDate: string) {
   const [result] = await db
     .select({
       cantidad: count(),
-      totalFacturado: sum(sql`CAST(${invoices.amount} AS NUMERIC)`),
-      totalPagado: sum(sql`CASE WHEN ${invoices.status} = 'paid' THEN CAST(${invoices.amount} AS NUMERIC) ELSE 0 END`),
+      totalFacturado: sum(invoices.amount),
+      totalPagado: sum(payments.amount),
     })
     .from(invoices)
+    .leftJoin(payments, eq(invoices.id, payments.invoiceId))
     .where(where);
 
   return {
