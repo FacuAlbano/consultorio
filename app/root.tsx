@@ -68,22 +68,30 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export function meta({ data }: Route.MetaArgs) {
-  const origin = data?.origin ?? "";
-  const imageUrl = origin ? `${origin}/clinica.png` : "/clinica.png";
   return [
     { title: "Consultorio - Sistema de Gestión" },
     { name: "description", content: "Sistema de gestión de consultorio médico" },
-    { property: "og:type", content: "website" },
-    { property: "og:title", content: "Consultorio - Sistema de Gestión" },
-    { property: "og:description", content: "Sistema de gestión de consultorio médico" },
-    { property: "og:image", content: imageUrl },
-    { property: "og:image:secure_url", content: imageUrl },
-    { property: "og:url", content: origin },
-    { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: "Consultorio - Sistema de Gestión" },
-    { name: "twitter:description", content: "Sistema de gestión de consultorio médico" },
-    { name: "twitter:image", content: imageUrl },
   ];
+}
+
+function OgAndTwitterMeta() {
+  const data = useLoaderData<typeof loader>();
+  const origin = data?.origin ?? "";
+  const imageUrl = origin ? `${origin}/clinica.png` : "/clinica.png";
+  return (
+    <>
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content="Consultorio - Sistema de Gestión" />
+      <meta property="og:description" content="Sistema de gestión de consultorio médico" />
+      <meta property="og:image" content={imageUrl} />
+      <meta property="og:image:secure_url" content={imageUrl} />
+      <meta property="og:url" content={origin} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="Consultorio - Sistema de Gestión" />
+      <meta name="twitter:description" content="Sistema de gestión de consultorio médico" />
+      <meta name="twitter:image" content={imageUrl} />
+    </>
+  );
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -93,6 +101,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
+        <OgAndTwitterMeta />
         <Links />
       </head>
       <body>
