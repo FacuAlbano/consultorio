@@ -76,7 +76,6 @@ const menuItems: MenuItem[] = [
   {
     label: "Listados",
     icon: FileText,
-    path: PATHS.listadosControl,
     children: [
       { label: "Control Institucional", path: PATHS.listadosControl },
       { label: "Agenda del Profesional", path: PATHS.listadosAgenda },
