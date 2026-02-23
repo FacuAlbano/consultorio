@@ -66,7 +66,7 @@ export async function addPayment(data: typeof payments.$inferInsert) {
     const [created] = await db.insert(payments).values(data).returning();
     if (!created) return { success: false, error: "Error al registrar pago" };
     const totalPaid = await db.select().from(payments).where(eq(payments.invoiceId, data.invoiceId));
-    const sumCents = totalPaid.reduce((s, p) => s + Math.round(parseFloat(p.amount || "0") * 100), 0);
+    const sumCents = Math.round(totalPaid.reduce((s, p) => s + parseFloat(p.amount || "0"), 0) * 100);
     const inv = await getInvoiceById(data.invoiceId);
     if (inv) {
       const invoiceAmountCents = Math.round(parseFloat(inv.amount) * 100);

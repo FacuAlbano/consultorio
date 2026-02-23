@@ -29,7 +29,13 @@ function validateAmount(amount: string): { valid: boolean; normalized: string; e
   } else if (commaCount === 1 && dotCount === 0) {
     normalized = normalized.replace(",", ".");
   } else if (commaCount === 1 && dotCount === 1) {
-    normalized = normalized.replace(/,/g, "");
+    const lastComma = normalized.lastIndexOf(",");
+    const lastDot = normalized.lastIndexOf(".");
+    if (lastComma > lastDot) {
+      normalized = normalized.replace(/\./g, "").replace(",", ".");
+    } else {
+      normalized = normalized.replace(/,/g, "");
+    }
   }
   
   const numValue = parseFloat(normalized);
