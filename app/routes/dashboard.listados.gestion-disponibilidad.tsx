@@ -5,7 +5,7 @@ import { requireAuth } from "~/lib/middleware";
 import { getAllDoctors } from "~/lib/doctors.server";
 import { db } from "~/db/client";
 import { doctorUnavailableDays } from "~/db/schema";
-import { eq, gte } from "drizzle-orm";
+import { gte, sql } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Settings, Clock, CalendarOff } from "lucide-react";
@@ -17,18 +17,30 @@ export async function loader({ request }: Route.LoaderArgs) {
   const doctors = await getAllDoctors({ limit: 100 });
   const today = getTodayLocalISO();
   
-  // Obtener todos los días no laborables en una sola query
-  const allDays = await db.select().from(doctorUnavailableDays);
+  const totalCounts = await db
+    .select({
+      doctorId: doctorUnavailableDays.doctorId,
+      unavailableCount: sql<number>`COUNT(*)::int`,
+    })
+    .from(doctorUnavailableDays)
+    .groupBy(doctorUnavailableDays.doctorId);
   
-  // Agrupar por doctor ID en memoria
+  const futureCounts = await db
+    .select({
+      doctorId: doctorUnavailableDays.doctorId,
+      futureUnavailable: sql<number>`COUNT(*)::int`,
+    })
+    .from(doctorUnavailableDays)
+    .where(gte(doctorUnavailableDays.date, today))
+    .groupBy(doctorUnavailableDays.doctorId);
+  
   const byId: Record<string, { doctorId: string; unavailableCount: number; futureUnavailable: number }> = {};
-  for (const day of allDays) {
-    if (!byId[day.doctorId]) {
-      byId[day.doctorId] = { doctorId: day.doctorId, unavailableCount: 0, futureUnavailable: 0 };
-    }
-    byId[day.doctorId].unavailableCount++;
-    if (day.date >= today) {
-      byId[day.doctorId].futureUnavailable++;
+  for (const item of totalCounts) {
+    byId[item.doctorId] = { doctorId: item.doctorId, unavailableCount: item.unavailableCount, futureUnavailable: 0 };
+  }
+  for (const item of futureCounts) {
+    if (byId[item.doctorId]) {
+      byId[item.doctorId].futureUnavailable = item.futureUnavailable;
     }
   }
   

@@ -20,7 +20,18 @@ import { getTodayLocalISO, formatDate } from "~/lib/utils";
 const INTENTS = { CREATE_INVOICE: "createInvoice", MARK_PAID: "markPaid" } as const;
 
 function validateAmount(amount: string): { valid: boolean; normalized: string; error?: string } {
-  const normalized = amount.replace(",", ".");
+  let normalized = amount.trim();
+  const commaCount = (normalized.match(/,/g) || []).length;
+  const dotCount = (normalized.match(/\./g) || []).length;
+  
+  if (commaCount > 1 || dotCount > 1) {
+    normalized = normalized.replace(/,/g, "");
+  } else if (commaCount === 1 && dotCount === 0) {
+    normalized = normalized.replace(",", ".");
+  } else if (commaCount === 1 && dotCount === 1) {
+    normalized = normalized.replace(/,/g, "");
+  }
+  
   const numValue = parseFloat(normalized);
   if (isNaN(numValue) || !isFinite(numValue)) {
     return { valid: false, normalized, error: "El monto debe ser un número válido" };
@@ -28,7 +39,7 @@ function validateAmount(amount: string): { valid: boolean; normalized: string; e
   if (numValue <= 0) {
     return { valid: false, normalized, error: "El monto debe ser mayor a cero" };
   }
-  return { valid: true, normalized };
+  return { valid: true, normalized: numValue.toFixed(2) };
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
