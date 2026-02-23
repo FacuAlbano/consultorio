@@ -56,30 +56,6 @@ export async function updateInvoice(id: string, data: Partial<typeof invoices.$i
   }
 }
 
-export async function getPaymentsByInvoiceId(invoiceId: string) {
-  const rows = await db.select().from(payments).where(eq(payments.invoiceId, invoiceId)).orderBy(desc(payments.paymentDate));
-  return rows;
-}
-
-export async function addPayment(data: typeof payments.$inferInsert) {
-  try {
-    const [created] = await db.insert(payments).values(data).returning();
-    if (!created) return { success: false, error: "Error al registrar pago" };
-    const totalPaid = await db.select().from(payments).where(eq(payments.invoiceId, data.invoiceId));
-    const sum = totalPaid.reduce((s, p) => s + parseFloat(p.amount || "0"), 0);
-    const inv = await getInvoiceById(data.invoiceId);
-    if (inv && sum >= parseFloat(inv.amount)) {
-      const updateResult = await updateInvoice(data.invoiceId, { status: "paid" });
-      if (!updateResult.success) {
-        console.error("Error al actualizar estado de factura, pero el pago fue registrado correctamente");
-      }
-    }
-    return { success: true, data: created };
-  } catch (e) {
-    return { success: false, error: "Error al registrar pago" };
-  }
-}
-
 export async function getFacturacionReport(fromDate: string, toDate: string) {
   const conditions = [];
   if (fromDate) conditions.push(gte(invoices.invoiceDate, fromDate));

@@ -77,7 +77,9 @@ export default function EditarPaciente() {
   const actionData = useActionData<typeof action>();
 
   const birthDateStr = patient.birthDate
-    ? new Date(patient.birthDate).toISOString().slice(0, 10)
+    ? (typeof patient.birthDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(patient.birthDate)
+        ? patient.birthDate
+        : new Date(patient.birthDate).toISOString().slice(0, 10))
     : "";
 
   return (

@@ -6,8 +6,6 @@ import {
   getInvoices,
   getFacturacionReport,
   createInvoice,
-  addPayment,
-  getPaymentsByInvoiceId,
   updateInvoice,
 } from "~/lib/invoices.server";
 import { getAllPatients } from "~/lib/patients.server";
@@ -17,17 +15,37 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { DollarSign, Plus, CreditCard, BarChart3 } from "lucide-react";
 import { useState } from "react";
-import { getTodayLocalISO, isValidUUID, formatDate } from "~/lib/utils";
+import { getTodayLocalISO, formatDate } from "~/lib/utils";
 
-const INTENTS = { CREATE_INVOICE: "createInvoice", ADD_PAYMENT: "addPayment", MARK_PAID: "markPaid" } as const;
+const INTENTS = { CREATE_INVOICE: "createInvoice", MARK_PAID: "markPaid" } as const;
 
 function validateAmount(amount: string): { valid: boolean; normalized: string; error?: string } {
-  const normalized = amount.replace(",", ".");
+  let normalized = amount.trim();
+  const commaCount = (normalized.match(/,/g) || []).length;
+  const dotCount = (normalized.match(/\./g) || []).length;
+  
+  if (commaCount > 1 || dotCount > 1) {
+    normalized = normalized.replace(/,/g, "");
+  } else if (commaCount === 1 && dotCount === 0) {
+    normalized = normalized.replace(",", ".");
+  } else if (commaCount === 1 && dotCount === 1) {
+    const lastComma = normalized.lastIndexOf(",");
+    const lastDot = normalized.lastIndexOf(".");
+    if (lastComma > lastDot) {
+      normalized = normalized.replace(/\./g, "").replace(",", ".");
+    } else {
+      normalized = normalized.replace(/,/g, "");
+    }
+  }
+  
   const numValue = parseFloat(normalized);
   if (isNaN(numValue) || !isFinite(numValue)) {
     return { valid: false, normalized, error: "El monto debe ser un número válido" };
   }
-  return { valid: true, normalized };
+  if (numValue <= 0) {
+    return { valid: false, normalized, error: "El monto debe ser mayor a cero" };
+  }
+  return { valid: true, normalized: numValue.toFixed(2) };
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -68,23 +86,6 @@ export async function action({ request }: Route.ActionArgs) {
       status: "pending",
     });
     return result;
-  }
-
-  if (intent === INTENTS.ADD_PAYMENT) {
-    const invoiceId = formData.get("invoiceId") as string;
-    const amount = formData.get("amount") as string;
-    const method = (formData.get("method") as string) || null;
-    if (!invoiceId || !amount) return { success: false, error: "Monto obligatorio" };
-    const validation = validateAmount(amount);
-    if (!validation.valid) {
-      return { success: false, error: validation.error };
-    }
-    return await addPayment({
-      invoiceId,
-      amount: validation.normalized,
-      method,
-      paymentDate: getTodayLocalISO(),
-    });
   }
 
   if (intent === INTENTS.MARK_PAID) {
