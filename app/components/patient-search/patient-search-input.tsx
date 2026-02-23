@@ -253,7 +253,7 @@ export function PatientSearchInput({
       </form>
 
       {/* Historial de búsquedas */}
-      {showHistory && showHistoryDropdown && searchHistory.length > 0 && query.length < 2 && (
+      {showHistory && showHistoryDropdown && searchHistory.length > 0 && query.length < minSearchLength && (
         <div className="absolute z-50 w-full mt-2 bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
           <div className="flex items-center justify-between px-4 py-2 border-b border-border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

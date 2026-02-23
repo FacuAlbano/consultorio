@@ -1,6 +1,6 @@
 import { db } from "~/db/client";
 import { patients } from "~/db/schema";
-import { eq, or, ilike, desc } from "drizzle-orm";
+import { eq, or, ilike, desc, count } from "drizzle-orm";
 
 /**
  * Opciones para búsqueda de pacientes
@@ -202,4 +202,16 @@ export async function deletePatient(id: string) {
   }
 
   return { success: true };
+}
+
+/**
+ * Obtiene el total de pacientes registrados
+ * @returns El número total de pacientes
+ */
+export async function getPatientsCount() {
+  const [result] = await db
+    .select({ count: count() })
+    .from(patients);
+  
+  return result?.count ?? 0;
 }

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { CreditCard, ExternalLink, BarChart3, Users, Building2, PieChart } from "lucide-react";
 import { useState } from "react";
+import { formatDate } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
@@ -202,7 +203,7 @@ export default function PacientesAtendidosPorOS() {
                 <tbody>
                   {appointments.map(({ appointment, patient }) => (
                     <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-2">{new Date(appointment.appointmentDate).toLocaleDateString("es-AR")}</td>
+                      <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
                       <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
                       <td className="py-3 px-2">{patient?.insuranceCompany ?? "—"}</td>

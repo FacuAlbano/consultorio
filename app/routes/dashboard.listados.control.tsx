@@ -3,21 +3,18 @@ import { useLoaderData } from "react-router";
 import type { Route } from "./+types/dashboard.listados.control";
 import { requireAuth } from "~/lib/middleware";
 import { getAppointments } from "~/lib/appointments.server";
-import { getAllPatients } from "~/lib/patients.server";
+import { getPatientsCount } from "~/lib/patients.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { BarChart3, Calendar, Users, UserCheck, UserX, ClipboardX } from "lucide-react";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { getTodayLocalISO } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const today = todayISO();
+  const today = getTodayLocalISO();
 
-  const [turnosHoy, pacientesList] = await Promise.all([
+  const [turnosHoy, totalPacientes] = await Promise.all([
     getAppointments({ date: today, limit: 500 }),
-    getAllPatients({ limit: 10000 }),
+    getPatientsCount(),
   ]);
 
   const turnosProgramados = turnosHoy.filter((t) => t.appointment.status === "scheduled").length;
@@ -31,7 +28,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     turnosAtendidos,
     turnosCancelados,
     noAsistieron,
-    totalPacientes: pacientesList.length,
+    totalPacientes,
   };
 }
 

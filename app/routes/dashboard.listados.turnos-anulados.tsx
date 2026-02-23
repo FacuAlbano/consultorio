@@ -9,22 +9,23 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { ClipboardX, ExternalLink, Download, FileText } from "lucide-react";
 import { useState } from "react";
+import { formatDate } from "~/lib/utils";
 
 function exportToCSV(
   appointments: Awaited<ReturnType<typeof getAppointments>>,
 ) {
   const headers = ["Fecha", "Hora", "Paciente", "DNI", "Médico", "Motivo / Notas"];
   const rows = appointments.map(({ appointment, patient, doctor }) => [
-    new Date(appointment.appointmentDate).toLocaleDateString("es-AR"),
+    formatDate(appointment.appointmentDate),
     appointment.appointmentTime,
     patient ? `${patient.firstName} ${patient.lastName}` : "",
     patient?.documentNumber ?? "",
     doctor ? `${doctor.firstName} ${doctor.lastName}` : "",
-    (appointment.notes ?? "").replace(/"/g, '""'),
+    appointment.notes ?? "",
   ]);
   const csv = [
     headers.join(","),
-    ...rows.map((r) => r.map((c) => `"${String(c)}"`).join(",")),
+    ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")),
   ].join("\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement("a");
@@ -220,7 +221,7 @@ export default function TurnosAnulados() {
                 <tbody>
                   {appointments.map(({ appointment, patient, doctor }) => (
                     <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-2">{new Date(appointment.appointmentDate).toLocaleDateString("es-AR")}</td>
+                      <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
                       <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
                       <td className="py-3 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>

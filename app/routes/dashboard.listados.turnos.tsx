@@ -10,6 +10,7 @@ import { Input } from "~/components/ui/input";
 import { Calendar, ClipboardList, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { PATHS } from "~/lib/constants";
+import { formatDate } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
@@ -137,7 +138,7 @@ export default function ListadoTurnos() {
                   {appointments.map(({ appointment, patient, doctor }) => (
                     <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
                       <td className="py-3 px-2">
-                        {new Date(appointment.appointmentDate).toLocaleDateString("es-AR")}
+                        {formatDate(appointment.appointmentDate)}
                       </td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
                       <td className="py-3 px-2">
