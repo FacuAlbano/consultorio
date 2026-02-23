@@ -1,10 +1,11 @@
-import { useLoaderData } from "react-router";
+import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/pacientes.$id";
 import { getPatientById } from "~/lib/patients.server";
 import { requireAuth } from "~/lib/middleware";
-import { isValidUUID } from "~/lib/utils";
+import { isValidUUID, calculateAge, formatDate } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { User, FileText, Phone, Mail, MapPin, Calendar, CreditCard } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { User, FileText, Phone, Mail, MapPin, Calendar, CreditCard, MessageCircle, Pencil } from "lucide-react";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const { tokenType } = await requireAuth(request);
@@ -30,6 +31,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export default function PatientProfile() {
   const { patient } = useLoaderData<typeof loader>();
+  const age = calculateAge(patient.birthDate);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -42,9 +44,62 @@ export default function PatientProfile() {
             Perfil del Paciente
           </p>
         </div>
+        <Button asChild variant="outline" size="sm" className="gap-2">
+          <Link to={`/pacientes/${patient.id}/editar`}>
+            <Pencil className="h-4 w-4" /> Editar datos
+          </Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Datos filiatorios: HC, DNI, fecha nacimiento, edad, contacto, obra social */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Datos Filiatorios
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {patient.medicalRecordNumber && (
+              <div>
+                <p className="text-sm text-muted-foreground">Historia clínica (HC)</p>
+                <p className="font-medium">{patient.medicalRecordNumber}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-sm text-muted-foreground">DNI</p>
+              <p className="font-medium">{patient.documentType} {patient.documentNumber}</p>
+            </div>
+            {patient.birthDate && (
+              <div>
+                <p className="text-sm text-muted-foreground">Fecha de nacimiento</p>
+                <p className="font-medium">
+                  {formatDate(patient.birthDate)}
+                  {age != null && (
+                    <span className="text-muted-foreground font-normal ml-2">({age} años)</span>
+                  )}
+                </p>
+              </div>
+            )}
+            {patient.phone && (
+              <div>
+                <p className="text-sm text-muted-foreground">Teléfono</p>
+                <p className="font-medium">{patient.phone}</p>
+              </div>
+            )}
+            {patient.insuranceCompany && (
+              <div>
+                <p className="text-sm text-muted-foreground">Obra social</p>
+                <p className="font-medium">
+                  {patient.insuranceCompany}
+                  {patient.insuranceNumber && ` — Nº afiliado: ${patient.insuranceNumber}`}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Información Personal */}
         <Card>
           <CardHeader>
@@ -59,18 +114,15 @@ export default function PatientProfile() {
               <p className="font-medium">{patient.firstName} {patient.lastName}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Tipo de documento</p>
-              <p className="font-medium">{patient.documentType}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Número de documento</p>
-              <p className="font-medium">{patient.documentNumber}</p>
+              <p className="text-sm text-muted-foreground">Tipo y número de documento</p>
+              <p className="font-medium">{patient.documentType} {patient.documentNumber}</p>
             </div>
             {patient.birthDate && (
               <div>
-                <p className="text-sm text-muted-foreground">Fecha de nacimiento</p>
+                <p className="text-sm text-muted-foreground">Fecha de nacimiento / Edad</p>
                 <p className="font-medium">
-                  {new Date(patient.birthDate).toLocaleDateString("es-AR")}
+                  {formatDate(patient.birthDate)}
+                  {age != null && ` (${age} años)`}
                 </p>
               </div>
             )}
@@ -88,7 +140,7 @@ export default function PatientProfile() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Phone className="h-5 w-5" />
-              Información de Contacto
+              Contacto
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -96,6 +148,14 @@ export default function PatientProfile() {
               <div>
                 <p className="text-sm text-muted-foreground">Teléfono</p>
                 <p className="font-medium">{patient.phone}</p>
+              </div>
+            )}
+            {patient.whatsapp && (
+              <div>
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <MessageCircle className="h-4 w-4" /> WhatsApp
+                </p>
+                <p className="font-medium">{patient.whatsapp}</p>
               </div>
             )}
             {patient.email && (
@@ -113,27 +173,7 @@ export default function PatientProfile() {
           </CardContent>
         </Card>
 
-        {/* Historia Clínica */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Historia Clínica
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {patient.medicalRecordNumber ? (
-              <div>
-                <p className="text-sm text-muted-foreground">Número de Historia Clínica</p>
-                <p className="font-medium">{patient.medicalRecordNumber}</p>
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">No tiene número de HC asignado</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Obra Social */}
+        {/* Obra Social (detalle) */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

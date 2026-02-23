@@ -76,17 +76,17 @@ const menuItems: MenuItem[] = [
   {
     label: "Listados",
     icon: FileText,
-    path: "/listados",
     children: [
-      { label: "Control Institucional", path: "/listados/control" },
-      { label: "Agenda del Profesional", path: "/listados/agenda" },
-      { label: "Facturación de Turnos Médicos", path: "/listados/facturacion" },
-      { label: "Turnos de la Institución", path: "/listados/turnos" },
-      { label: "Pacientes", path: "/listados/pacientes" },
-      { label: "Pacientes Atendidos", path: "/listados/pacientes-atendidos" },
-      { label: "Pacientes Atendidos por OS", path: "/listados/pacientes-os" },
-      { label: "Pacientes NO Atendidos", path: "/listados/pacientes-no-atendidos" },
-      { label: "Turnos Anulados", path: "/listados/turnos-anulados", badge: "NUEVO" },
+      { label: "Control Institucional", path: PATHS.listadosControl },
+      { label: "Agenda del Profesional", path: PATHS.listadosAgenda },
+      { label: "Gestión de disponibilidad", path: PATHS.listadosGestionDisponibilidad },
+      { label: "Facturación de Turnos Médicos", path: PATHS.listadosFacturacion },
+      { label: "Turnos de la Institución", path: PATHS.listadosTurnos },
+      { label: "Pacientes", path: PATHS.listadosPacientes },
+      { label: "Pacientes Atendidos", path: PATHS.listadosPacientesAtendidos },
+      { label: "Pacientes Atendidos por OS", path: PATHS.listadosPacientesOS },
+      { label: "Pacientes NO Atendidos", path: PATHS.listadosPacientesNoAtendidos },
+      { label: "Turnos Anulados", path: PATHS.listadosTurnosAnulados, badge: "NUEVO" },
     ],
   },
 ];
@@ -113,6 +113,7 @@ function SidebarContent({ userInfo, isOpen, onToggle, children }: SidebarContent
           <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
         )}
         <button
+          type="button"
           onClick={onToggle}
           className={cn(
             "p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors",
@@ -159,11 +160,22 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
     return location.pathname === path || location.pathname.startsWith(path + "/");
   };
 
+  const isAnyChildActive = (item: MenuItem): boolean => {
+    if (!item.children) return false;
+    
+    for (const child of item.children) {
+      if (child.path && isActive(child.path)) return true;
+      if (isAnyChildActive(child)) return true;
+    }
+    
+    return false;
+  };
+
   const renderMenuItem = (item: MenuItem, level: number = 0) => {
     const hasChildren = item.children && item.children.length > 0;
     const hasSubChildren = hasChildren && item.children!.some((child) => child.children);
     const isExpanded = expandedItems.includes(item.path || item.label);
-    const active = isActive(item.path);
+    const active = isActive(item.path) || isAnyChildActive(item);
 
     // Cuando está cerrada, solo mostrar iconos
     if (!isOpen) {
@@ -190,16 +202,27 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
           </Link>
         );
       }
-      // Si no tiene path pero tiene icono, mostrar el icono
+      // Si no tiene path pero tiene icono, hacerlo clickeable para expandir el sidebar
       if (item.icon) {
         return (
-          <div
+          <button
+            type="button"
             key={item.path || item.label}
-            className="flex items-center justify-center p-2 rounded-lg text-sidebar-foreground/60"
+            onClick={onToggle}
+            className={cn(
+              "flex items-center justify-center p-2 rounded-lg transition-colors relative group",
+              active
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            )}
             title={item.label}
           >
             <item.icon className="h-5 w-5" />
-          </div>
+            {/* Tooltip cuando está cerrada */}
+            <span className="absolute left-full ml-2 px-2 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[100] transition-opacity">
+              {item.label}
+            </span>
+          </button>
         );
       }
       return null;
@@ -213,6 +236,7 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
       return (
         <div key={item.path || item.label}>
           <button
+            type="button"
             onClick={() => toggleSubExpand(item.label)}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
@@ -270,6 +294,7 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
               )}
             </div>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleExpand(item.path || item.label);

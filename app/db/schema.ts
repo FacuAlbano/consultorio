@@ -1,5 +1,5 @@
-import { pgTable, varchar, uuid, text, timestamp, boolean, date, time, index, uniqueIndex } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, varchar, uuid, text, timestamp, boolean, date, time, index, uniqueIndex, numeric } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 
 // Esquema base para la aplicación consultorio
 
@@ -23,6 +23,7 @@ export const patients = pgTable(
     gender: varchar("gender", { length: 20 }), // M, F, Otro
     // Contacto
     phone: varchar("phone", { length: 50 }),
+    whatsapp: varchar("whatsapp", { length: 50 }), // Teléfono WhatsApp
     email: varchar("email", { length: 255 }),
     address: text("address"),
     // Historia clínica
@@ -184,6 +185,8 @@ export const appointments = pgTable(
     isOverbooking: boolean("is_overbooking").default(false).notNull(), // Sobre turno
     status: varchar("status", { length: 50 }).notNull().default("scheduled"), // scheduled, attended, cancelled, no_show
     notes: text("notes"), // Notas adicionales
+    noShowReason: text("no_show_reason"), // Motivo de no atención (inasistencia)
+    noShowFollowUp: text("no_show_follow_up"), // Seguimiento de inasistencia
     // Metadatos
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -196,6 +199,45 @@ export const appointments = pgTable(
   })
 );
 
+// Tabla de facturas (facturación de turnos)
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+    appointmentId: uuid("appointment_id").references(() => appointments.id, { onDelete: "set null" }),
+    amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+    invoiceDate: date("invoice_date").notNull().default(sql`CURRENT_DATE`),
+    status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, paid, cancelled
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    patientIdIdx: index("invoices_patient_id_idx").on(table.patientId),
+    appointmentIdIdx: index("invoices_appointment_id_idx").on(table.appointmentId),
+    statusIdx: index("invoices_status_idx").on(table.status),
+    dateIdx: index("invoices_invoice_date_idx").on(table.invoiceDate),
+  })
+);
+
+// Tabla de pagos (control de pagos)
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+    amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+    paymentDate: date("payment_date").notNull().default(sql`CURRENT_DATE`),
+    method: varchar("method", { length: 50 }), // efectivo, transferencia, tarjeta, etc.
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    invoiceIdIdx: index("payments_invoice_id_idx").on(table.invoiceId),
+  })
+);
+
 // Relaciones de Drizzle
 export const doctorsRelations = relations(doctors, ({ many }) => ({
   unavailableDays: many(doctorUnavailableDays),
@@ -205,6 +247,17 @@ export const doctorsRelations = relations(doctors, ({ many }) => ({
 
 export const patientsRelations = relations(patients, ({ many }) => ({
   appointments: many(appointments),
+  invoices: many(invoices),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  patient: one(patients, { fields: [invoices.patientId], references: [patients.id] }),
+  appointment: one(appointments, { fields: [invoices.appointmentId], references: [appointments.id] }),
+  payments: many(payments),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
 }));
 
 export const appointmentsRelations = relations(appointments, ({ one }) => ({
@@ -275,3 +328,9 @@ export type DoctorAppointmentTypeInsert = typeof doctorAppointmentTypes.$inferIn
 
 export type InstitutionUnavailableDay = typeof institutionUnavailableDays.$inferSelect;
 export type InstitutionUnavailableDayInsert = typeof institutionUnavailableDays.$inferInsert;
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceInsert = typeof invoices.$inferInsert;
+
+export type Payment = typeof payments.$inferSelect;
+export type PaymentInsert = typeof payments.$inferInsert;

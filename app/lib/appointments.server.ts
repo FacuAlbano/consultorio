@@ -8,9 +8,12 @@ import { isValidUUID } from "~/lib/utils";
  */
 export interface SearchAppointmentsOptions {
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
   doctorId?: string;
   patientId?: string;
   status?: string;
+  insuranceCompany?: string; // Filtro por obra social del paciente (5.7)
   limit?: number;
   offset?: number;
 }
@@ -23,9 +26,12 @@ export interface SearchAppointmentsOptions {
 export async function getAppointments(options: SearchAppointmentsOptions = {}) {
   const {
     date,
+    dateFrom,
+    dateTo,
     doctorId,
     patientId,
     status,
+    insuranceCompany,
     limit = 100,
     offset = 0,
   } = options;
@@ -34,6 +40,9 @@ export async function getAppointments(options: SearchAppointmentsOptions = {}) {
 
   if (date) {
     whereConditions.push(eq(appointments.appointmentDate, date));
+  } else {
+    if (dateFrom) whereConditions.push(gte(appointments.appointmentDate, dateFrom));
+    if (dateTo) whereConditions.push(lte(appointments.appointmentDate, dateTo));
   }
 
   if (doctorId && isValidUUID(doctorId)) {
@@ -46,6 +55,10 @@ export async function getAppointments(options: SearchAppointmentsOptions = {}) {
 
   if (status) {
     whereConditions.push(eq(appointments.status, status));
+  }
+
+  if (insuranceCompany) {
+    whereConditions.push(eq(patients.insuranceCompany, insuranceCompany));
   }
 
   const whereCondition = whereConditions.length > 0
@@ -61,6 +74,7 @@ export async function getAppointments(options: SearchAppointmentsOptions = {}) {
         lastName: patients.lastName,
         documentNumber: patients.documentNumber,
         medicalRecordNumber: patients.medicalRecordNumber,
+        insuranceCompany: patients.insuranceCompany,
       },
       doctor: {
         id: doctors.id,

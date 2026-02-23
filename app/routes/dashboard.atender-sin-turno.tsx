@@ -83,7 +83,7 @@ export async function action({ request }: Route.ActionArgs) {
     };
 
     const result = await createAppointment(appointmentData);
-    if (result.success) {
+    if (result.success && result.data) {
       return {
         success: true,
         message: "Consulta creada exitosamente",

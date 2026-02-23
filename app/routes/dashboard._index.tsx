@@ -69,14 +69,14 @@ export default function Index() {
       title: "Gestión de Pacientes",
       description: "Administrar pacientes",
       icon: Users,
-      href: "/listados/pacientes",
+      href: PATHS.listadosPacientes,
       color: "bg-purple-500 hover:bg-purple-600",
     },
     {
       title: "Calendario",
       description: "Ver agenda completa",
       icon: Calendar,
-      href: "/listados/agenda",
+      href: PATHS.listadosAgenda,
       color: "bg-orange-500 hover:bg-orange-600",
     },
   ];

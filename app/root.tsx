@@ -6,6 +6,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteLoaderData,
 } from "react-router";
 import * as React from "react";
 
@@ -63,7 +64,39 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Si no existe la cookie, usar "light" por defecto (no podemos detectar la preferencia del sistema en SSR)
   const theme = themeCookie === "dark" ? "dark" : "light";
 
-  return { theme };
+  const forwardedHost = request.headers.get("X-Forwarded-Host");
+  const forwardedProto = request.headers.get("X-Forwarded-Proto");
+  const origin = forwardedHost && forwardedProto
+    ? `${forwardedProto}://${forwardedHost}`
+    : new URL(request.url).origin;
+  return { theme, origin };
+}
+
+export function meta({ data }: Route.MetaArgs) {
+  return [
+    { title: "Consultorio - Sistema de Gestión" },
+    { name: "description", content: "Sistema de gestión de consultorio médico" },
+  ];
+}
+
+function OgAndTwitterMeta() {
+  const data = useRouteLoaderData<typeof loader>("root");
+  const origin = data?.origin ?? "";
+  const imageUrl = origin ? `${origin}/clinica.png` : "/clinica.png";
+  return (
+    <>
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content="Consultorio - Sistema de Gestión" />
+      <meta property="og:description" content="Sistema de gestión de consultorio médico" />
+      <meta property="og:image" content={imageUrl} />
+      <meta property="og:image:secure_url" content={imageUrl} />
+      <meta property="og:url" content={origin} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="Consultorio - Sistema de Gestión" />
+      <meta name="twitter:description" content="Sistema de gestión de consultorio médico" />
+      <meta name="twitter:image" content={imageUrl} />
+    </>
+  );
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -73,6 +106,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
+        <OgAndTwitterMeta />
         <Links />
       </head>
       <body>
