@@ -64,7 +64,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Si no existe la cookie, usar "light" por defecto (no podemos detectar la preferencia del sistema en SSR)
   const theme = themeCookie === "dark" ? "dark" : "light";
 
-  const origin = new URL(request.url).origin;
+  const forwardedHost = request.headers.get("X-Forwarded-Host");
+  const forwardedProto = request.headers.get("X-Forwarded-Proto");
+  const origin = forwardedHost && forwardedProto
+    ? `${forwardedProto}://${forwardedHost}`
+    : new URL(request.url).origin;
   return { theme, origin };
 }
 

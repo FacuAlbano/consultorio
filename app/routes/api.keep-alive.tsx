@@ -6,10 +6,28 @@ import { sql } from "drizzle-orm";
  * Keep-alive para Supabase: una consulta mínima a la DB evita que el proyecto pase a inactivo.
  * Sin autenticación para que un cron externo (UptimeRobot, cron-job.org, etc.) pueda llamarlo.
  * Configurar un ping cada 10–15 minutos a: GET /api/keep-alive
+ * 
+ * Para proteger contra abuso, se requiere un token secreto opcional en KEEP_ALIVE_SECRET.
+ * Pasar el token como header X-Keep-Alive-Secret o query parameter ?secret=xxx
  */
 export async function loader({ request }: Route.LoaderArgs) {
   if (request.method !== "GET") {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  const expectedSecret = process.env.KEEP_ALIVE_SECRET;
+  if (expectedSecret) {
+    const url = new URL(request.url);
+    const secretFromQuery = url.searchParams.get("secret");
+    const secretFromHeader = request.headers.get("X-Keep-Alive-Secret");
+    const providedSecret = secretFromQuery || secretFromHeader;
+
+    if (providedSecret !== expectedSecret) {
+      return Response.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
   }
 
   try {
