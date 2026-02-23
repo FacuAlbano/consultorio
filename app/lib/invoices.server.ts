@@ -62,20 +62,25 @@ export async function getFacturacionReport(fromDate: string, toDate: string) {
   if (toDate) conditions.push(lte(invoices.invoiceDate, toDate));
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  // Usar agregaciones SQL para calcular los totales de manera eficiente
-  const [result] = await db
+  const [invoiceResult] = await db
     .select({
       cantidad: count(),
       totalFacturado: sum(invoices.amount),
-      totalPagado: sum(payments.amount),
     })
     .from(invoices)
-    .leftJoin(payments, eq(invoices.id, payments.invoiceId))
+    .where(where);
+
+  const [paymentResult] = await db
+    .select({
+      totalPagado: sum(payments.amount),
+    })
+    .from(payments)
+    .innerJoin(invoices, eq(invoices.id, payments.invoiceId))
     .where(where);
 
   return {
-    totalFacturado: parseFloat(String(result?.totalFacturado ?? 0)),
-    totalPagado: parseFloat(String(result?.totalPagado ?? 0)),
-    cantidad: result?.cantidad ?? 0,
+    totalFacturado: parseFloat(String(invoiceResult?.totalFacturado ?? 0)),
+    totalPagado: parseFloat(String(paymentResult?.totalPagado ?? 0)),
+    cantidad: invoiceResult?.cantidad ?? 0,
   };
 }

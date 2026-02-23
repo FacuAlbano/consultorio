@@ -6,6 +6,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteLoaderData,
 } from "react-router";
 import * as React from "react";
 
@@ -75,7 +76,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 function OgAndTwitterMeta() {
-  const data = useLoaderData<typeof loader>();
+  const data = useRouteLoaderData<typeof loader>("root");
   const origin = data?.origin ?? "";
   const imageUrl = origin ? `${origin}/clinica.png` : "/clinica.png";
   return (
