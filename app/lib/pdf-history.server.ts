@@ -116,7 +116,8 @@ export async function generateConsultationPdf(data: ConsultationPdfData): Promis
   doc.text(`Página 1 de 1`, pageWidth - margin - 20, pageHeight - 10);
   doc.setTextColor(0, 0, 0);
 
-  return doc.output("arraybuffer") as unknown as Uint8Array;
+  const raw = doc.output("arraybuffer");
+  return new Uint8Array(raw instanceof ArrayBuffer ? raw : (raw as Uint8Array).buffer);
 }
 
 export type PatientHistoryPdfData = {
@@ -259,5 +260,6 @@ export async function generatePatientHistoryPdf(data: PatientHistoryPdfData): Pr
     doc.setTextColor(0, 0, 0);
   }
 
-  return doc.output("arraybuffer") as unknown as Uint8Array;
+  const raw = doc.output("arraybuffer");
+  return new Uint8Array(raw instanceof ArrayBuffer ? raw : (raw as Uint8Array).buffer);
 }
