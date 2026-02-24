@@ -59,32 +59,40 @@ export async function generateAgendaBlocks(input: GenerateAgendaInput): Promise<
     if (daysOfWeek.length > 0 && !daysOfWeek.includes(dow)) continue;
 
     if (morning && morning.startTime && morning.endTime && morning.durationMinutes > 0) {
-      toInsert.push({
-        doctorId,
-        appointmentTypeId: appointmentTypeId || null,
-        date: dateStr,
-        period: "morning",
-        startTime: normTime(morning.startTime),
-        endTime: normTime(morning.endTime),
-        durationMinutes: String(Math.min(120, Math.max(5, morning.durationMinutes))),
-        forWebBooking: morning.forWebBooking,
-        availableOnSave: morning.availableOnSave,
-      });
-      count++;
+      const startNorm = normTime(morning.startTime);
+      const endNorm = normTime(morning.endTime);
+      if (startNorm && endNorm && startNorm < endNorm) {
+        toInsert.push({
+          doctorId,
+          appointmentTypeId: appointmentTypeId || null,
+          date: dateStr,
+          period: "morning",
+          startTime: startNorm,
+          endTime: endNorm,
+          durationMinutes: String(Math.min(120, Math.max(5, morning.durationMinutes))),
+          forWebBooking: morning.forWebBooking,
+          availableOnSave: morning.availableOnSave,
+        });
+        count++;
+      }
     }
     if (afternoon && afternoon.startTime && afternoon.endTime && afternoon.durationMinutes > 0) {
-      toInsert.push({
-        doctorId,
-        appointmentTypeId: appointmentTypeId || null,
-        date: dateStr,
-        period: "afternoon",
-        startTime: normTime(afternoon.startTime),
-        endTime: normTime(afternoon.endTime),
-        durationMinutes: String(Math.min(120, Math.max(5, afternoon.durationMinutes))),
-        forWebBooking: afternoon.forWebBooking,
-        availableOnSave: afternoon.availableOnSave,
-      });
-      count++;
+      const startNorm = normTime(afternoon.startTime);
+      const endNorm = normTime(afternoon.endTime);
+      if (startNorm && endNorm && startNorm < endNorm) {
+        toInsert.push({
+          doctorId,
+          appointmentTypeId: appointmentTypeId || null,
+          date: dateStr,
+          period: "afternoon",
+          startTime: startNorm,
+          endTime: endNorm,
+          durationMinutes: String(Math.min(120, Math.max(5, afternoon.durationMinutes))),
+          forWebBooking: afternoon.forWebBooking,
+          availableOnSave: afternoon.availableOnSave,
+        });
+        count++;
+      }
     }
   }
 
