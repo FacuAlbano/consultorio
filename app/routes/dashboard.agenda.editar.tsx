@@ -80,11 +80,11 @@ export default function EditarAgenda() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentDoctorId, setCurrentDoctorId] = React.useState((doctorId || doctors[0]?.id) ?? "");
+  const [currentDoctorId, setCurrentDoctorId] = React.useState(doctorId || "");
   const isSubmitting = navigation.state === "submitting";
   React.useEffect(() => {
-    setCurrentDoctorId((doctorId || doctors[0]?.id) ?? "");
-  }, [doctorId, doctors]);
+    setCurrentDoctorId(doctorId || "");
+  }, [doctorId]);
 
   React.useEffect(() => {
     if (actionData?.success) toast.success("Agenda guardada correctamente");
@@ -135,7 +135,7 @@ export default function EditarAgenda() {
           </p>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="space-y-6" key={currentDoctorId || "none"}>
+          <Form method="post" className="space-y-6" key={doctorId || "none"}>
             <input type="hidden" name="doctorId" value={currentDoctorId} />
             <div className="space-y-2">
               <Label htmlFor="doctorId">Médico</Label>

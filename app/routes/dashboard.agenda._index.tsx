@@ -161,10 +161,10 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: true as const };
 }
 
-/** Estados: Disponible, Atendido, Cancelado, Sobre turno */
+/** Estados: Disponible, Atendido, Cancelado, No asistió, Sobre turno */
 function StatusBadge({ status, isOverbooking }: { status: string; isOverbooking?: boolean }) {
-  const label = status === "cancelled" ? "Cancelado" : status === "attended" ? "Atendido" : isOverbooking ? "Sobre turno" : "Disponible";
-  const variant = status === "cancelled" ? "bg-muted text-muted-foreground" : status === "attended" ? "bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300" : isOverbooking ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300";
+  const label = status === "cancelled" ? "Cancelado" : status === "attended" ? "Atendido" : status === "no_show" ? "No asistió" : isOverbooking ? "Sobre turno" : "Disponible";
+  const variant = status === "cancelled" ? "bg-muted text-muted-foreground" : status === "attended" ? "bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300" : status === "no_show" ? "bg-orange-500/20 text-orange-700 dark:text-orange-300" : isOverbooking ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300";
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variant}`}>{label}</span>;
 }
 
@@ -733,7 +733,7 @@ export default function AgendaPage() {
               </p>
             ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {(!doctorId || slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
+              {(slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
                 const rows = appointmentsByTime.get(slotTime) || [];
                 return (
                   <div

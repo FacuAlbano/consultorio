@@ -51,8 +51,8 @@ export async function generateAgendaBlocks(input: GenerateAgendaInput): Promise<
   const daysDiff = Math.floor((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24));
   if (daysDiff > 180) return { success: false, count: 0, error: "El rango de fechas no puede ser mayor a 180 días" };
 
-  const start = new Date(dateFrom + "T00:00:00");
-  const end = new Date(dateTo + "T23:59:59");
+  const start = new Date(dateFrom + "T12:00:00");
+  const end = new Date(dateTo + "T12:00:00");
   let count = 0;
   const toInsert: typeof generatedAgendaBlocks.$inferInsert[] = [];
 
