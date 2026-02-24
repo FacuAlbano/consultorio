@@ -95,8 +95,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 function endOfMonth(dateStr: string): string {
   const [y, m] = dateStr.split("-").map(Number);
-  const last = new Date(y, m, 0);
-  return last.toISOString().slice(0, 10);
+  const lastDay = new Date(y, m, 0).getDate();
+  return `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 }
 
 const INTENT_CREATE = "create";

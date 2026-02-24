@@ -1,6 +1,6 @@
 import { db } from "~/db/client";
 import { generatedAgendaBlocks } from "~/db/schema";
-import { eq, and, gte, lte, asc } from "drizzle-orm";
+import { eq, and, gte, lte, asc, inArray } from "drizzle-orm";
 import { isValidUUID } from "~/lib/utils";
 
 export type MorningAfternoonBlock = {
@@ -47,6 +47,9 @@ export async function generateAgendaBlocks(input: GenerateAgendaInput): Promise<
   if (!morning && !afternoon) return { success: false, count: 0, error: "Indique al menos Mañana o Tarde" };
   if (!dateFrom || !dateTo) return { success: false, count: 0, error: "Fecha Desde y Fecha Hasta son obligatorias" };
   if (dateFrom > dateTo) return { success: false, count: 0, error: "Fecha Desde debe ser anterior a Fecha Hasta" };
+  
+  const daysDiff = Math.floor((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24));
+  if (daysDiff > 180) return { success: false, count: 0, error: "El rango de fechas no puede ser mayor a 180 días" };
 
   const start = new Date(dateFrom + "T00:00:00");
   const end = new Date(dateTo + "T23:59:59");
@@ -98,16 +101,19 @@ export async function generateAgendaBlocks(input: GenerateAgendaInput): Promise<
 
   if (toInsert.length === 0) return { success: false, count: 0, error: "No hay días en el rango que coincidan con los filtros" };
 
-  for (const row of toInsert) {
-    await db.delete(generatedAgendaBlocks).where(
-      and(
-        eq(generatedAgendaBlocks.doctorId, row.doctorId),
-        eq(generatedAgendaBlocks.date, row.date),
-        eq(generatedAgendaBlocks.period, row.period)
-      )
-    );
-    await db.insert(generatedAgendaBlocks).values(row);
+  const deleteConditions = toInsert.map(row => 
+    and(
+      eq(generatedAgendaBlocks.doctorId, row.doctorId),
+      eq(generatedAgendaBlocks.date, row.date),
+      eq(generatedAgendaBlocks.period, row.period)
+    )
+  );
+  
+  for (const condition of deleteConditions) {
+    await db.delete(generatedAgendaBlocks).where(condition);
   }
+  
+  await db.insert(generatedAgendaBlocks).values(toInsert);
 
   return { success: true, count };
 }
@@ -255,8 +261,6 @@ export async function deleteGeneratedAgendaBlock(blockId: string): Promise<{ suc
 export async function deleteGeneratedAgendaBlocksByIds(blockIds: string[]): Promise<{ success: boolean; deleted: number; error?: string }> {
   const validIds = blockIds.filter((id) => isValidUUID(id));
   if (validIds.length === 0) return { success: true, deleted: 0 };
-  for (const id of validIds) {
-    await db.delete(generatedAgendaBlocks).where(eq(generatedAgendaBlocks.id, id));
-  }
+  await db.delete(generatedAgendaBlocks).where(inArray(generatedAgendaBlocks.id, validIds));
   return { success: true, deleted: validIds.length };
 }
