@@ -36,10 +36,23 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export default function HistoriaClinicaPaciente() {
-  const { patient, consultations, doctors } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
   const [nuevaConsultaOpen, setNuevaConsultaOpen] = React.useState(false);
   const fetcher = useFetcher<{ success?: boolean; createdId?: string; error?: string }>();
   const navigate = useNavigate();
+
+  if (!loaderData?.patient) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6">
+        <p className="text-muted-foreground">Paciente no encontrado o datos no disponibles.</p>
+        <Button asChild variant="outline">
+          <Link to={PATHS.historiaClinica}>Volver a Historia clínica</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const { patient, consultations, doctors } = loaderData;
 
   React.useEffect(() => {
     if (!nuevaConsultaOpen) return;

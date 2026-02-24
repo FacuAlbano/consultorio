@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useLoaderData, useActionData, useNavigate, Link, Form } from "react-router";
-import type { Route } from "./+types/dashboard.historia-clinica.$patientId.consulta.$consultationId";
+import type { Route } from "./+types/dashboard.historia-clinica_.$patientId.consulta.$consultationId";
 import { requireAuth } from "~/lib/middleware";
 import { getPatientById } from "~/lib/patients.server";
 import {
@@ -159,12 +159,35 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function ConsultaDetalle() {
-  const { patient, consultation, doctors, isNew } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigate = useNavigate();
 
+  if (!loaderData?.patient) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6">
+        <p className="text-muted-foreground">Paciente no encontrado o datos no disponibles.</p>
+        <Button asChild variant="outline">
+          <Link to={PATHS.historiaClinica}>Volver a Historia clínica</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const { patient, consultation, doctors, isNew } = loaderData;
   const consultationId = consultation?.consultation.id ?? "nueva";
   const backUrl = PATHS.historiaClinicaPaciente(patient.id);
+
+  if (!isNew && !consultation) {
+    return (
+      <div className="space-y-6 p-4 sm:p-6">
+        <p className="text-muted-foreground">Consulta no encontrada.</p>
+        <Button asChild variant="outline">
+          <Link to={backUrl}>Volver al historial del paciente</Link>
+        </Button>
+      </div>
+    );
+  }
 
   React.useEffect(() => {
     if (actionData && "createdId" in actionData && actionData.createdId) {

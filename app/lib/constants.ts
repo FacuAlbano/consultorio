@@ -10,6 +10,8 @@ export const PATHS = {
   patientProfile: (id: string) => `/pacientes/${id}`,
   poolAtencion: "/dashboard/pool-atencion",
   atenderSinTurno: "/dashboard/atender-sin-turno",
+  /** Vista día con slots cada 15 min para armar la agenda y asignar pacientes */
+  agenda: "/dashboard/agenda",
   medicos: "/dashboard/medicos",
   medicoNuevo: "/dashboard/medicos/nuevo",
   medicoProfile: (id: string) => `/dashboard/medicos/${id}`,
