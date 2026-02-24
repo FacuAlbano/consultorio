@@ -67,17 +67,17 @@ export function ListadoPacientesNoAtendidos() {
           <CardTitle className="text-lg">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-end">
+          <Form onSubmit={handleFilter} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
             <div className="space-y-1">
               <label className="text-sm font-medium">Fecha</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full" />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Médico</label>
               <select
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
-                className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm min-w-[180px]"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
                 <option value="">Todos</option>
                 {doctors.map((d) => (
@@ -85,7 +85,9 @@ export function ListadoPacientesNoAtendidos() {
                 ))}
               </select>
             </div>
-            <Button type="submit">Filtrar</Button>
+            <div>
+              <Button type="submit">Filtrar</Button>
+            </div>
           </Form>
         </CardContent>
       </Card>

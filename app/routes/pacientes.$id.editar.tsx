@@ -1,4 +1,5 @@
 import { useLoaderData, useActionData, Form, Link } from "react-router";
+import { toast } from "sonner";
 import type { Route } from "./+types/pacientes.$id.editar";
 import { getPatientById } from "~/lib/patients.server";
 import { updatePatient } from "~/lib/patients.server";
@@ -10,6 +11,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
@@ -76,6 +78,11 @@ export default function EditarPaciente() {
   const { patient, insuranceCompanies } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
+  useEffect(() => {
+    if (actionData?.success) toast.success("Datos actualizados correctamente");
+    else if (actionData?.success === false && actionData?.error) toast.error(actionData.error);
+  }, [actionData]);
+
   const birthDateStr = patient.birthDate
     ? (typeof patient.birthDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(patient.birthDate)
         ? patient.birthDate
@@ -101,16 +108,6 @@ export default function EditarPaciente() {
         </div>
       </div>
 
-      {actionData?.success && (
-        <div className="rounded-lg bg-green-500/10 text-green-700 dark:text-green-400 px-4 py-3 text-sm">
-          Datos actualizados correctamente.
-        </div>
-      )}
-      {actionData?.success === false && actionData?.error && (
-        <div className="rounded-lg bg-destructive/10 text-destructive px-4 py-3 text-sm">
-          {actionData.error}
-        </div>
-      )}
 
       <Form method="post" className="space-y-6">
         <Card>

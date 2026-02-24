@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useLoaderData, useActionData, useSearchParams, Form, useNavigation, useFetcher } from "react-router";
+import { toast } from "sonner";
 import type { Route } from "./+types/dashboard.medicos";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
@@ -156,6 +157,22 @@ export default function Medicos() {
     }
   }, [profileDialogOpen, selectedDoctor?.id]);
 
+  // Toasts para todas las acciones de médicos
+  React.useEffect(() => {
+    if (!actionData) return;
+    if (actionData.success) {
+      if (actionData.actionType === DOCTOR_ACTIONS.CREATE) toast.success("Médico creado correctamente");
+      else if (actionData.actionType === DOCTOR_ACTIONS.UPDATE) toast.success("Médico actualizado correctamente");
+      else if (actionData.actionType === DOCTOR_ACTIONS.DELETE) toast.success("Médico eliminado correctamente");
+      else if (actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY) toast.success("Día no laborable agregado");
+      else if (actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY) toast.success("Día no laborable eliminado");
+      else if (actionData.actionType === DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE) toast.success("Tipo de turno asociado");
+      else if (actionData.actionType === DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE) toast.success("Tipo de turno desasociado");
+    } else if (actionData.success === false && actionData.error) {
+      toast.error(actionData.error);
+    }
+  }, [actionData]);
+
   // Recargar días no laborables y tipos de turnos después de acciones exitosas
   React.useEffect(() => {
     if (actionData?.success && selectedDoctor) {
@@ -288,33 +305,35 @@ export default function Medicos() {
       <CrudLayout
         config={config}
         renderFilters={({ filters }) => (
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-            <Input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por nombre, documento, matrícula, especialidad..."
-              className="flex-1 h-9"
-            />
-            <div className="flex gap-2">
-              <Button type="submit" size="sm" className="flex-1 sm:flex-initial h-9">
-                <Search className="h-4 w-4 sm:mr-2" />
-                <span className="sm:inline">Buscar</span>
-              </Button>
-              {searchQuery && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSearchParams({}, { replace: true });
-                  }}
-                  className="sm:flex-initial h-9"
-                >
-                  <span className="sm:inline">Limpiar</span>
+          <form onSubmit={handleSearch} className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por nombre, documento, matrícula, especialidad..."
+                className="min-w-[200px] max-w-md h-9"
+              />
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" className="h-9">
+                  <Search className="h-4 w-4 mr-2" />
+                  Buscar
                 </Button>
-              )}
+                {searchQuery && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSearchParams({}, { replace: true });
+                    }}
+                    className="h-9"
+                  >
+                    Limpiar
+                  </Button>
+                )}
+              </div>
             </div>
           </form>
         )}
@@ -733,23 +752,6 @@ function DoctorProfileDialog({
       description={doctor.specialty || "Perfil del médico"}
     >
       <div className="space-y-6">
-        {/* Mensajes */}
-        {actionData?.success && (
-          <div className="p-3 rounded-md bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200 text-sm">
-            {actionData.actionType === DOCTOR_ACTIONS.UPDATE && "Médico actualizado exitosamente"}
-            {actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY && "Día no laborable agregado"}
-            {actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY && "Día no laborable eliminado"}
-            {actionData.actionType === DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE && "Tipo de turno asociado"}
-            {actionData.actionType === DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE && "Tipo de turno desasociado"}
-          </div>
-        )}
-
-        {actionData?.error && (actionData.actionType === DOCTOR_ACTIONS.UPDATE || actionData.actionType === DOCTOR_ACTIONS.ADD_UNAVAILABLE_DAY || actionData.actionType === DOCTOR_ACTIONS.REMOVE_UNAVAILABLE_DAY || actionData.actionType === DOCTOR_ACTIONS.ADD_APPOINTMENT_TYPE || actionData.actionType === DOCTOR_ACTIONS.REMOVE_APPOINTMENT_TYPE) && (
-          <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-            {actionData.error}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Columna principal */}
           <div className="lg:col-span-2 space-y-4">

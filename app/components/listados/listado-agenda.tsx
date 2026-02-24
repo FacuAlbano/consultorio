@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useLoaderData, useActionData, useSearchParams, useFetcher, useRevalidator, Form, Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -66,12 +67,16 @@ export function ListadoAgenda() {
   }, [patientSearch]);
 
   useEffect(() => {
-    if (fetcher.data?.success || actionData?.success) {
+    const data = fetcher.data ?? actionData;
+    if (data?.success) {
+      toast.success("Turno creado correctamente");
       setCreateOpen(false);
       setSelectedPatient(null);
       setPatientSearch("");
       setPatientResults([]);
       revalidator.revalidate();
+    } else if (data?.success === false && data?.error) {
+      toast.error(data.error);
     }
   }, [fetcher.data, actionData, revalidator]);
 
@@ -96,21 +101,19 @@ export function ListadoAgenda() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-end">
-            <div className="space-y-1">
+        <CardContent className="pt-6">
+          <p className="text-sm font-medium text-foreground mb-3">Filtros</p>
+          <Form onSubmit={handleFilter} className="flex flex-wrap gap-4 items-end">
+            <div className="space-y-1 min-w-[140px]">
               <label className="text-sm font-medium">Fecha</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="h-9" />
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="h-9 w-full" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-[180px]">
               <label className="text-sm font-medium">Médico</label>
               <select
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
-                className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm min-w-[180px]"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
                 <option value="">Seleccionar médico</option>
                 {doctors.map((d) => (
@@ -120,13 +123,15 @@ export function ListadoAgenda() {
                 ))}
               </select>
             </div>
-            <Button type="submit" className="h-9">Ver agenda</Button>
-            {doctorId && (
-              <Button type="button" className="h-9 gap-1" onClick={() => setCreateOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Agregar turno
-              </Button>
-            )}
+            <div className="flex gap-2">
+              <Button type="submit" className="h-9">Ver agenda</Button>
+              {doctorId && (
+                <Button type="button" className="h-9 gap-1" onClick={() => setCreateOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Agregar turno
+                </Button>
+              )}
+            </div>
           </Form>
         </CardContent>
       </Card>

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useLoaderData, useActionData, useSearchParams, Form, useNavigation } from "react-router";
+import { toast } from "sonner";
 import type { Route } from "./+types/dashboard.administracion.agenda.consultorio";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
@@ -75,6 +76,17 @@ export default function Consultorios() {
 
   const isSubmitting = navigation.state === "submitting";
 
+  React.useEffect(() => {
+    if (!actionData) return;
+    if (actionData.success) {
+      if (actionData.actionType === CONSULTING_ROOM_ACTIONS.CREATE) toast.success("Consultorio creado correctamente");
+      else if (actionData.actionType === CONSULTING_ROOM_ACTIONS.UPDATE) toast.success("Consultorio actualizado correctamente");
+      else if (actionData.actionType === CONSULTING_ROOM_ACTIONS.DELETE) toast.success("Consultorio eliminado correctamente");
+    } else if (actionData.success === false && actionData.error) {
+      toast.error(actionData.error);
+    }
+  }, [actionData]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams);
@@ -130,33 +142,35 @@ export default function Consultorios() {
     <CrudLayout
       config={config}
       renderFilters={({ filters }) => (
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por nombre..."
-            className="flex-1 h-9"
-          />
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" className="flex-1 sm:flex-initial h-9">
-              <Search className="h-4 w-4 sm:mr-2" />
-              <span className="sm:inline">Buscar</span>
-            </Button>
-            {searchQuery && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchParams({}, { replace: true });
-                }}
-                className="sm:flex-initial h-9"
-              >
-                <span className="sm:inline">Limpiar</span>
+        <form onSubmit={handleSearch} className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2 items-center">
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nombre..."
+              className="min-w-[200px] max-w-md h-9"
+            />
+            <div className="flex gap-2">
+              <Button type="submit" size="sm" className="h-9">
+                <Search className="h-4 w-4 mr-2" />
+                Buscar
               </Button>
-            )}
+              {searchQuery && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSearchParams({}, { replace: true });
+                  }}
+                  className="h-9"
+                >
+                  Limpiar
+                </Button>
+              )}
+            </div>
           </div>
         </form>
       )}
