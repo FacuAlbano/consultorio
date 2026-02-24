@@ -67,11 +67,20 @@ export async function loadListado(request: Request, tipo: ListadoTipo) {
       const date = url.searchParams.get("date") || getTodayLocalISO();
       const doctorId = url.searchParams.get("doctorId") || "";
       if (!doctorId) {
-        return { appointments: [], doctors: await getAllDoctors({ limit: 100 }), date, doctorId: "" };
+        const [doctors, consultingRooms, appointmentTypes] = await Promise.all([
+          getAllDoctors({ limit: 100 }),
+          getAllConsultingRooms({ limit: 50 }),
+          getAllAppointmentTypes({ limit: 50 }),
+        ]);
+        return { appointments: [], doctors, consultingRooms, appointmentTypes, date, doctorId: "" };
       }
-      const appointments = await getAppointments({ date, doctorId, limit: 200 });
-      const doctors = await getAllDoctors({ limit: 100 });
-      return { appointments, doctors, date, doctorId };
+      const [appointments, doctors, consultingRooms, appointmentTypes] = await Promise.all([
+        getAppointments({ date, doctorId, limit: 200 }),
+        getAllDoctors({ limit: 100 }),
+        getAllConsultingRooms({ limit: 50 }),
+        getAllAppointmentTypes({ limit: 50 }),
+      ]);
+      return { appointments, doctors, consultingRooms, appointmentTypes, date, doctorId };
     }
 
     case "turnos": {
@@ -324,6 +333,37 @@ export async function actionListado(request: Request, tipo: ListadoTipo) {
       const noShowFollowUp = (formData.get("noShowFollowUp") as string) || null;
       if (!appointmentId) return { success: false, error: "ID de turno requerido" };
       return updateAppointment(appointmentId, { noShowReason, noShowFollowUp });
+    }
+
+    case "agenda": {
+      const intent = (formData.get("_intent") as string) || "";
+      if (intent === INTENTS_TURNOS.create) {
+        const patientId = formData.get("patientId") as string;
+        const doctorId = (formData.get("doctorId") as string) || undefined;
+        const consultingRoomId = (formData.get("consultingRoomId") as string) || undefined;
+        const appointmentTypeId = (formData.get("appointmentTypeId") as string) || undefined;
+        const appointmentDate = formData.get("appointmentDate") as string;
+        const appointmentTime = (formData.get("appointmentTime") as string)?.trim() || "";
+        const notes = (formData.get("notes") as string)?.trim() || undefined;
+        if (!patientId || !appointmentDate || !appointmentTime) {
+          return { success: false, error: "Paciente, fecha y hora son obligatorios" };
+        }
+        const timeNormalized = appointmentTime.length === 5 ? `${appointmentTime}:00` : appointmentTime;
+        const result = await createAppointment({
+          patientId,
+          doctorId: doctorId || null,
+          consultingRoomId: consultingRoomId || null,
+          appointmentTypeId: appointmentTypeId || null,
+          appointmentDate,
+          appointmentTime: timeNormalized,
+          notes,
+          status: "scheduled",
+          isOverbooking: false,
+        });
+        if (!result.success) return { success: false, error: result.error };
+        return { success: true, createdId: result.data!.id };
+      }
+      return { success: false, error: "Acción no válida" };
     }
 
     case "turnos": {

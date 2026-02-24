@@ -53,6 +53,7 @@ const menuItems: MenuItem[] = [
       {
         label: "Recursos para Generación de Agenda",
         children: [
+          { label: "Agenda del día", path: PATHS.agenda },
           { label: "Asignación de Consultorio", path: PATHS.administracion.consultorio },
           { label: "Días no Laborables", path: PATHS.administracion.diasNoLaborables },
           { label: "Solicitar Tipo de Turno", path: PATHS.administracion.solicitarTurno },

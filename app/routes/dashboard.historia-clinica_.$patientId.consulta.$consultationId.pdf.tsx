@@ -1,4 +1,4 @@
-import type { Route } from "./+types/dashboard.historia-clinica.$patientId.consulta.$consultationId.pdf";
+import type { Route } from "./+types/dashboard.historia-clinica_.$patientId.consulta.$consultationId.pdf";
 import { requireAuth } from "~/lib/middleware";
 import { getConsultationById } from "~/lib/medical-records.server";
 import { getAllInstitutions } from "~/lib/institutions.server";
