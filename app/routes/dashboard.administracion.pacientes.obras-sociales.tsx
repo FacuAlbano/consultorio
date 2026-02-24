@@ -149,16 +149,16 @@ export default function ObrasSociales() {
     <CrudLayout
       config={config}
       renderFilters={({ filters }) => (
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
           <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por nombre o código..."
-            className="flex-1"
+            className="flex-1 h-9"
           />
           <div className="flex gap-2">
-            <Button type="submit" className="flex-1 sm:flex-initial">
+            <Button type="submit" size="sm" className="flex-1 sm:flex-initial h-9">
               <Search className="h-4 w-4 sm:mr-2" />
               <span className="sm:inline">Buscar</span>
             </Button>
@@ -166,11 +166,12 @@ export default function ObrasSociales() {
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => {
                   setSearchQuery("");
                   setSearchParams({}, { replace: true });
                 }}
-                className="sm:flex-initial"
+                className="sm:flex-initial h-9"
               >
                 <span className="sm:inline">Limpiar</span>
               </Button>

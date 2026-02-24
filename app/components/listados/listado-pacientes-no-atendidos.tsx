@@ -1,59 +1,38 @@
 import * as React from "react";
-import { useLoaderData, useActionData, useSearchParams, Form, Link } from "react-router";
-import type { Route } from "./+types/dashboard.listados.pacientes-no-atendidos";
-import { requireAuth } from "~/lib/middleware";
-import { getAppointments } from "~/lib/appointments.server";
-import { updateAppointment } from "~/lib/appointments.server";
-import { getAllDoctors } from "~/lib/doctors.server";
+import { useLoaderData, useActionData, useSearchParams, Form, Link, useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import { UserX, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { formatDate } from "~/lib/utils";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
-  const url = new URL(request.url);
-  const date = url.searchParams.get("date") || "";
-  const doctorId = url.searchParams.get("doctorId") || "";
-
-  const appointments = await getAppointments({
-    status: "no_show",
-    date: date || undefined,
-    doctorId: doctorId || undefined,
-    limit: 200,
-  });
-  const doctors = await getAllDoctors({ limit: 100 });
-
-  return { appointments, doctors, date, doctorId };
-}
-
-export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
-  const formData = await request.formData();
-  if (formData.get("intent") !== "updateNoShow") return { success: false, error: "Acción no válida" };
-  const appointmentId = formData.get("appointmentId") as string;
-  const noShowReason = (formData.get("noShowReason") as string) || null;
-  const noShowFollowUp = (formData.get("noShowFollowUp") as string) || null;
-  if (!appointmentId) return { success: false, error: "ID de turno requerido" };
-  const result = await updateAppointment(appointmentId, { noShowReason, noShowFollowUp });
-  return result;
-}
-
-export default function PacientesNoAtendidos() {
-  const { appointments, doctors, date: initialDate, doctorId: initialDoctorId } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
+export function ListadoPacientesNoAtendidos() {
+  const { appointments, doctors, date: initialDate, doctorId: initialDoctorId } = useLoaderData<{
+    appointments: Array<{
+      appointment: {
+        id: string;
+        appointmentDate: string;
+        appointmentTime: string;
+        noShowReason: string | null;
+        noShowFollowUp: string | null;
+      };
+      patient: { id: string; firstName: string; lastName: string; documentNumber?: string | null } | null;
+      doctor: { firstName: string; lastName: string } | null;
+    }>;
+    doctors: Array<{ id: string; firstName: string; lastName: string }>;
+    date: string;
+    doctorId: string;
+  }>();
+  const actionData = useActionData<{ success?: boolean; error?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [date, setDate] = useState(initialDate);
   const [doctorId, setDoctorId] = useState(initialDoctorId);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (actionData?.success) {
-      setEditingId(null);
-    }
+    if (actionData?.success) setEditingId(null);
   }, [actionData]);
 
   const handleFilter = (e: React.FormEvent) => {
@@ -139,13 +118,25 @@ export default function PacientesNoAtendidos() {
                     const noShowReason = appointment.noShowReason ?? "";
                     const noShowFollowUp = appointment.noShowFollowUp ?? "";
                     return (
-                      <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
+                      <tr
+                        key={appointment.id}
+                        role="button"
+                        tabIndex={0}
+                        className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
+                        onClick={() => patient && !isEditing && navigate(`/pacientes/${patient.id}`)}
+                        onKeyDown={(e) => {
+                          if ((e.key === "Enter" || e.key === " ") && patient && !isEditing) {
+                            e.preventDefault();
+                            navigate(`/pacientes/${patient.id}`);
+                          }
+                        }}
+                      >
                         <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                         <td className="py-3 px-2">{appointment.appointmentTime}</td>
                         <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
                         <td className="py-3 px-2">{patient?.documentNumber ?? "—"}</td>
                         <td className="py-3 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>
-                        <td className="py-3 px-2 max-w-[180px]">
+                        <td className="py-3 px-2 max-w-[180px]" onClick={(e) => e.stopPropagation()}>
                           {isEditing ? (
                             <Form method="post" className="space-y-1">
                               <input type="hidden" name="intent" value="updateNoShow" />
@@ -167,7 +158,7 @@ export default function PacientesNoAtendidos() {
                         <td className="py-3 px-2 max-w-[180px] text-muted-foreground truncate">
                           {!isEditing && (noShowFollowUp || "—")}
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                           {patient && (
                             <Link to={`/pacientes/${patient.id}`} className="text-primary hover:underline inline-flex items-center gap-1">
                               Ver <ExternalLink className="h-3 w-3" />

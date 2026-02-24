@@ -1,16 +1,18 @@
-import { useLoaderData, useActionData, useNavigation, Form } from "react-router";
+import { useLoaderData, useActionData, useNavigation, useSearchParams, Form, Link } from "react-router";
 import type { Route } from "./+types/dashboard.atender-sin-turno";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
 import { getAllDoctors } from "~/lib/doctors.server";
 import { getAllPatients, createPatient, getPatientByDocument } from "~/lib/patients.server";
 import { createAppointment } from "~/lib/appointments.server";
+import { createConsultation } from "~/lib/medical-records.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { PatientSearchInput } from "~/components/patient-search/patient-search-input";
-import { UserPlus, Stethoscope, Clock, User, Loader2, CheckCircle2 } from "lucide-react";
+import { UserPlus, Stethoscope, Clock, User, Loader2, CheckCircle2, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
+import { PATHS } from "~/lib/constants";
 
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -71,29 +73,53 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (actionType === "createAppointment") {
-    // Crear turno/consulta
+    const patientId = formData.get("patientId") as string;
+    const doctorId = (formData.get("doctorId") as string) || undefined;
+    const appointmentDate = formData.get("appointmentDate") as string;
+    const appointmentTime = formData.get("appointmentTime") as string;
+    const notes = (formData.get("notes") as string) || undefined;
+
     const appointmentData = {
-      patientId: formData.get("patientId") as string,
-      doctorId: formData.get("doctorId") as string || undefined,
-      appointmentDate: formData.get("appointmentDate") as string,
-      appointmentTime: formData.get("appointmentTime") as string,
-      notes: formData.get("notes") as string || undefined,
+      patientId,
+      doctorId,
+      appointmentDate,
+      appointmentTime,
+      notes,
       status: "scheduled" as const,
       isOverbooking: false,
     };
 
     const result = await createAppointment(appointmentData);
-    if (result.success && result.data) {
+    if (!result.success || !result.data) {
+      return {
+        success: false,
+        error: result.error || "Error al crear la consulta",
+      };
+    }
+
+    const consultationRes = await createConsultation({
+      patientId,
+      doctorId: doctorId || null,
+      appointmentId: result.data.id,
+      consultationDate: appointmentDate,
+      notes: notes || null,
+    });
+
+    if (consultationRes.success && consultationRes.data) {
       return {
         success: true,
         message: "Consulta creada exitosamente",
         appointmentId: result.data.id,
+        consultationId: consultationRes.data.id,
+        patientId,
       };
     }
 
     return {
-      success: false,
-      error: result.error || "Error al crear la consulta",
+      success: true,
+      message: "Turno creado. No se pudo crear la entrada en historia clínica.",
+      appointmentId: result.data.id,
+      patientId,
     };
   }
 
@@ -107,7 +133,9 @@ export default function AtenderSinTurno() {
   const { doctors, patients } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const [searchParams] = useSearchParams();
   const isSubmitting = navigation.state === "submitting";
+  const defaultDni = searchParams.get("dni") ?? "";
 
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [formStep, setFormStep] = useState<"patient" | "appointment">("patient");
@@ -152,9 +180,19 @@ export default function AtenderSinTurno() {
       {actionData?.success && (
         <Card className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
-              <CheckCircle2 className="h-5 w-5" />
-              <p className="font-medium">{actionData.message}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
+                <CheckCircle2 className="h-5 w-5 shrink-0" />
+                <p className="font-medium">{actionData.message}</p>
+              </div>
+              {"consultationId" in actionData && actionData.patientId && (
+                <Button asChild size="sm" variant="secondary" className="gap-1">
+                  <Link to={PATHS.historiaClinicaConsulta(actionData.patientId, actionData.consultationId)}>
+                    <FileText className="h-4 w-4" />
+                    Ver consulta
+                  </Link>
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -260,6 +298,7 @@ export default function AtenderSinTurno() {
                       name="documentNumber"
                       required
                       placeholder="12345678"
+                      defaultValue={defaultDni}
                     />
                   </div>
                 </div>

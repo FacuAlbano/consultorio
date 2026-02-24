@@ -1,39 +1,16 @@
-import * as React from "react";
 import { useLoaderData } from "react-router";
-import type { Route } from "./+types/dashboard.listados.control";
-import { requireAuth } from "~/lib/middleware";
-import { getAppointments } from "~/lib/appointments.server";
-import { getPatientsCount } from "~/lib/patients.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { BarChart3, Calendar, Users, UserCheck, UserX, ClipboardX } from "lucide-react";
-import { getTodayLocalISO } from "~/lib/utils";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
-  const today = getTodayLocalISO();
-
-  const [turnosHoy, totalPacientes] = await Promise.all([
-    getAppointments({ date: today, limit: 500 }),
-    getPatientsCount(),
-  ]);
-
-  const turnosProgramados = turnosHoy.filter((t) => t.appointment.status === "scheduled").length;
-  const turnosAtendidos = turnosHoy.filter((t) => t.appointment.status === "attended").length;
-  const turnosCancelados = turnosHoy.filter((t) => t.appointment.status === "cancelled").length;
-  const noAsistieron = turnosHoy.filter((t) => t.appointment.status === "no_show").length;
-
-  return {
-    turnosHoy: turnosHoy.length,
-    turnosProgramados,
-    turnosAtendidos,
-    turnosCancelados,
-    noAsistieron,
-    totalPacientes,
-  };
-}
-
-export default function ControlInstitucional() {
-  const stats = useLoaderData<typeof loader>();
+export function ListadoControl() {
+  const stats = useLoaderData<{
+    turnosHoy: number;
+    turnosProgramados: number;
+    turnosAtendidos: number;
+    turnosCancelados: number;
+    noAsistieron: number;
+    totalPacientes: number;
+  }>();
 
   const cards = [
     { title: "Turnos hoy", value: stats.turnosHoy, icon: Calendar, desc: "Total de turnos del día" },

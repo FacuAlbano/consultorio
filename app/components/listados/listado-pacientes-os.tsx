@@ -1,58 +1,12 @@
 import * as React from "react";
-import { useLoaderData, useSearchParams, Form, Link } from "react-router";
-import type { Route } from "./+types/dashboard.listados.pacientes-os";
-import { requireAuth } from "~/lib/middleware";
-import { getAppointments } from "~/lib/appointments.server";
-import { getAllInsuranceCompanies } from "~/lib/insurance-companies.server";
+import { useLoaderData, useSearchParams, Form, Link, useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { CreditCard, ExternalLink, BarChart3, Users, Building2, PieChart } from "lucide-react";
 import { useState } from "react";
 import { formatDate } from "~/lib/utils";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
-  const url = new URL(request.url);
-  const insuranceCompany = url.searchParams.get("insuranceCompany") || "";
-  const date = url.searchParams.get("date") || "";
-
-  const [appointmentsForStats, insuranceCompanies] = await Promise.all([
-    getAppointments({
-      status: "attended",
-      insuranceCompany: insuranceCompany || undefined,
-      date: date || undefined,
-      limit: 2000,
-    }),
-    getAllInsuranceCompanies({ limit: 200 }),
-  ]);
-
-  const appointments = appointmentsForStats.slice(0, 200);
-
-  const statsByOS: { obraSocial: string; cantidad: number }[] = [];
-  const map = new Map<string, number>();
-  for (const { patient } of appointmentsForStats) {
-    const os = (patient as { insuranceCompany?: string })?.insuranceCompany ?? "Sin obra social";
-    map.set(os, (map.get(os) ?? 0) + 1);
-  }
-  map.forEach((cantidad, obraSocial) => statsByOS.push({ obraSocial, cantidad }));
-  statsByOS.sort((a, b) => b.cantidad - a.cantidad);
-
-  const totalAtendidos = statsByOS.reduce((acc, r) => acc + r.cantidad, 0);
-  const top3 = statsByOS.slice(0, 3);
-  const top3Sum = top3.reduce((acc, r) => acc + r.cantidad, 0);
-  const top3Percent = totalAtendidos > 0 ? Math.round((top3Sum / totalAtendidos) * 100) : 0;
-
-  return {
-    appointments,
-    insuranceCompanies,
-    insuranceCompany,
-    date,
-    statsByOS,
-    statsSummary: { totalAtendidos, cantidadOS: statsByOS.length, top3Percent },
-  };
-}
-
-export default function PacientesAtendidosPorOS() {
+export function ListadoPacientesOS() {
   const {
     appointments,
     insuranceCompanies,
@@ -60,10 +14,21 @@ export default function PacientesAtendidosPorOS() {
     date: initialDate,
     statsByOS,
     statsSummary,
-  } = useLoaderData<typeof loader>();
+  } = useLoaderData<{
+    appointments: Array<{
+      appointment: { id: string; appointmentDate: string; appointmentTime: string };
+      patient: { id: string; firstName: string; lastName: string; insuranceCompany?: string | null } | null;
+    }>;
+    insuranceCompanies: Array<{ id: string; name: string }>;
+    insuranceCompany: string;
+    date: string;
+    statsByOS: Array<{ obraSocial: string; cantidad: number }>;
+    statsSummary: { totalAtendidos: number; cantidadOS: number; top3Percent: number };
+  }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [insuranceCompany, setInsuranceCompany] = useState(initialOS);
   const [date, setDate] = useState(initialDate);
+  const navigate = useNavigate();
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,12 +168,24 @@ export default function PacientesAtendidosPorOS() {
                 </thead>
                 <tbody>
                   {appointments.map(({ appointment, patient }) => (
-                    <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
+                    <tr
+                      key={appointment.id}
+                      role="button"
+                      tabIndex={0}
+                      className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
+                      onClick={() => patient && navigate(`/pacientes/${patient.id}`)}
+                      onKeyDown={(e) => {
+                        if ((e.key === "Enter" || e.key === " ") && patient) {
+                          e.preventDefault();
+                          navigate(`/pacientes/${patient.id}`);
+                        }
+                      }}
+                    >
                       <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
                       <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
                       <td className="py-3 px-2">{patient?.insuranceCompany ?? "—"}</td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                         {patient && (
                           <Link to={`/pacientes/${patient.id}`} className="text-primary hover:underline inline-flex items-center gap-1">
                             Ver <ExternalLink className="h-3 w-3" />

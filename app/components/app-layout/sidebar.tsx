@@ -8,7 +8,8 @@ import {
   Menu,
   ChevronRight,
   Stethoscope,
-  UserPlus
+  UserPlus,
+  ClipboardList
 } from "lucide-react";
 import { PATHS } from "~/lib/constants";
 import { cn } from "~/lib/utils";
@@ -52,7 +53,7 @@ const menuItems: MenuItem[] = [
       {
         label: "Recursos para Generación de Agenda",
         children: [
-          { label: "Asignación de Consultorio", path: PATHS.administracion.consultorio, badge: "nuevo" },
+          { label: "Asignación de Consultorio", path: PATHS.administracion.consultorio },
           { label: "Días no Laborables", path: PATHS.administracion.diasNoLaborables },
           { label: "Solicitar Tipo de Turno", path: PATHS.administracion.solicitarTurno },
         ],
@@ -74,19 +75,23 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    label: "Historia Clínica",
+    icon: ClipboardList,
+    path: PATHS.historiaClinica,
+  },
+  {
     label: "Listados",
     icon: FileText,
     children: [
       { label: "Control Institucional", path: PATHS.listadosControl },
       { label: "Agenda del Profesional", path: PATHS.listadosAgenda },
       { label: "Gestión de disponibilidad", path: PATHS.listadosGestionDisponibilidad },
-      { label: "Facturación de Turnos Médicos", path: PATHS.listadosFacturacion },
       { label: "Turnos de la Institución", path: PATHS.listadosTurnos },
       { label: "Pacientes", path: PATHS.listadosPacientes },
       { label: "Pacientes Atendidos", path: PATHS.listadosPacientesAtendidos },
       { label: "Pacientes Atendidos por OS", path: PATHS.listadosPacientesOS },
       { label: "Pacientes NO Atendidos", path: PATHS.listadosPacientesNoAtendidos },
-      { label: "Turnos Anulados", path: PATHS.listadosTurnosAnulados, badge: "NUEVO" },
+      { label: "Turnos Anulados", path: PATHS.listadosTurnosAnulados },
     ],
   },
 ];
@@ -106,11 +111,11 @@ function SidebarContent({ userInfo, isOpen, onToggle, children }: SidebarContent
   return (
     <div className="flex flex-col h-full">
       <div className={cn(
-        "flex items-center border-b border-sidebar-border transition-all",
-        isOpen ? "justify-between px-4 py-4" : "justify-center px-2 py-4"
+        "flex items-center border-b border-sidebar-border transition-all shrink-0 h-14",
+        isOpen ? "justify-between px-4" : "justify-center px-2"
       )}>
         {isOpen && (
-          <h2 className="text-xl font-bold text-sidebar-foreground">{userInfo.clinicName}</h2>
+          <h2 className="text-base font-bold text-sidebar-foreground truncate">{userInfo.clinicName}</h2>
         )}
         <button
           type="button"
@@ -125,8 +130,8 @@ function SidebarContent({ userInfo, isOpen, onToggle, children }: SidebarContent
         </button>
       </div>
       <nav className={cn(
-        "flex-1 py-4 space-y-1 overflow-y-auto transition-all",
-        isOpen ? "px-2" : "px-1"
+        "flex-1 py-4 space-y-1 transition-all min-h-0",
+        isOpen ? "px-2 overflow-y-auto" : "px-1 overflow-hidden"
       )}>
         {children}
       </nav>
@@ -177,7 +182,7 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
     const isExpanded = expandedItems.includes(item.path || item.label);
     const active = isActive(item.path) || isAnyChildActive(item);
 
-    // Cuando está cerrada, solo mostrar iconos
+    // Cuando está cerrada: solo iconos, todos con el mismo estilo (como sunshine-v2)
     if (!isOpen) {
       if (item.path) {
         return (
@@ -186,23 +191,18 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
             to={item.path}
             className={cn(
               "flex items-center justify-center p-2 rounded-lg transition-colors relative group",
-              active
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              active && "text-sidebar-primary"
             )}
             title={item.label}
           >
             {item.icon && <item.icon className="h-5 w-5" />}
-            {/* Tooltip cuando está cerrada */}
-            {!isOpen && (
-              <span className="absolute left-full ml-2 px-2 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[100] transition-opacity">
-                {item.label}
-              </span>
-            )}
+            <span className="absolute left-full ml-2 px-2 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[100] transition-opacity">
+              {item.label}
+            </span>
           </Link>
         );
       }
-      // Si no tiene path pero tiene icono, hacerlo clickeable para expandir el sidebar
       if (item.icon) {
         return (
           <button
@@ -210,15 +210,13 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
             key={item.path || item.label}
             onClick={onToggle}
             className={cn(
-              "flex items-center justify-center p-2 rounded-lg transition-colors relative group",
-              active
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              "flex items-center justify-center p-2 rounded-lg transition-colors relative group w-full",
+              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              active && "text-sidebar-primary"
             )}
             title={item.label}
           >
             <item.icon className="h-5 w-5" />
-            {/* Tooltip cuando está cerrada */}
             <span className="absolute left-full ml-2 px-2 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[100] transition-opacity">
               {item.label}
             </span>
@@ -265,15 +263,16 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
     }
 
     if (hasChildren) {
-      // Item con children directos (2 niveles)
+      // Item con children directos (2 niveles) — activo: barra lateral, sin bloque de fondo
       return (
-        <div key={item.path || item.label}>
+        <div key={item.path || item.label} className="relative">
+          {active && (
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-sidebar-primary rounded-r-full" aria-hidden />
+          )}
           <div
             className={cn(
-              "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-              active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors relative",
+              active ? "text-sidebar-primary" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             )}
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -282,10 +281,7 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
                 <Link 
                   to={item.path} 
                   className="flex-1 text-left truncate"
-                  onClick={(e) => {
-                    // Si se hace click en el link, no expandir/colapsar
-                    e.stopPropagation();
-                  }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {item.label}
                 </Link>
@@ -320,25 +316,28 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
       );
     }
 
-    // Item sin children (hoja)
+    // Item sin children (hoja) — como sunshine: activo = barra izquierda + texto primary, sin bloque azul
     return (
-      <div key={item.path || item.label}>
+      <div key={item.path || item.label} className="relative">
         {item.path ? (
           <Link
             to={item.path}
             className={cn(
-              "flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+              "flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 relative",
               isActive(item.path)
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                ? "text-sidebar-primary bg-transparent"
                 : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             )}
           >
-            <div className="flex items-center gap-3">
-              {item.icon && <item.icon className="h-5 w-5" />}
-              <span>{item.label}</span>
+            {isActive(item.path) && (
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-sidebar-primary rounded-r-full" aria-hidden />
+            )}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {item.icon && <item.icon className="h-5 w-5 flex-shrink-0" />}
+              <span className="truncate">{item.label}</span>
             </div>
             {item.badge && (
-              <span className="text-xs bg-sidebar-primary text-sidebar-primary-foreground px-2 py-0.5 rounded">
+              <span className="text-xs bg-sidebar-primary text-sidebar-primary-foreground px-2 py-0.5 rounded shrink-0">
                 {item.badge}
               </span>
             )}
@@ -355,11 +354,11 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex-shrink-0",
+        "bg-sidebar border-r border-sidebar-border shadow-md transition-all duration-300 ease-in-out flex-shrink-0 flex flex-col h-screen min-h-0 overflow-hidden",
         isOpen ? "w-64" : "w-16"
       )}
     >
-      <div className="flex flex-col h-full overflow-y-auto">
+      <div className="flex flex-col h-full min-h-0 min-w-0 overflow-hidden flex-1">
         <SidebarContent userInfo={userInfo} isOpen={isOpen} onToggle={onToggle}>
           {menuItems.map((item) => renderMenuItem(item))}
         </SidebarContent>

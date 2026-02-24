@@ -1,8 +1,8 @@
-import { useLoaderData, useSearchParams } from "react-router";
+import { useLoaderData, useSearchParams, Form, Link, redirect } from "react-router";
 import type { Route } from "./+types/dashboard.pool-atencion";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
-import { getAppointments } from "~/lib/appointments.server";
+import { getAppointments, markAppointmentAsAttended } from "~/lib/appointments.server";
 import { getAllDoctors } from "~/lib/doctors.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -10,6 +10,7 @@ import { Input } from "~/components/ui/input";
 import { PatientSearchInput } from "~/components/patient-search/patient-search-input";
 import { Calendar, Clock, User, Stethoscope, Search, Filter } from "lucide-react";
 import { useState } from "react";
+import { PATHS } from "~/lib/constants";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { tokenType } = await requireAuth(request);
@@ -40,6 +41,18 @@ export async function loader({ request }: Route.LoaderArgs) {
       doctorId: doctorId || null,
     },
   };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAuth(request);
+  const formData = await request.formData();
+  if (formData.get("_intent") !== "atender") return null;
+  const appointmentId = formData.get("appointmentId") as string;
+  const patientId = formData.get("patientId") as string;
+  if (!appointmentId || !patientId) return { success: false, error: "Datos incompletos" };
+  const result = await markAppointmentAsAttended(appointmentId);
+  if (!result.success) return result;
+  throw redirect(PATHS.historiaClinicaConsulta(patientId, "nueva"));
 }
 
 export default function PoolAtencion() {
@@ -143,7 +156,7 @@ export default function PoolAtencion() {
               <select
                 value={selectedDoctorId}
                 onChange={handleDoctorChange}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Todos los médicos</option>
                 {doctors.map((doctor) => (
@@ -271,23 +284,27 @@ export default function PoolAtencion() {
                         {getStatusBadge(item.appointment.status)}
                       </td>
                       <td className="p-3">
-                        <div className="flex gap-2">
-                          {item.appointment.status === "scheduled" && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="text-xs"
-                            >
-                              Atender
-                            </Button>
+                        <div className="flex flex-wrap gap-2">
+                          {item.appointment.status === "scheduled" && item.patient && (
+                            <Form method="post">
+                              <input type="hidden" name="_intent" value="atender" />
+                              <input type="hidden" name="appointmentId" value={item.appointment.id} />
+                              <input type="hidden" name="patientId" value={item.patient.id} />
+                              <Button type="submit" size="sm" variant="default" className="text-xs">
+                                Atender
+                              </Button>
+                            </Form>
                           )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            Ver
-                          </Button>
+                          {item.patient && (
+                            <>
+                              <Button asChild size="sm" variant="outline" className="text-xs">
+                                <Link to={PATHS.patientProfile(item.patient.id)}>Ver paciente</Link>
+                              </Button>
+                              <Button asChild size="sm" variant="ghost" className="text-xs">
+                                <Link to={PATHS.historiaClinicaPaciente(item.patient.id)}>Historia clínica</Link>
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

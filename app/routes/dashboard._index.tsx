@@ -1,4 +1,4 @@
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/dashboard._index";
 import { PatientSearchInput } from "~/components/patient-search/patient-search-input";
 import { Card, CardContent } from "~/components/ui/card";
@@ -49,6 +49,7 @@ export async function loader({ request }: Route.LoaderArgs) {
  */
 export default function Index() {
   const { stats, userInfo } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
 
   const quickActions = [
     {
@@ -114,6 +115,11 @@ export default function Index() {
         <div className="flex justify-center">
           <PatientSearchInput
             className="w-full"
+            onNoResultsCreate={(query) => {
+              const params = new URLSearchParams();
+              if (query) params.set("dni", query);
+              navigate(`${PATHS.atenderSinTurno}${params.toString() ? `?${params.toString()}` : ""}`);
+            }}
           />
         </div>
 

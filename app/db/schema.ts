@@ -238,16 +238,86 @@ export const payments = pgTable(
   })
 );
 
+// --- Historia Clínica (Etapa 6) ---
+
+// Consultas médicas (cada visita/atención)
+export const medicalConsultations = pgTable(
+  "medical_consultations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+    doctorId: uuid("doctor_id").references(() => doctors.id, { onDelete: "set null" }),
+    appointmentId: uuid("appointment_id").references(() => appointments.id, { onDelete: "set null" }),
+    consultationDate: date("consultation_date").notNull(),
+    reason: text("reason"), // Motivo de consulta
+    notes: text("notes"), // Notas del profesional
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    patientIdIdx: index("medical_consultations_patient_id_idx").on(table.patientId),
+    doctorIdIdx: index("medical_consultations_doctor_id_idx").on(table.doctorId),
+    dateIdx: index("medical_consultations_consultation_date_idx").on(table.consultationDate),
+  })
+);
+
+// Diagnósticos por consulta
+export const diagnoses = pgTable(
+  "diagnoses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    medicalConsultationId: uuid("medical_consultation_id").notNull().references(() => medicalConsultations.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 50 }), // CIE-10 u otro
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    consultationIdIdx: index("diagnoses_medical_consultation_id_idx").on(table.medicalConsultationId),
+  })
+);
+
+// Tratamientos por consulta
+export const treatments = pgTable(
+  "treatments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    medicalConsultationId: uuid("medical_consultation_id").notNull().references(() => medicalConsultations.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    consultationIdIdx: index("treatments_medical_consultation_id_idx").on(table.medicalConsultationId),
+  })
+);
+
+// Estudios por consulta
+export const studies = pgTable(
+  "studies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    medicalConsultationId: uuid("medical_consultation_id").notNull().references(() => medicalConsultations.id, { onDelete: "cascade" }),
+    description: varchar("description", { length: 500 }).notNull(),
+    result: text("result"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    consultationIdIdx: index("studies_medical_consultation_id_idx").on(table.medicalConsultationId),
+  })
+);
+
 // Relaciones de Drizzle
 export const doctorsRelations = relations(doctors, ({ many }) => ({
   unavailableDays: many(doctorUnavailableDays),
   appointments: many(appointments),
   appointmentTypes: many(doctorAppointmentTypes),
+  medicalConsultations: many(medicalConsultations),
 }));
 
 export const patientsRelations = relations(patients, ({ many }) => ({
   appointments: many(appointments),
   invoices: many(invoices),
+  medicalConsultations: many(medicalConsultations),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
@@ -260,7 +330,7 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
 }));
 
-export const appointmentsRelations = relations(appointments, ({ one }) => ({
+export const appointmentsRelations = relations(appointments, ({ one, many }) => ({
   patient: one(patients, {
     fields: [appointments.patientId],
     references: [patients.id],
@@ -277,6 +347,28 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
     fields: [appointments.appointmentTypeId],
     references: [appointmentTypes.id],
   }),
+  medicalConsultations: many(medicalConsultations),
+}));
+
+export const medicalConsultationsRelations = relations(medicalConsultations, ({ one, many }) => ({
+  patient: one(patients, { fields: [medicalConsultations.patientId], references: [patients.id] }),
+  doctor: one(doctors, { fields: [medicalConsultations.doctorId], references: [doctors.id] }),
+  appointment: one(appointments, { fields: [medicalConsultations.appointmentId], references: [appointments.id] }),
+  diagnoses: many(diagnoses),
+  treatments: many(treatments),
+  studies: many(studies),
+}));
+
+export const diagnosesRelations = relations(diagnoses, ({ one }) => ({
+  medicalConsultation: one(medicalConsultations, { fields: [diagnoses.medicalConsultationId], references: [medicalConsultations.id] }),
+}));
+
+export const treatmentsRelations = relations(treatments, ({ one }) => ({
+  medicalConsultation: one(medicalConsultations, { fields: [treatments.medicalConsultationId], references: [medicalConsultations.id] }),
+}));
+
+export const studiesRelations = relations(studies, ({ one }) => ({
+  medicalConsultation: one(medicalConsultations, { fields: [studies.medicalConsultationId], references: [medicalConsultations.id] }),
 }));
 
 export const appointmentTypesRelations = relations(appointmentTypes, ({ many }) => ({
@@ -334,3 +426,12 @@ export type InvoiceInsert = typeof invoices.$inferInsert;
 
 export type Payment = typeof payments.$inferSelect;
 export type PaymentInsert = typeof payments.$inferInsert;
+
+export type MedicalConsultation = typeof medicalConsultations.$inferSelect;
+export type MedicalConsultationInsert = typeof medicalConsultations.$inferInsert;
+export type Diagnosis = typeof diagnoses.$inferSelect;
+export type DiagnosisInsert = typeof diagnoses.$inferInsert;
+export type Treatment = typeof treatments.$inferSelect;
+export type TreatmentInsert = typeof treatments.$inferInsert;
+export type Study = typeof studies.$inferSelect;
+export type StudyInsert = typeof studies.$inferInsert;
