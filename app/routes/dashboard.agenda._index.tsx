@@ -70,7 +70,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     doctorId && date ? getSlotsForDoctorAndDate(doctorId, date) : Promise.resolve([]),
   ]);
 
-  const slots = slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS;
   const specialties = [...new Set(doctors.map((d) => d.specialty).filter(Boolean))] as string[];
   specialties.sort();
 
@@ -90,7 +89,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     consultingRooms,
     appointmentTypes,
     specialties,
-    slotsForDay: slots,
+    slotsForDay,
   };
 }
 
@@ -734,7 +733,7 @@ export default function AgendaPage() {
               </p>
             ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {(slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
+              {(!doctorId || slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
                 const rows = appointmentsByTime.get(slotTime) || [];
                 return (
                   <div
