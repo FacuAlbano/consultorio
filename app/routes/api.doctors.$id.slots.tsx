@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.doctors.$id.slots";
 import { requireAuth } from "~/lib/middleware";
-import { getAvailableSlotsForDoctorAndDate } from "~/lib/doctor-agenda.server";
+import { getSlotsForDoctorAndDate } from "~/lib/doctor-agenda.server";
 import { isValidUUID } from "~/lib/utils";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -16,6 +16,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     return Response.json({ error: "Fecha inválida (use YYYY-MM-DD)" }, { status: 400 });
   }
 
-  const slots = await getAvailableSlotsForDoctorAndDate(id, date);
+  const slots = await getSlotsForDoctorAndDate(id, date);
   return Response.json({ slots });
 }

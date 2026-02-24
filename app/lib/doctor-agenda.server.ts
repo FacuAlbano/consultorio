@@ -134,6 +134,20 @@ export async function getAvailableSlotsForDoctorAndDate(
   return buildSlotsBetween(start, end, interval);
 }
 
+/**
+ * Slots que el médico trabaja en esa fecha: primero desde bloques generados (Crear Agenda Propia),
+ * si no hay, desde la agenda semanal. Así la vista Día muestra todo el rango horario con o sin turnos.
+ */
+export async function getSlotsForDoctorAndDate(
+  doctorId: string,
+  dateStr: string
+): Promise<string[]> {
+  const { getSlotsFromGeneratedBlocksForDoctorAndDate } = await import("~/lib/generated-agenda.server");
+  const fromBlocks = await getSlotsFromGeneratedBlocksForDoctorAndDate(doctorId, dateStr);
+  if (fromBlocks.length > 0) return fromBlocks;
+  return getAvailableSlotsForDoctorAndDate(doctorId, dateStr);
+}
+
 function buildSlotsBetween(start: string, end: string, intervalMinutes: number): string[] {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);

@@ -165,6 +165,55 @@ function timeToMinutes(t: string): number {
   return (h ?? 0) * 60 + (m ?? 0);
 }
 
+/** Genera slots HH:MM entre start y end cada intervalMinutes */
+function buildSlotsBetween(start: string, end: string, intervalMinutes: number): string[] {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  let startM = (sh ?? 0) * 60 + (sm ?? 0);
+  const endM = (eh ?? 0) * 60 + (em ?? 0);
+  const slots: string[] = [];
+  while (startM < endM) {
+    const h = Math.floor(startM / 60);
+    const m = startM % 60;
+    slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    startM += intervalMinutes;
+  }
+  return slots;
+}
+
+/**
+ * Devuelve los slots (HH:MM) de disponibilidad para un médico en una fecha
+ * a partir de los bloques generados por "Crear Agenda Propia".
+ * Si no hay bloques para esa fecha, devuelve [] (para usar luego horario semanal).
+ */
+export async function getSlotsFromGeneratedBlocksForDoctorAndDate(
+  doctorId: string,
+  dateStr: string
+): Promise<string[]> {
+  if (!isValidUUID(doctorId)) return [];
+  const blocks = await listGeneratedAgendaBlocks({
+    doctorId,
+    dateFrom: dateStr,
+    dateTo: dateStr,
+  });
+  const allSlots: string[] = [];
+  const seen = new Set<string>();
+  for (const { block } of blocks) {
+    const start = String(block.startTime).slice(0, 5);
+    const end = String(block.endTime).slice(0, 5);
+    const duration = Math.min(120, Math.max(5, Number(block.durationMinutes) || 15));
+    const slots = buildSlotsBetween(start, end, duration);
+    for (const s of slots) {
+      if (!seen.has(s)) {
+        seen.add(s);
+        allSlots.push(s);
+      }
+    }
+  }
+  allSlots.sort();
+  return allSlots;
+}
+
 /**
  * Actualiza forWebBooking y/o availableOnSave de un bloque
  */

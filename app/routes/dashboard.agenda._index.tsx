@@ -3,18 +3,18 @@ import { useLoaderData, useActionData, useSearchParams, useFetcher, useRevalidat
 import { toast } from "sonner";
 import type { Route } from "./+types/dashboard.agenda._index";
 import { requireAuth } from "~/lib/middleware";
-import { getAppointments, createAppointment } from "~/lib/appointments.server";
+import { getAppointments, createAppointment, updateAppointment, deleteAppointment } from "~/lib/appointments.server";
 import { getAllDoctors } from "~/lib/doctors.server";
 import { getAllConsultingRooms } from "~/lib/consulting-rooms.server";
 import { getAllAppointmentTypes } from "~/lib/appointment-types.server";
-import { getAvailableSlotsForDoctorAndDate } from "~/lib/doctor-agenda.server";
+import { getSlotsForDoctorAndDate } from "~/lib/doctor-agenda.server";
 import { getTodayLocalISO } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
-import { Calendar, Clock, Plus, Loader2, User, List, CalendarDays, Settings } from "lucide-react";
+import { Calendar, Clock, Plus, Loader2, User, List, CalendarDays, Settings, Pencil, Trash2, CalendarPlus } from "lucide-react";
 import { PATHS } from "~/lib/constants";
 import { formatDate } from "~/lib/utils";
 
@@ -67,7 +67,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     getAllDoctors({ limit: 100 }),
     getAllConsultingRooms({ limit: 50 }),
     getAllAppointmentTypes({ limit: 50 }),
-    doctorId && date ? getAvailableSlotsForDoctorAndDate(doctorId, date) : Promise.resolve([]),
+    doctorId && date ? getSlotsForDoctorAndDate(doctorId, date) : Promise.resolve([]),
   ]);
 
   const slots = slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS;
@@ -101,13 +101,41 @@ function endOfMonth(dateStr: string): string {
 }
 
 const INTENT_CREATE = "create";
+const INTENT_UPDATE = "updateAppointment";
+const INTENT_DELETE = "deleteAppointment";
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
   const formData = await request.formData();
-  if (formData.get("_intent") !== INTENT_CREATE) {
+  const intent = formData.get("_intent");
+
+  if (intent === INTENT_DELETE) {
+    const appointmentId = formData.get("appointmentId") as string;
+    if (!appointmentId) return { success: false as const, error: "ID de turno requerido" };
+    const result = await deleteAppointment(appointmentId);
+    if (!result.success) return { success: false, error: result.error };
+    return { success: true as const, deleted: true };
+  }
+
+  if (intent === INTENT_UPDATE) {
+    const appointmentId = formData.get("appointmentId") as string;
+    const estado = (formData.get("estado") as string) || "";
+    if (!appointmentId) return { success: false as const, error: "ID de turno requerido" };
+    const updateData: { status?: string; isOverbooking?: boolean } = {};
+    if (estado === "attended") { updateData.status = "attended"; updateData.isOverbooking = false; }
+    else if (estado === "cancelled") { updateData.status = "cancelled"; updateData.isOverbooking = false; }
+    else if (estado === "sobre_turno") { updateData.status = "scheduled"; updateData.isOverbooking = true; }
+    else if (estado === "scheduled") { updateData.status = "scheduled"; updateData.isOverbooking = false; }
+    if (Object.keys(updateData).length === 0) return { success: false as const, error: "Estado no válido" };
+    const result = await updateAppointment(appointmentId, updateData);
+    if (!result.success) return { success: false, error: result.error };
+    return { success: true as const, updated: true };
+  }
+
+  if (intent !== INTENT_CREATE) {
     return { success: false as const, error: "Acción no válida" };
   }
+
   const patientId = formData.get("patientId") as string;
   const appointmentDate = formData.get("appointmentDate") as string;
   const appointmentTime = formData.get("appointmentTime") as string;
@@ -115,6 +143,7 @@ export async function action({ request }: Route.ActionArgs) {
   const consultingRoomId = (formData.get("consultingRoomId") as string) || undefined;
   const appointmentTypeId = (formData.get("appointmentTypeId") as string) || undefined;
   const notes = (formData.get("notes") as string)?.trim() || undefined;
+  const isOverbooking = formData.get("isOverbooking") === "1" || formData.get("sobreTurno") === "1";
   if (!patientId || !appointmentDate || !appointmentTime) {
     return { success: false as const, error: "Paciente, fecha y hora son obligatorios" };
   }
@@ -127,23 +156,16 @@ export async function action({ request }: Route.ActionArgs) {
     appointmentTime: appointmentTime.length === 5 ? `${appointmentTime}:00` : appointmentTime,
     notes,
     status: "scheduled",
-    isOverbooking: false,
+    isOverbooking: !!isOverbooking,
   });
   if (!result.success) return { success: false, error: result.error };
   return { success: true as const };
 }
 
-const statusLabel: Record<string, string> = {
-  scheduled: "Programado",
-  attended: "Atendido",
-  cancelled: "Cancelado",
-  no_show: "No asistió",
-};
-
-/** Badge de estado como en la referencia: RECEPCIONADO (magenta), DISPONIBLE (verde) */
-function StatusBadge({ status }: { status: string }) {
-  const label = status === "attended" ? "RECEPCIONADO" : status === "scheduled" ? "DISPONIBLE" : (statusLabel[status] ?? status);
-  const variant = status === "attended" ? "bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300" : status === "scheduled" ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground";
+/** Estados: Disponible, Atendido, Cancelado, Sobre turno */
+function StatusBadge({ status, isOverbooking }: { status: string; isOverbooking?: boolean }) {
+  const label = status === "cancelled" ? "Cancelado" : status === "attended" ? "Atendido" : isOverbooking ? "Sobre turno" : "Disponible";
+  const variant = status === "cancelled" ? "bg-muted text-muted-foreground" : status === "attended" ? "bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300" : isOverbooking ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300";
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variant}`}>{label}</span>;
 }
 
@@ -244,7 +266,7 @@ export default function AgendaPage() {
   } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const fetcher = useFetcher<{ success?: boolean; error?: string }>();
+  const fetcher = useFetcher<{ success?: boolean; error?: string; updated?: boolean; deleted?: boolean }>();
   const revalidator = useRevalidator();
   const today = getTodayLocalISO();
   const maxDate = new Date();
@@ -262,6 +284,7 @@ export default function AgendaPage() {
   const [patientSearch, setPatientSearch] = React.useState("");
   const [patientResults, setPatientResults] = React.useState<Array<{ id: string; label: string; documentNumber?: string }>>([]);
   const [selectedPatient, setSelectedPatient] = React.useState<{ id: string; label: string } | null>(null);
+  const [editAppointment, setEditAppointment] = React.useState<{ id: string; status: string; isOverbooking: boolean } | null>(null);
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFilter = (e: React.FormEvent) => {
@@ -337,16 +360,24 @@ export default function AgendaPage() {
 
   React.useEffect(() => {
     if (fetcher.data?.success) {
-      toast.success("Turno creado correctamente");
-      setAssignSlot(null);
-      setAgendarOpen(false);
-      setSelectedPatient(null);
-      setPatientSearch("");
-      setPatientResults([]);
-      setAgendarSelectedPatient(null);
-      setAgendarPatientSearch("");
-      setAgendarPatientResults([]);
-      setAgendarTime("");
+      if ((fetcher.data as { deleted?: boolean }).deleted) {
+        toast.success("Turno eliminado");
+        setAssignSlot(null);
+      } else if ((fetcher.data as { updated?: boolean }).updated) {
+        toast.success("Turno actualizado");
+        setEditAppointment(null);
+      } else {
+        toast.success("Turno creado correctamente");
+        setAssignSlot(null);
+        setAgendarOpen(false);
+        setSelectedPatient(null);
+        setPatientSearch("");
+        setPatientResults([]);
+        setAgendarSelectedPatient(null);
+        setAgendarPatientSearch("");
+        setAgendarPatientResults([]);
+        setAgendarTime("");
+      }
       revalidator.revalidate();
     } else if (fetcher.data?.success === false && fetcher.data?.error) {
       toast.error(fetcher.data.error);
@@ -590,7 +621,7 @@ export default function AgendaPage() {
                             <td className="py-2 px-2">{normTime(appointment.appointmentTime)}</td>
                             <td className="py-2 px-2">{appointmentType?.name ?? "—"}</td>
                             <td className="py-2 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>
-                            <td className="py-2 px-2"><StatusBadge status={appointment.status} /></td>
+                            <td className="py-2 px-2"><StatusBadge status={appointment.status} isOverbooking={appointment.isOverbooking} /></td>
                             <td className="py-2 px-2">{appointment.isOverbooking ? "Sí" : "—"}</td>
                             <td className="py-2 px-2">—</td>
                             <td className="py-2 px-2">{patient?.documentNumber ?? "—"}</td>
@@ -602,11 +633,29 @@ export default function AgendaPage() {
                               ) : "—"}
                             </td>
                             <td className="py-2 px-2">
+                              <div className="flex flex-wrap gap-1">
                               {patient && (
                                 <Button asChild variant="ghost" size="sm" className="h-8">
                                   <Link to={PATHS.patientProfile(patient.id)}>Ver</Link>
                                 </Button>
                               )}
+                              <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: appointment.id, status: appointment.status, isOverbooking: appointment.isOverbooking })}>
+                                <Pencil className="h-3.5 w-3.5" />
+                                Editar turno
+                              </Button>
+                              <fetcher.Form method="post" className="inline">
+                                <input type="hidden" name="_intent" value={INTENT_DELETE} />
+                                <input type="hidden" name="appointmentId" value={appointment.id} />
+                                <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Eliminar turno
+                                </Button>
+                              </fetcher.Form>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => { setAgendarDoctorId(doctor?.id || ""); setAgendarDate(appointment.appointmentDate); setAgendarTime(normTime(appointment.appointmentTime)); setAgendarOpen(true); }}>
+                                <CalendarPlus className="h-3.5 w-3.5" />
+                                Agendar reserva
+                              </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -675,12 +724,17 @@ export default function AgendaPage() {
               {formatDate(date, "es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </CardTitle>
             <p className="text-muted-foreground text-sm">
-              Clic en &quot;Asignar&quot; para agregar un paciente. Se permiten varios turnos en el mismo horario.
+              Se muestra el rango horario en que trabaja el médico (desde Crear Agenda Propia o horario semanal). Clic en &quot;Asignar&quot; para cargar un turno en ese horario.
             </p>
           </CardHeader>
           <CardContent>
+            {doctorId && slotsForDay.length === 0 ? (
+              <p className="text-muted-foreground py-4">
+                Este médico no tiene horario definido para este día. Use <strong>Crear Agenda Propia</strong> para generar disponibilidad o configure el horario semanal del médico.
+              </p>
+            ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {slotsForDay.map((slotTime) => {
+              {(slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
                 const rows = appointmentsByTime.get(slotTime) || [];
                 return (
                   <div
@@ -695,14 +749,24 @@ export default function AgendaPage() {
                           <span className="font-medium">
                             {row.patient ? `${row.patient.firstName} ${row.patient.lastName}` : "—"}
                           </span>
-                          <span className="text-muted-foreground text-sm">
-                            {statusLabel[row.appointment.status] ?? row.appointment.status}
-                          </span>
+                          <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
                           {row.patient && (
                             <Button asChild variant="ghost" size="sm" className="h-8">
                               <Link to={PATHS.patientProfile(row.patient.id)}>Ver paciente</Link>
                             </Button>
                           )}
+                          <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
+                            <Pencil className="h-3.5 w-3.5" />
+                            Editar turno
+                          </Button>
+                          <fetcher.Form method="post" className="inline">
+                            <input type="hidden" name="_intent" value={INTENT_DELETE} />
+                            <input type="hidden" name="appointmentId" value={row.appointment.id} />
+                            <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Eliminar turno
+                            </Button>
+                          </fetcher.Form>
                         </div>
                       ))}
                       <Button
@@ -712,14 +776,15 @@ export default function AgendaPage() {
                         className="gap-1 h-9"
                         onClick={() => setAssignSlot(slotTime)}
                       >
-                        <Plus className="h-4 w-4" />
-                        Asignar
+                        <CalendarPlus className="h-4 w-4" />
+                        Agendar reserva
                       </Button>
                     </div>
                   </div>
                 );
               })}
             </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -835,6 +900,13 @@ export default function AgendaPage() {
             {agendarSelectedPatient && (
               <p className="text-sm text-muted-foreground">Seleccionado: <strong>{agendarSelectedPatient.label}</strong></p>
             )}
+            <p className="text-xs text-muted-foreground">
+              ¿El paciente no existe?{" "}
+              <Link to={PATHS.atenderSinTurno} className="text-primary underline hover:no-underline" onClick={() => setAgendarOpen(false)}>
+                Cargar nuevo paciente
+              </Link>
+              . Luego vuelva a Agendar turno y búsquelo.
+            </p>
           </div>
           <fetcher.Form method="post" className="space-y-2">
             <input type="hidden" name="_intent" value={INTENT_CREATE} />
@@ -842,6 +914,10 @@ export default function AgendaPage() {
             <input type="hidden" name="appointmentTime" value={agendarTime} />
             <input type="hidden" name="patientId" value={agendarSelectedPatient?.id ?? ""} />
             <input type="hidden" name="doctorId" value={agendarDoctorId} />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="sobreTurno" value="1" className="rounded border-input" />
+              <span className="text-sm">Sobre turno</span>
+            </label>
             <div className="space-y-2">
               <Label>Tipo de turno</Label>
               <select name="appointmentTypeId" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
@@ -859,6 +935,39 @@ export default function AgendaPage() {
             </div>
           </fetcher.Form>
         </div>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={!!editAppointment}
+        onOpenChange={(open) => { if (!open) setEditAppointment(null); }}
+        title="Editar turno"
+        description="Cambie el estado del turno."
+      >
+        {editAppointment && (
+          <fetcher.Form method="post" className="space-y-4">
+            <input type="hidden" name="_intent" value={INTENT_UPDATE} />
+            <input type="hidden" name="appointmentId" value={editAppointment.id} />
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <select
+                name="estado"
+                defaultValue={editAppointment.status === "cancelled" ? "cancelled" : editAppointment.status === "attended" ? "attended" : editAppointment.isOverbooking ? "sobre_turno" : "scheduled"}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              >
+                <option value="scheduled">Disponible</option>
+                <option value="attended">Atendido</option>
+                <option value="cancelled">Cancelado</option>
+                <option value="sobre_turno">Sobre turno</option>
+              </select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setEditAppointment(null)}>Cancelar</Button>
+              <Button type="submit" disabled={fetcher.state !== "idle"}>
+                {fetcher.state !== "idle" ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</> : "Guardar"}
+              </Button>
+            </div>
+          </fetcher.Form>
+        )}
       </ResponsiveDialog>
 
       <ResponsiveDialog
@@ -909,6 +1018,13 @@ export default function AgendaPage() {
                   Seleccionado: <strong>{selectedPatient.label}</strong>
                 </p>
               )}
+              <p className="text-xs text-muted-foreground">
+                ¿El paciente no existe?{" "}
+                <Link to={PATHS.atenderSinTurno} className="text-primary underline hover:no-underline" onClick={() => setAssignSlot(null)}>
+                  Cargar nuevo paciente
+                </Link>
+                . Luego vuelva a este horario y asígnelo.
+              </p>
             </div>
 
             <fetcher.Form method="post" className="space-y-4">
@@ -918,6 +1034,10 @@ export default function AgendaPage() {
               <input type="hidden" name="patientId" value={selectedPatient?.id ?? ""} />
               {doctorId && <input type="hidden" name="doctorId" value={doctorId} />}
               {consultingRoomId && <input type="hidden" name="consultingRoomId" value={consultingRoomId} />}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="sobreTurno" value="1" className="rounded border-input" />
+                <span className="text-sm">Sobre turno</span>
+              </label>
               <div className="space-y-2">
                 <Label>Tipo de turno</Label>
                 <select
