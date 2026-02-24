@@ -53,7 +53,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Agenda de Turnos", path: PATHS.agenda },
       { label: "Crear Agenda Propia", path: PATHS.agendaCrear },
-      { label: "Editar Agenda", path: PATHS.agendaEditarBloques },
+      { label: "Editar Agenda", path: PATHS.agendaEditar },
       { label: "Eliminar Agenda", path: PATHS.agendaEliminar },
     ],
   },
