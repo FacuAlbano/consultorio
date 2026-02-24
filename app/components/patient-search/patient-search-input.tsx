@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Loader2, Clock, X } from "lucide-react";
+import { Search, Loader2, Clock, X, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
@@ -9,6 +9,8 @@ interface PatientSearchInputProps {
   placeholder?: string;
   onSearch?: (query: string) => void;
   onPatientSelect?: (patientId: string) => void;
+  /** Si se proporciona, cuando no hay resultados se muestra "Crear paciente" y al hacer clic se llama con el texto de búsqueda */
+  onNoResultsCreate?: (query: string) => void;
   className?: string;
   showHistory?: boolean;
   showFilters?: boolean;
@@ -72,6 +74,7 @@ export function PatientSearchInput({
   placeholder = "Ingresar DNI, nombre, HC u obra social...",
   onSearch,
   onPatientSelect,
+  onNoResultsCreate,
   className = "",
   showHistory = true,
   showFilters = true,
@@ -173,10 +176,11 @@ export function PatientSearchInput({
   const handlePatientSelect = (patient: PatientSuggestion) => {
     setQuery(patient.fullInfo);
     setShowSuggestions(false);
-    onPatientSelect?.(patient.id);
-    // Guardar en historial de búsquedas
     saveToSearchHistory(patient);
-    // Navegar al perfil del paciente
+    if (onPatientSelect) {
+      onPatientSelect(patient.id);
+      return;
+    }
     navigate(`/pacientes/${patient.id}`);
   };
 
@@ -244,7 +248,7 @@ export function PatientSearchInput({
               }, 200);
             }}
             placeholder={placeholder}
-            className="pl-12 pr-12 h-14 text-lg bg-background/95 backdrop-blur-sm border-2 border-border focus:border-primary shadow-lg"
+            className="pl-12 pr-12 h-10 text-base bg-background/95 backdrop-blur-sm border border-border focus:border-primary shadow-sm"
           />
           {isSearching && (
             <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground animate-spin" />
@@ -315,8 +319,22 @@ export function PatientSearchInput({
 
       {/* Mensaje cuando no hay resultados */}
       {showSuggestions && query.length >= minSearchLength && suggestions.length === 0 && !isSearching && (
-        <div className="absolute z-50 w-full mt-2 bg-popover border border-border rounded-lg shadow-lg p-4 text-center text-muted-foreground">
-          No se encontraron resultados
+        <div className="absolute z-50 w-full mt-2 bg-popover border border-border rounded-lg shadow-lg p-4">
+          <p className="text-center text-muted-foreground mb-2">No se encontraron resultados</p>
+          {onNoResultsCreate && (
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="gap-1"
+                onClick={() => onNoResultsCreate(query.trim())}
+              >
+                <UserPlus className="h-4 w-4" />
+                Crear paciente{/^\d+$/.test(query.trim()) ? ` con DNI ${query.trim()}` : ""}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -72,10 +72,10 @@ export function CrudLayout({
       {/* Filters */}
       {renderFilters && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg">Filtros</CardTitle>
+          <CardHeader className="py-2 px-4 sm:px-6">
+            <CardTitle className="text-sm font-medium">Filtros</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">{renderFilters({ filters: config.filters })}</CardContent>
+          <CardContent className="pt-0 pb-3 px-4 sm:px-6">{renderFilters({ filters: config.filters })}</CardContent>
         </Card>
       )}
 

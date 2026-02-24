@@ -5,7 +5,8 @@ import { requireAuth } from "~/lib/middleware";
 import { isValidUUID, calculateAge, formatDate } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { User, FileText, Phone, Mail, MapPin, Calendar, CreditCard, MessageCircle, Pencil } from "lucide-react";
+import { User, FileText, Phone, Mail, MapPin, Calendar, CreditCard, MessageCircle, Pencil, ClipboardList } from "lucide-react";
+import { PATHS } from "~/lib/constants";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const { tokenType } = await requireAuth(request);
@@ -44,11 +45,18 @@ export default function PatientProfile() {
             Perfil del Paciente
           </p>
         </div>
-        <Button asChild variant="outline" size="sm" className="gap-2">
-          <Link to={`/pacientes/${patient.id}/editar`}>
-            <Pencil className="h-4 w-4" /> Editar datos
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to={PATHS.historiaClinicaPaciente(patient.id)}>
+              <ClipboardList className="h-4 w-4" /> Historia clínica
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to={`/pacientes/${patient.id}/editar`}>
+              <Pencil className="h-4 w-4" /> Editar datos
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

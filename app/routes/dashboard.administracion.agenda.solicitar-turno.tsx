@@ -1,6 +1,10 @@
+import { Link } from "react-router";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { PATHS } from "~/lib/constants";
+import { ArrowRight } from "lucide-react";
 import type { Route } from "./+types/dashboard.administracion.agenda.solicitar-turno";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -18,18 +22,24 @@ export default function SolicitarTurno() {
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Solicitar Tipo de Turno</h1>
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-          Funcionalidad en desarrollo
+          Agregar o gestionar tipos de turno de la institución
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Próximamente</CardTitle>
+          <CardTitle>Tipos de turno</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            Esta funcionalidad permitirá solicitar nuevos tipos de turnos para la institución.
+            Puede ver y agregar tipos de turno desde la lista. Use el botón correspondiente para crear uno nuevo.
           </p>
+          <Button asChild>
+            <Link to={PATHS.administracion.tiposTurnos} className="inline-flex items-center gap-2">
+              Ir a Tipos de turno
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

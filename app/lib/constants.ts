@@ -18,12 +18,19 @@ export const PATHS = {
   listadosControl: "/dashboard/listados/control",
   listadosAgenda: "/dashboard/listados/agenda",
   listadosGestionDisponibilidad: "/dashboard/listados/gestion-disponibilidad",
-  listadosFacturacion: "/dashboard/listados/facturacion",
   listadosTurnos: "/dashboard/listados/turnos",
   listadosPacientesAtendidos: "/dashboard/listados/pacientes-atendidos",
   listadosPacientesOS: "/dashboard/listados/pacientes-os",
   listadosPacientesNoAtendidos: "/dashboard/listados/pacientes-no-atendidos",
   listadosTurnosAnulados: "/dashboard/listados/turnos-anulados",
+  // Historia Clínica (Etapa 6)
+  historiaClinica: "/dashboard/historia-clinica",
+  historiaClinicaPaciente: (patientId: string) => `/dashboard/historia-clinica/${patientId}`,
+  historiaClinicaConsulta: (patientId: string, consultationId: string) =>
+    `/dashboard/historia-clinica/${patientId}/consulta/${consultationId}`,
+  historiaClinicaConsultaPdf: (patientId: string, consultationId: string) =>
+    `/dashboard/historia-clinica/${patientId}/consulta/${consultationId}/pdf`,
+  historiaClinicaPacientePdf: (patientId: string) => `/dashboard/historia-clinica/${patientId}/pdf`,
   // Administración de Recursos
   administracion: {
     consultorio: "/dashboard/administracion/agenda/consultorio",

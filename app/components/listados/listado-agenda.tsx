@@ -1,41 +1,26 @@
 import * as React from "react";
-import { useLoaderData, useSearchParams, Form, Link } from "react-router";
-import type { Route } from "./+types/dashboard.listados.agenda";
-import { requireAuth } from "~/lib/middleware";
-import { getAppointments } from "~/lib/appointments.server";
-import { getAllDoctors } from "~/lib/doctors.server";
+import { useLoaderData, useSearchParams, Form, Link, useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Calendar, Stethoscope, ExternalLink } from "lucide-react";
 import { useState } from "react";
-import { getTodayLocalISO, formatDate } from "~/lib/utils";
+import { formatDate } from "~/lib/utils";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
-  const url = new URL(request.url);
-  const date = url.searchParams.get("date") || getTodayLocalISO();
-  const doctorId = url.searchParams.get("doctorId") || "";
-
-  if (!doctorId) {
-    return { appointments: [], doctors: await getAllDoctors({ limit: 100 }), date, doctorId: "" };
-  }
-
-  const appointments = await getAppointments({
-    date,
-    doctorId,
-    limit: 200,
-  });
-  const doctors = await getAllDoctors({ limit: 100 });
-
-  return { appointments, doctors, date, doctorId };
-}
-
-export default function AgendaProfesional() {
-  const { appointments, doctors, date: initialDate, doctorId: initialDoctorId } = useLoaderData<typeof loader>();
+export function ListadoAgenda() {
+  const { appointments, doctors, date: initialDate, doctorId: initialDoctorId } = useLoaderData<{
+    appointments: Array<{
+      appointment: { id: string; appointmentTime: string; status: string };
+      patient: { id: string; firstName: string; lastName: string } | null;
+    }>;
+    doctors: Array<{ id: string; firstName: string; lastName: string }>;
+    date: string;
+    doctorId: string;
+  }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [date, setDate] = useState(initialDate);
   const [doctorId, setDoctorId] = useState(initialDoctorId);
+  const navigate = useNavigate();
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +31,12 @@ export default function AgendaProfesional() {
   };
 
   const selectedDoctor = doctors.find((d) => d.id === doctorId);
+  const statusLabel: Record<string, string> = {
+    scheduled: "Programado",
+    attended: "Atendido",
+    cancelled: "Cancelado",
+    no_show: "No asistió",
+  };
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -113,11 +104,25 @@ export default function AgendaProfesional() {
                   </thead>
                   <tbody>
                     {appointments.map(({ appointment, patient }) => (
-                      <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
+                      <tr
+                        key={appointment.id}
+                        role="button"
+                        tabIndex={0}
+                        className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
+                        onClick={() => patient && navigate(`/pacientes/${patient.id}`)}
+                        onKeyDown={(e) => {
+                          if ((e.key === "Enter" || e.key === " ") && patient) {
+                            e.preventDefault();
+                            navigate(`/pacientes/${patient.id}`);
+                          }
+                        }}
+                      >
                         <td className="py-3 px-2">{appointment.appointmentTime}</td>
                         <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
-                        <td className="py-3 px-2">{appointment.status === "scheduled" ? "Programado" : appointment.status === "attended" ? "Atendido" : appointment.status === "cancelled" ? "Cancelado" : "No asistió"}</td>
                         <td className="py-3 px-2">
+                          {appointment.status === "scheduled" ? "Programado" : appointment.status === "attended" ? "Atendido" : appointment.status === "cancelled" ? "Cancelado" : "No asistió"}
+                        </td>
+                        <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                           {patient && (
                             <Link to={`/pacientes/${patient.id}`} className="text-primary hover:underline inline-flex items-center gap-1">
                               Ver <ExternalLink className="h-3 w-3" />

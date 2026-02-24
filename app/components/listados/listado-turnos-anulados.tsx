@@ -1,9 +1,5 @@
 import * as React from "react";
-import { useLoaderData, useSearchParams, Form, Link } from "react-router";
-import type { Route } from "./+types/dashboard.listados.turnos-anulados";
-import { requireAuth } from "~/lib/middleware";
-import { getAppointments } from "~/lib/appointments.server";
-import { getAllDoctors } from "~/lib/doctors.server";
+import { useLoaderData, useSearchParams, Form, Link, useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -12,7 +8,11 @@ import { useState } from "react";
 import { formatDate } from "~/lib/utils";
 
 function exportToCSV(
-  appointments: Awaited<ReturnType<typeof getAppointments>>,
+  appointments: Array<{
+    appointment: { appointmentDate: string; appointmentTime: string; notes: string | null };
+    patient: { firstName: string; lastName: string; documentNumber?: string | null } | null;
+    doctor: { firstName: string; lastName: string } | null;
+  }>
 ) {
   const headers = ["Fecha", "Hora", "Paciente", "DNI", "Médico", "Motivo / Notas"];
   const rows = appointments.map(({ appointment, patient, doctor }) => [
@@ -35,51 +35,7 @@ function exportToCSV(
   URL.revokeObjectURL(a.href);
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
-  const url = new URL(request.url);
-  const date = url.searchParams.get("date") || "";
-  const dateFrom = url.searchParams.get("dateFrom") || "";
-  const dateTo = url.searchParams.get("dateTo") || "";
-  const doctorId = url.searchParams.get("doctorId") || "";
-
-  const options: Parameters<typeof getAppointments>[0] = {
-    status: "cancelled",
-    doctorId: doctorId || undefined,
-    limit: 500,
-  };
-  if (date) options.date = date;
-  else {
-    if (dateFrom) options.dateFrom = dateFrom;
-    if (dateTo) options.dateTo = dateTo;
-  }
-
-  const appointments = await getAppointments(options);
-  const doctors = await getAllDoctors({ limit: 100 });
-
-  // Resumen: total y por médico
-  const total = appointments.length;
-  const byDoctor: { doctorName: string; count: number }[] = [];
-  const map = new Map<string, number>();
-  for (const { doctor } of appointments) {
-    const name = doctor ? `${doctor.firstName} ${doctor.lastName}` : "Sin médico";
-    map.set(name, (map.get(name) ?? 0) + 1);
-  }
-  map.forEach((count, doctorName) => byDoctor.push({ doctorName, count }));
-  byDoctor.sort((a, b) => b.count - a.count);
-
-  return {
-    appointments,
-    doctors,
-    date,
-    dateFrom,
-    dateTo,
-    doctorId,
-    reportSummary: { total, byDoctor },
-  };
-}
-
-export default function TurnosAnulados() {
+export function ListadoTurnosAnulados() {
   const {
     appointments,
     doctors,
@@ -88,12 +44,25 @@ export default function TurnosAnulados() {
     dateTo: initialDateTo,
     doctorId: initialDoctorId,
     reportSummary,
-  } = useLoaderData<typeof loader>();
+  } = useLoaderData<{
+    appointments: Array<{
+      appointment: { id: string; appointmentDate: string; appointmentTime: string; notes: string | null };
+      patient: { id: string; firstName: string; lastName: string } | null;
+      doctor: { firstName: string; lastName: string } | null;
+    }>;
+    doctors: Array<{ id: string; firstName: string; lastName: string }>;
+    date: string;
+    dateFrom: string;
+    dateTo: string;
+    doctorId: string;
+    reportSummary: { total: number; byDoctor: Array<{ doctorName: string; count: number }> };
+  }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [date, setDate] = useState(initialDate);
   const [dateFrom, setDateFrom] = useState(initialDateFrom);
   const [dateTo, setDateTo] = useState(initialDateTo);
   const [doctorId, setDoctorId] = useState(initialDoctorId);
+  const navigate = useNavigate();
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,12 +86,7 @@ export default function TurnosAnulados() {
             Historial de turnos cancelados. Filtros por fecha y médico. Exportar reporte CSV.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => exportToCSV(appointments)}
-          className="gap-2 shrink-0"
-        >
+        <Button variant="outline" size="sm" onClick={() => exportToCSV(appointments)} className="gap-2 shrink-0">
           <Download className="h-4 w-4" /> Exportar CSV
         </Button>
       </div>
@@ -220,7 +184,19 @@ export default function TurnosAnulados() {
                 </thead>
                 <tbody>
                   {appointments.map(({ appointment, patient, doctor }) => (
-                    <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
+                    <tr
+                      key={appointment.id}
+                      role="button"
+                      tabIndex={0}
+                      className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
+                      onClick={() => patient && navigate(`/pacientes/${patient.id}`)}
+                      onKeyDown={(e) => {
+                        if ((e.key === "Enter" || e.key === " ") && patient) {
+                          e.preventDefault();
+                          navigate(`/pacientes/${patient.id}`);
+                        }
+                      }}
+                    >
                       <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
                       <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
@@ -228,7 +204,7 @@ export default function TurnosAnulados() {
                       <td className="py-3 px-2 text-muted-foreground max-w-[200px] truncate" title={appointment.notes ?? ""}>
                         {appointment.notes ?? "—"}
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                         {patient && (
                           <Link to={`/pacientes/${patient.id}`} className="text-primary hover:underline inline-flex items-center gap-1">
                             Ver <ExternalLink className="h-3 w-3" />

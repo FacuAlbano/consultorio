@@ -1,54 +1,21 @@
-import * as React from "react";
-import { useLoaderData, Link } from "react-router";
-import type { Route } from "./+types/dashboard.listados.gestion-disponibilidad";
-import { requireAuth } from "~/lib/middleware";
-import { getAllDoctors } from "~/lib/doctors.server";
-import { db } from "~/db/client";
-import { doctorUnavailableDays } from "~/db/schema";
-import { gte, sql } from "drizzle-orm";
+import { useLoaderData, Link, useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Settings, Clock, CalendarOff } from "lucide-react";
 import { PATHS } from "~/lib/constants";
-import { getTodayLocalISO } from "~/lib/utils";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
-  const doctors = await getAllDoctors({ limit: 100 });
-  const today = getTodayLocalISO();
-  
-  const totalCounts = await db
-    .select({
-      doctorId: doctorUnavailableDays.doctorId,
-      unavailableCount: sql<number>`COUNT(*)::int`,
-    })
-    .from(doctorUnavailableDays)
-    .groupBy(doctorUnavailableDays.doctorId);
-  
-  const futureCounts = await db
-    .select({
-      doctorId: doctorUnavailableDays.doctorId,
-      futureUnavailable: sql<number>`COUNT(*)::int`,
-    })
-    .from(doctorUnavailableDays)
-    .where(gte(doctorUnavailableDays.date, today))
-    .groupBy(doctorUnavailableDays.doctorId);
-  
-  const byId: Record<string, { doctorId: string; unavailableCount: number; futureUnavailable: number }> = {};
-  for (const item of totalCounts) {
-    byId[item.doctorId] = { doctorId: item.doctorId, unavailableCount: item.unavailableCount, futureUnavailable: 0 };
-  }
-  for (const item of futureCounts) {
-    if (byId[item.doctorId]) {
-      byId[item.doctorId].futureUnavailable = item.futureUnavailable;
-    }
-  }
-  
-  return { doctors, byId };
-}
-
-export default function GestionDisponibilidad() {
-  const { doctors, byId } = useLoaderData<typeof loader>();
+export function ListadoGestionDisponibilidad() {
+  const { doctors, byId } = useLoaderData<{
+    doctors: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      attentionWindowStart: string | null;
+      attentionWindowEnd: string | null;
+    }>;
+    byId: Record<string, { doctorId: string; unavailableCount: number; futureUnavailable: number }>;
+  }>();
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -86,7 +53,19 @@ export default function GestionDisponibilidad() {
                     const start = d.attentionWindowStart ? String(d.attentionWindowStart).slice(0, 5) : "—";
                     const end = d.attentionWindowEnd ? String(d.attentionWindowEnd).slice(0, 5) : "—";
                     return (
-                      <tr key={d.id} className="border-b border-border/50 hover:bg-muted/30">
+                      <tr
+                        key={d.id}
+                        role="button"
+                        tabIndex={0}
+                        className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
+                        onClick={() => navigate(PATHS.medicoProfile(d.id))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            navigate(PATHS.medicoProfile(d.id));
+                          }
+                        }}
+                      >
                         <td className="py-3 px-2 font-medium">{d.firstName} {d.lastName}</td>
                         <td className="py-3 px-2 flex items-center gap-1">
                           <Clock className="h-4 w-4 text-muted-foreground" />
@@ -96,7 +75,7 @@ export default function GestionDisponibilidad() {
                           <CalendarOff className="h-4 w-4 text-muted-foreground" />
                           {info ? `${info.unavailableCount} días` : "0"} (próximos: {info?.futureUnavailable ?? 0})
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" size="sm" asChild>
                             <Link to={PATHS.medicoProfile(d.id)}>Configurar</Link>
                           </Button>

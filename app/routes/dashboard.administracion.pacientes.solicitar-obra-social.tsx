@@ -1,6 +1,10 @@
+import { Link } from "react-router";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { PATHS } from "~/lib/constants";
+import { ArrowRight } from "lucide-react";
 import type { Route } from "./+types/dashboard.administracion.pacientes.solicitar-obra-social";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -18,18 +22,24 @@ export default function SolicitarObraSocial() {
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Solicitar Obra Social</h1>
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-          Funcionalidad en desarrollo
+          Agregar o gestionar obras sociales de la institución
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Próximamente</CardTitle>
+          <CardTitle>Obras sociales</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            Esta funcionalidad permitirá solicitar nuevas obras sociales para la institución.
+            Puede ver y agregar obras sociales desde la lista. Use el botón correspondiente para crear una nueva.
           </p>
+          <Button asChild>
+            <Link to={PATHS.administracion.obrasSociales} className="inline-flex items-center gap-2">
+              Ir a Obras sociales
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

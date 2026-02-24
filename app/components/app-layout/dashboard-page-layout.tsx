@@ -15,8 +15,8 @@ export function DashboardPageLayout({ userInfo }: DashboardPageLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true); // Abierta por defecto
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar - Siempre visible, colapsable */}
+    <div className="h-screen min-h-screen bg-background flex overflow-hidden">
+      {/* Sidebar - Siempre visible, colapsable, hasta el fondo */}
       <Sidebar 
         isOpen={sidebarOpen} 
         onToggle={() => setSidebarOpen(!sidebarOpen)}
