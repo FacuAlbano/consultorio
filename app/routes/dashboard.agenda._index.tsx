@@ -20,6 +20,16 @@ import { Calendar } from "~/components/ui/calendar";
 import type { DayButtonProps } from "react-day-picker";
 import { PATHS } from "~/lib/constants";
 
+/**
+ * Agenda de Turnos
+ * Vista Día: slots horarios del médico con turnos; Vista Lista: día seleccionado en calendario + slots.
+ * Loader: turnos, médicos, consultorios, tipos, slots del día. Action: crear/actualizar/eliminar turno, crear paciente.
+ */
+
+// -----------------------------------------------------------------------------
+// Constants & default data
+// -----------------------------------------------------------------------------
+
 /** Slots por defecto cuando no hay médico o no tiene agenda configurada: 8-18 cada 15 min */
 function buildDefaultSlots(): string[] {
   const slots: string[] = [];
@@ -37,6 +47,10 @@ function normTime(t: string): string {
   const part = String(t).slice(0, 5);
   return part.length === 5 ? part : t;
 }
+
+// -----------------------------------------------------------------------------
+// Loader
+// -----------------------------------------------------------------------------
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
@@ -56,8 +70,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   const dateTo =
     url.searchParams.get("dateTo") || (view === "lista" ? monthEnd : date);
 
-  const effectiveFrom = view === "lista" ? dateFrom : date;
-  const effectiveTo = view === "lista" ? dateTo : date;
   const queryFrom = view === "lista" ? monthStart : date;
   const queryTo = view === "lista" ? monthEnd : date;
 
@@ -101,11 +113,19 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
+// -----------------------------------------------------------------------------
+// Utility functions
+// -----------------------------------------------------------------------------
+
 function endOfMonth(dateStr: string): string {
   const [y, m] = dateStr.split("-").map(Number);
   const lastDay = new Date(y, m, 0).getDate();
   return `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 }
+
+// -----------------------------------------------------------------------------
+// Action (intents: create, update, delete appointment; create patient)
+// -----------------------------------------------------------------------------
 
 const INTENT_CREATE = "create";
 const INTENT_UPDATE = "updateAppointment";
@@ -215,6 +235,10 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: true as const };
 }
 
+// -----------------------------------------------------------------------------
+// Status options & badge (mismo color en select Editar y en lista)
+// -----------------------------------------------------------------------------
+
 /** Opciones de estado: mismo color en el select (Editar) y en la lista (StatusBadge) */
 const ESTADO_OPTIONS = [
   { value: "scheduled", label: "En espera", badgeClass: "bg-sky-500/20 text-sky-800 dark:text-sky-200", selectClass: "bg-sky-500/20 border-sky-500/50 text-sky-800 dark:text-sky-200" },
@@ -238,6 +262,10 @@ function StatusBadge({ status, isOverbooking }: { status: string; isOverbooking?
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass}`}>{label}</span>;
 }
 
+// -----------------------------------------------------------------------------
+// Types & date helpers
+// -----------------------------------------------------------------------------
+
 type AppointmentRow = Awaited<ReturnType<typeof getAppointments>>[0];
 
 /** Formatea un Date a YYYY-MM-DD (primer día del mes para navegación) */
@@ -253,6 +281,10 @@ function toMonthStart(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   return `${y}-${m}-01`;
 }
+
+// -----------------------------------------------------------------------------
+// Main component
+// -----------------------------------------------------------------------------
 
 export default function AgendaPage() {
   const {
@@ -432,14 +464,15 @@ export default function AgendaPage() {
     }
   }, [createPatientFetcher.state, createPatientFetcher.data, createPatientContext]);
 
-  const fetcherHandledRef = React.useRef<string | null>(null);
-  const fetcherCounterRef = React.useRef(0);
+  const pendingFetcherResponseRef = React.useRef(false);
+  const revalidateFnRef = React.useRef(revalidator.revalidate);
+  revalidateFnRef.current = revalidator.revalidate;
+  if (fetcher.state === "submitting" || fetcher.state === "loading") {
+    pendingFetcherResponseRef.current = true;
+  }
   React.useEffect(() => {
-    if (fetcher.state !== "idle" || !fetcher.data) return;
-    fetcherCounterRef.current += 1;
-    const key = `${fetcher.state}-${JSON.stringify(fetcher.data)}-${fetcherCounterRef.current}`;
-    if (fetcherHandledRef.current === key) return;
-    fetcherHandledRef.current = key;
+    if (fetcher.state !== "idle" || !fetcher.data || !pendingFetcherResponseRef.current) return;
+    pendingFetcherResponseRef.current = false;
     if (fetcher.data.success) {
       if ((fetcher.data as { deleted?: boolean }).deleted) {
         toast.success("Turno eliminado");
@@ -459,11 +492,11 @@ export default function AgendaPage() {
         setAgendarPatientResults([]);
         setAgendarTime("");
       }
-      revalidator.revalidate();
+      revalidateFnRef.current();
     } else if (fetcher.data.success === false && fetcher.data.error) {
       toast.error(fetcher.data.error);
     }
-  }, [fetcher.state, fetcher.data, revalidator]);
+  }, [fetcher.state, fetcher.data]);
 
   React.useEffect(() => {
     if (!agendarOpen || !agendarDoctorId || !agendarDate) {
@@ -568,14 +601,14 @@ export default function AgendaPage() {
               <button
                 type="button"
                 onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "dia"); p.set("date", dateFrom || getTodayLocalISO()); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Día
               </button>
               <button
                 type="button"
                 onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "lista"); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Lista
               </button>
@@ -793,14 +826,14 @@ export default function AgendaPage() {
               <button
                 type="button"
                 onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "dia"); p.set("date", date); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Día
               </button>
               <button
                 type="button"
                 onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "lista"); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Lista
               </button>
@@ -811,13 +844,13 @@ export default function AgendaPage() {
               <form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-center">
                 <input type="hidden" name="view" value={view} />
                 <span className="text-sm font-medium text-foreground border-r border-border pr-4">Filtros</span>
-                {view === "dia" && (
+                {(view as "dia" | "lista") === "dia" && (
                   <div className="flex flex-col gap-1 min-w-[110px]">
                     <Label htmlFor="date" className="text-xs">Fecha</Label>
                     <Input id="date" name="date" type="date" required defaultValue={date} className="h-8 w-full text-sm" />
                   </div>
                 )}
-                {view === "lista" && (
+                {(view as "dia" | "lista") === "lista" && (
                   <>
                     <div className="flex flex-col gap-1 min-w-[110px]"><Label htmlFor="dateFrom" className="text-xs">Desde</Label><Input id="dateFrom" name="dateFrom" type="date" defaultValue={dateFrom} className="h-8 w-full text-sm" /></div>
                     <div className="flex flex-col gap-1 min-w-[110px]"><Label htmlFor="dateTo" className="text-xs">Hasta</Label><Input id="dateTo" name="dateTo" type="date" defaultValue={dateTo} className="h-8 w-full text-sm" /></div>

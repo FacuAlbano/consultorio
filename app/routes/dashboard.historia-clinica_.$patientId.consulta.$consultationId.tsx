@@ -27,6 +27,7 @@ import { ArrowLeft, Plus, Trash2, FileDown, Printer } from "lucide-react";
 import { PATHS } from "~/lib/constants";
 import { formatDate } from "~/lib/utils";
 import { isValidUUID } from "~/lib/utils";
+import { toast } from "sonner";
 
 const INTENTS = {
   create: "create",
@@ -95,7 +96,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       reason: (formData.get("reason") as string) || null,
       notes: (formData.get("notes") as string) || null,
     });
-    return res;
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.delete && consultationId && consultationId !== "nueva") {
@@ -105,54 +106,63 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   if (intent === INTENTS.addDiagnosis && consultationId && consultationId !== "nueva") {
-    return await addDiagnosis(consultationId, {
+    const res = await addDiagnosis(consultationId, {
       code: (formData.get("code") as string) || undefined,
       name: (formData.get("name") as string) || "",
       description: (formData.get("description") as string) || undefined,
     });
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.updateDiagnosis) {
     const id = formData.get("diagnosisId") as string;
-    return await updateDiagnosis(id, {
+    const res = await updateDiagnosis(id, {
       code: (formData.get("code") as string) || undefined,
       name: (formData.get("name") as string) || undefined,
       description: (formData.get("description") as string) || undefined,
     });
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.deleteDiagnosis) {
-    return await deleteDiagnosis(formData.get("diagnosisId") as string);
+    const res = await deleteDiagnosis(formData.get("diagnosisId") as string);
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.addTreatment && consultationId && consultationId !== "nueva") {
-    return await addTreatment(consultationId, (formData.get("description") as string) || "");
+    const res = await addTreatment(consultationId, (formData.get("description") as string) || "");
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.updateTreatment) {
-    return await updateTreatment(formData.get("treatmentId") as string, (formData.get("description") as string) || "");
+    const res = await updateTreatment(formData.get("treatmentId") as string, (formData.get("description") as string) || "");
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.deleteTreatment) {
-    return await deleteTreatment(formData.get("treatmentId") as string);
+    const res = await deleteTreatment(formData.get("treatmentId") as string);
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.addStudy && consultationId && consultationId !== "nueva") {
-    return await addStudy(consultationId, {
+    const res = await addStudy(consultationId, {
       description: (formData.get("description") as string) || "",
       result: (formData.get("result") as string) || undefined,
     });
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.updateStudy) {
-    return await updateStudy(formData.get("studyId") as string, {
+    const res = await updateStudy(formData.get("studyId") as string, {
       description: (formData.get("description") as string) || undefined,
       result: (formData.get("result") as string) || undefined,
     });
+    return { ...res, intent };
   }
 
   if (intent === INTENTS.deleteStudy) {
-    return await deleteStudy(formData.get("studyId") as string);
+    const res = await deleteStudy(formData.get("studyId") as string);
+    return { ...res, intent };
   }
 
   return { success: false, error: "Acción no válida" };
@@ -189,12 +199,39 @@ export default function ConsultaDetalle() {
     );
   }
 
+  const INTENT_MESSAGES: Record<string, { ok: string }> = {
+    update: { ok: "Cambios guardados correctamente" },
+    addDiagnosis: { ok: "Diagnóstico agregado" },
+    updateDiagnosis: { ok: "Diagnóstico actualizado" },
+    deleteDiagnosis: { ok: "Diagnóstico eliminado" },
+    addTreatment: { ok: "Tratamiento agregado" },
+    updateTreatment: { ok: "Tratamiento actualizado" },
+    deleteTreatment: { ok: "Tratamiento eliminado" },
+    addStudy: { ok: "Estudio agregado" },
+    updateStudy: { ok: "Estudio actualizado" },
+    deleteStudy: { ok: "Estudio eliminado" },
+  };
+
   React.useEffect(() => {
     if (actionData && "createdId" in actionData && actionData.createdId) {
+      toast.success("Consulta creada");
       navigate(PATHS.historiaClinicaConsulta(patient.id, actionData.createdId), { replace: true });
+      return;
     }
     if (actionData && "deleted" in actionData && actionData.deleted) {
+      toast.success("Consulta eliminada");
       navigate(backUrl, { replace: true });
+      return;
+    }
+    if (actionData && "intent" in actionData && typeof actionData.intent === "string") {
+      const intent = actionData.intent as string;
+      if (actionData.success && INTENT_MESSAGES[intent]?.ok) {
+        toast.success(INTENT_MESSAGES[intent].ok);
+      } else if (actionData.success === false && actionData.error) {
+        toast.error(actionData.error);
+      }
+    } else if (actionData && actionData.success === false && actionData.error) {
+      toast.error(actionData.error);
     }
   }, [actionData, patient.id, backUrl, navigate]);
 
@@ -323,11 +360,11 @@ export default function ConsultaDetalle() {
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-lg">Diagnósticos</CardTitle>
-          <Form method="post" className="flex gap-2 flex-wrap">
+          <Form method="post" className="flex gap-2 flex-wrap flex-1 min-w-0">
             <input type="hidden" name="_intent" value={INTENTS.addDiagnosis} />
-            <Input name="name" placeholder="Nombre" className="w-32 sm:w-40" required />
-            <Input name="code" placeholder="Código (opc.)" className="w-24 hidden sm:block" />
-            <Button type="submit" size="sm" className="gap-1"><Plus className="h-4 w-4" /> Agregar</Button>
+            <Input name="name" placeholder="Diagnóstico" className="min-w-[200px] flex-1 sm:min-w-[280px]" required />
+            <Input name="code" placeholder="Código (opc.)" className="w-24 sm:w-28 shrink-0 hidden sm:block" />
+            <Button type="submit" size="sm" className="gap-1 shrink-0"><Plus className="h-4 w-4" /> Agregar</Button>
           </Form>
         </CardHeader>
         <CardContent>

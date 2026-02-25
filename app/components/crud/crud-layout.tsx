@@ -3,6 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Plus } from "lucide-react";
 
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
 export interface CrudLayoutConfig {
   title: string;
   itemName: string;
@@ -23,6 +27,10 @@ interface CrudLayoutProps {
   renderEditDialog?: (props: { item: any; open: boolean; onOpenChange: (open: boolean) => void }) => React.ReactNode;
   onCreateClick?: () => void;
 }
+
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
 
 export function CrudLayout({
   config,
