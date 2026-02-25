@@ -86,6 +86,7 @@ export const doctors = pgTable(
     attentionTemplate: text("attention_template"), // Plantilla de atención
     attentionWindowStart: time("attention_window_start"), // Hora inicio ventana de atención
     attentionWindowEnd: time("attention_window_end"), // Hora fin ventana de atención
+    slotDurationMinutes: numeric("slot_duration_minutes", { precision: 3, scale: 0 }), // Intervalo de turnos (ej: 15)
     // Metadatos
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -95,6 +96,24 @@ export const doctors = pgTable(
     firstNameIdx: index("doctors_first_name_idx").on(table.firstName),
     lastNameIdx: index("doctors_last_name_idx").on(table.lastName),
     fullNameIdx: index("doctors_full_name_idx").on(table.firstName, table.lastName),
+  })
+);
+
+// Agenda semanal por médico: qué días trabaja y horario por día (1 = lunes .. 7 = domingo)
+export const doctorWeeklySchedule = pgTable(
+  "doctor_weekly_schedule",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    doctorId: uuid("doctor_id").notNull().references(() => doctors.id, { onDelete: "cascade" }),
+    dayOfWeek: varchar("day_of_week", { length: 10 }).notNull(), // "1"=lunes .. "7"=domingo
+    startTime: time("start_time").notNull(),
+    endTime: time("end_time").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    doctorIdIdx: index("doctor_weekly_schedule_doctor_id_idx").on(table.doctorId),
+    doctorDayUniqueIdx: uniqueIndex("doctor_weekly_schedule_doctor_day_unique_idx").on(table.doctorId, table.dayOfWeek),
   })
 );
 
@@ -110,6 +129,29 @@ export const doctorUnavailableDays = pgTable("doctor_unavailable_days", {
   dateIdx: index("doctor_unavailable_days_date_idx").on(table.date),
   doctorDateUniqueIdx: uniqueIndex("doctor_unavailable_days_doctor_date_unique_idx").on(table.doctorId, table.date),
 }));
+
+// Bloques de agenda generada (Crear Agenda Propia): por médico, fecha y período mañana/tarde
+export const generatedAgendaBlocks = pgTable(
+  "generated_agenda_blocks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    doctorId: uuid("doctor_id").notNull().references(() => doctors.id, { onDelete: "cascade" }),
+    appointmentTypeId: uuid("appointment_type_id").references(() => appointmentTypes.id, { onDelete: "set null" }),
+    date: date("date").notNull(),
+    period: varchar("period", { length: 20 }).notNull(), // "morning" | "afternoon"
+    startTime: time("start_time").notNull(),
+    endTime: time("end_time").notNull(),
+    durationMinutes: numeric("duration_minutes", { precision: 3, scale: 0 }).notNull(),
+    forWebBooking: boolean("for_web_booking").default(false).notNull(),
+    availableOnSave: boolean("available_on_save").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    doctorIdIdx: index("generated_agenda_blocks_doctor_id_idx").on(table.doctorId),
+    dateIdx: index("generated_agenda_blocks_date_idx").on(table.date),
+    doctorDatePeriodIdx: index("generated_agenda_blocks_doctor_date_period_idx").on(table.doctorId, table.date, table.period),
+  })
+);
 
 // Tabla de instituciones
 export const institutions = pgTable("institutions", {
@@ -308,10 +350,21 @@ export const studies = pgTable(
 
 // Relaciones de Drizzle
 export const doctorsRelations = relations(doctors, ({ many }) => ({
+  weeklySchedule: many(doctorWeeklySchedule),
   unavailableDays: many(doctorUnavailableDays),
+  generatedAgendaBlocks: many(generatedAgendaBlocks),
   appointments: many(appointments),
   appointmentTypes: many(doctorAppointmentTypes),
   medicalConsultations: many(medicalConsultations),
+}));
+
+export const doctorWeeklyScheduleRelations = relations(doctorWeeklySchedule, ({ one }) => ({
+  doctor: one(doctors, { fields: [doctorWeeklySchedule.doctorId], references: [doctors.id] }),
+}));
+
+export const generatedAgendaBlocksRelations = relations(generatedAgendaBlocks, ({ one }) => ({
+  doctor: one(doctors, { fields: [generatedAgendaBlocks.doctorId], references: [doctors.id] }),
+  appointmentType: one(appointmentTypes, { fields: [generatedAgendaBlocks.appointmentTypeId], references: [appointmentTypes.id] }),
 }));
 
 export const patientsRelations = relations(patients, ({ many }) => ({
@@ -374,6 +427,7 @@ export const studiesRelations = relations(studies, ({ one }) => ({
 export const appointmentTypesRelations = relations(appointmentTypes, ({ many }) => ({
   doctors: many(doctorAppointmentTypes),
   appointments: many(appointments),
+  generatedAgendaBlocks: many(generatedAgendaBlocks),
 }));
 
 export const doctorAppointmentTypesRelations = relations(doctorAppointmentTypes, ({ one }) => ({
@@ -406,8 +460,14 @@ export type AppointmentTypeInsert = typeof appointmentTypes.$inferInsert;
 export type Appointment = typeof appointments.$inferSelect;
 export type AppointmentInsert = typeof appointments.$inferInsert;
 
+export type DoctorWeeklySchedule = typeof doctorWeeklySchedule.$inferSelect;
+export type DoctorWeeklyScheduleInsert = typeof doctorWeeklySchedule.$inferInsert;
+
 export type DoctorUnavailableDay = typeof doctorUnavailableDays.$inferSelect;
 export type DoctorUnavailableDayInsert = typeof doctorUnavailableDays.$inferInsert;
+
+export type GeneratedAgendaBlock = typeof generatedAgendaBlocks.$inferSelect;
+export type GeneratedAgendaBlockInsert = typeof generatedAgendaBlocks.$inferInsert;
 
 export type Institution = typeof institutions.$inferSelect;
 export type InstitutionInsert = typeof institutions.$inferInsert;

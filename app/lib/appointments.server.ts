@@ -13,6 +13,7 @@ export interface SearchAppointmentsOptions {
   doctorId?: string;
   patientId?: string;
   consultingRoomId?: string;
+  appointmentTypeId?: string;
   status?: string;
   insuranceCompany?: string; // Filtro por obra social del paciente (5.7)
   limit?: number;
@@ -32,6 +33,7 @@ export async function getAppointments(options: SearchAppointmentsOptions = {}) {
     doctorId,
     patientId,
     consultingRoomId,
+    appointmentTypeId,
     status,
     insuranceCompany,
     limit = 100,
@@ -57,6 +59,10 @@ export async function getAppointments(options: SearchAppointmentsOptions = {}) {
 
   if (consultingRoomId && isValidUUID(consultingRoomId)) {
     whereConditions.push(eq(appointments.consultingRoomId, consultingRoomId));
+  }
+
+  if (appointmentTypeId && isValidUUID(appointmentTypeId)) {
+    whereConditions.push(eq(appointments.appointmentTypeId, appointmentTypeId));
   }
 
   if (status) {

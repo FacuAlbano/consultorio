@@ -1,4 +1,5 @@
 import { useLoaderData, useActionData, useNavigation, useSearchParams, Form, Link } from "react-router";
+import { toast } from "sonner";
 import type { Route } from "./+types/dashboard.atender-sin-turno";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
@@ -158,6 +159,12 @@ export default function AtenderSinTurno() {
       setFormStep("appointment");
     }
   }, [actionData, formStep]);
+
+  useEffect(() => {
+    if (!actionData) return;
+    if (actionData.success && actionData.message) toast.success(actionData.message);
+    else if (actionData.success === false && actionData.error) toast.error(actionData.error);
+  }, [actionData]);
 
   const selectedPatient = patients.find((p) => p.id === selectedPatientId);
 

@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Stethoscope,
   UserPlus,
-  ClipboardList
+  ClipboardList,
+  Calendar
 } from "lucide-react";
 import { PATHS } from "~/lib/constants";
 import { cn } from "~/lib/utils";
@@ -46,19 +47,24 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    label: "Agenda",
+    icon: Calendar,
+    path: PATHS.agenda,
+    children: [
+      { label: "Agenda de Turnos", path: PATHS.agenda },
+      { label: "Crear Agenda Propia", path: PATHS.agendaCrear },
+      { label: "Editar Agenda", path: PATHS.agendaEditar },
+      { label: "Eliminar Agenda", path: PATHS.agendaEliminar },
+    ],
+  },
+  {
     label: "Administración de Recursos",
     icon: Settings,
     path: PATHS.administracion.consultorio,
     children: [
-      {
-        label: "Recursos para Generación de Agenda",
-        children: [
-          { label: "Agenda del día", path: PATHS.agenda },
-          { label: "Asignación de Consultorio", path: PATHS.administracion.consultorio },
-          { label: "Días no Laborables", path: PATHS.administracion.diasNoLaborables },
-          { label: "Solicitar Tipo de Turno", path: PATHS.administracion.solicitarTurno },
-        ],
-      },
+      { label: "Asignación de Consultorio", path: PATHS.administracion.consultorio },
+      { label: "Días no Laborables", path: PATHS.administracion.diasNoLaborables },
+      { label: "Solicitar Tipo de Turno", path: PATHS.administracion.solicitarTurno },
       {
         label: "Recursos para la Página Web",
         children: [

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useLoaderData, useActionData, Form, useNavigation, useFetcher } from "react-router";
+import { toast } from "sonner";
 import type { Route } from "./+types/dashboard.administracion.agenda.dias-no-laborables";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
@@ -77,19 +78,22 @@ export default function DiasNoLaborables() {
   React.useEffect(() => {
     if (actionData?.success) {
       if (actionData.actionType === UNAVAILABLE_DAY_ACTIONS.ADD && actionData.data) {
+        toast.success("Día no laborable agregado");
         const newDay = actionData.data as DayItem;
         setDays(prev => [newDay, ...prev]);
         setShowAddForm(false);
         setNewDate("");
         setNewReason("");
       } else if (actionData.actionType === UNAVAILABLE_DAY_ACTIONS.REMOVE) {
+        toast.success("Día no laborable eliminado");
         const dayId = (actionData as { dayId?: string }).dayId ?? (actionData.data as { id?: string } | undefined)?.id;
         if (dayId) {
           setDays(prev => prev.filter((day) => day.id !== dayId));
         }
       }
-      // Recargar datos desde el servidor
       fetcher.load(".");
+    } else if (actionData?.success === false && actionData?.error) {
+      toast.error(actionData.error);
     }
   }, [actionData]);
 
@@ -127,20 +131,6 @@ export default function DiasNoLaborables() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Mensajes */}
-          {actionData?.success && (
-            <div className="p-3 rounded-md bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200 text-sm">
-              {actionData.actionType === UNAVAILABLE_DAY_ACTIONS.ADD && "Día no laborable agregado"}
-              {actionData.actionType === UNAVAILABLE_DAY_ACTIONS.REMOVE && "Día no laborable eliminado"}
-            </div>
-          )}
-
-          {actionData?.error && (
-            <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-              {actionData.error}
-            </div>
-          )}
-
           {/* Formulario para agregar día */}
           {!showAddForm ? (
             <Button

@@ -9,6 +9,7 @@ import {
   Form,
   Link,
 } from "react-router";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -171,27 +172,48 @@ export function ListadoTurnos() {
   const createFetcher = useFetcher<{ success?: boolean; error?: string; createdId?: string }>();
   const editFetcher = useFetcher<{ success?: boolean; error?: string }>();
 
-  const openEdit = (appointmentId: string) => {
+  const openEdit = React.useCallback((appointmentId: string) => {
     const params = new URLSearchParams(searchParams);
     params.set("appointment", appointmentId);
     setSearchParams(params, { replace: true });
-  };
+  }, [searchParams, setSearchParams]);
 
-  const closeEdit = () => {
+  const closeEdit = React.useCallback(() => {
     const params = new URLSearchParams(searchParams);
     params.delete("appointment");
     setSearchParams(params, { replace: true });
-  };
+  }, [searchParams, setSearchParams]);
 
   const editOpen = !!appointmentToEdit;
 
   React.useEffect(() => {
-    if (createFetcher.data?.success || editFetcher.data?.success) {
+    if (createFetcher.data?.success) {
+      toast.success("Turno creado correctamente");
       setCreateOpen(false);
+      revalidator.revalidate();
+    } else if (createFetcher.data?.success === false && createFetcher.data?.error) {
+      toast.error(createFetcher.data.error);
+    }
+  }, [createFetcher.data, revalidator]);
+
+  React.useEffect(() => {
+    if (editFetcher.data?.success) {
+      toast.success("Turno actualizado correctamente");
       closeEdit();
       revalidator.revalidate();
+    } else if (editFetcher.data?.success === false && editFetcher.data?.error) {
+      toast.error(editFetcher.data.error);
     }
-  }, [createFetcher.data, editFetcher.data, revalidator]);
+  }, [editFetcher.data, revalidator, closeEdit]);
+
+  React.useEffect(() => {
+    if (actionData?.success && (actionData?.cancelled || actionData?.deleted)) {
+      toast.success(actionData.deleted ? "Turno eliminado" : "Turno cancelado");
+      revalidator.revalidate();
+    } else if (actionData?.success === false && actionData?.error) {
+      toast.error(actionData.error);
+    }
+  }, [actionData, revalidator]);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,31 +236,20 @@ export function ListadoTurnos() {
         </p>
       </div>
 
-      {actionData?.success === false && actionData?.error && (
-        <div className="rounded-lg bg-destructive/10 text-destructive px-4 py-3 text-sm">{actionData.error}</div>
-      )}
-      {actionData?.success && (actionData?.cancelled || actionData?.deleted) && (
-        <div className="rounded-lg bg-green-500/10 text-green-700 dark:text-green-400 px-4 py-3 text-sm">
-          {actionData.deleted ? "Turno eliminado." : "Turno cancelado."}
-        </div>
-      )}
-
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-end">
-            <div className="space-y-1">
+        <CardContent className="pt-6">
+          <p className="text-sm font-medium text-foreground mb-3">Filtros</p>
+          <Form onSubmit={handleFilter} className="flex flex-wrap gap-4 items-end">
+            <div className="space-y-1 min-w-[140px]">
               <label className="text-sm font-medium">Fecha</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 w-full" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-[180px]">
               <label className="text-sm font-medium">Médico</label>
               <select
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
-                className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm min-w-[180px]"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
                 <option value="">Todos</option>
                 {doctors.map((d) => (
@@ -246,12 +257,12 @@ export function ListadoTurnos() {
                 ))}
               </select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-[140px]">
               <label className="text-sm font-medium">Estado</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm min-w-[140px]"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
                 <option value="">Todos</option>
                 {Object.entries(statusLabel).map(([v, l]) => (
@@ -259,11 +270,13 @@ export function ListadoTurnos() {
                 ))}
               </select>
             </div>
-            <Button type="submit">Filtrar</Button>
-            <Button type="button" variant="secondary" className="gap-1" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Nuevo
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" className="h-9">Filtrar</Button>
+              <Button type="button" variant="secondary" className="h-9 gap-1" onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Nuevo
+              </Button>
+            </div>
           </Form>
         </CardContent>
       </Card>

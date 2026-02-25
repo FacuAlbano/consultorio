@@ -12,7 +12,7 @@ interface DashboardPageLayoutProps {
  * Layout principal del dashboard con sidebar y navbar responsive
  */
 export function DashboardPageLayout({ userInfo }: DashboardPageLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Abierta por defecto
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Cerrada por defecto (solo iconos)
 
   return (
     <div className="h-screen min-h-screen bg-background flex overflow-hidden">

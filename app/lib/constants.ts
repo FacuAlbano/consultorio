@@ -10,8 +10,16 @@ export const PATHS = {
   patientProfile: (id: string) => `/pacientes/${id}`,
   poolAtencion: "/dashboard/pool-atencion",
   atenderSinTurno: "/dashboard/atender-sin-turno",
-  /** Vista día con slots cada 15 min para armar la agenda y asignar pacientes */
+  /** Vista agenda: turnos, calendario y agendar */
   agenda: "/dashboard/agenda",
+  /** Editar agenda del médico: días y horarios de trabajo, intervalo de turnos */
+  agendaEditar: "/dashboard/agenda/editar",
+  /** Crear Agenda Propia: generar agenda por rango de fechas, mañana/tarde */
+  agendaCrear: "/dashboard/agenda/crear",
+  /** Editar Agenda: filtrar bloques y editar disponibilidad (Mostrar Turnos) */
+  agendaEditarBloques: "/dashboard/agenda/editar-bloques",
+  /** Eliminar Agenda: filtrar y eliminar bloques generados */
+  agendaEliminar: "/dashboard/agenda/eliminar",
   medicos: "/dashboard/medicos",
   medicoNuevo: "/dashboard/medicos/nuevo",
   medicoProfile: (id: string) => `/dashboard/medicos/${id}`,
