@@ -237,19 +237,19 @@ export function ListadoTurnos() {
       </div>
 
       <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm font-medium text-foreground mb-3">Filtros</p>
-          <Form onSubmit={handleFilter} className="flex flex-wrap gap-4 items-end">
-            <div className="space-y-1 min-w-[140px]">
-              <label className="text-sm font-medium">Fecha</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 w-full" />
+        <CardContent className="py-3 px-4 sm:px-6">
+          <Form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-medium text-foreground border-r border-border pr-3">Filtros</span>
+            <div className="flex flex-col gap-1 min-w-[110px]">
+              <label className="text-xs font-medium">Fecha</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 w-full text-sm" />
             </div>
-            <div className="space-y-1 min-w-[180px]">
-              <label className="text-sm font-medium">Médico</label>
+            <div className="flex flex-col gap-1 min-w-[140px]">
+              <label className="text-xs font-medium">Médico</label>
               <select
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm"
               >
                 <option value="">Todos</option>
                 {doctors.map((d) => (
@@ -257,12 +257,12 @@ export function ListadoTurnos() {
                 ))}
               </select>
             </div>
-            <div className="space-y-1 min-w-[140px]">
-              <label className="text-sm font-medium">Estado</label>
+            <div className="flex flex-col gap-1 min-w-[110px]">
+              <label className="text-xs font-medium">Estado</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm"
               >
                 <option value="">Todos</option>
                 {Object.entries(statusLabel).map(([v, l]) => (
@@ -271,7 +271,7 @@ export function ListadoTurnos() {
               </select>
             </div>
             <div className="flex gap-2">
-              <Button type="submit" className="h-9">Filtrar</Button>
+              <Button type="submit" size="sm" className="h-8">Filtrar</Button>
               <Button type="button" variant="secondary" className="h-9 gap-1" onClick={() => setCreateOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Nuevo
@@ -408,7 +408,7 @@ export function ListadoTurnos() {
       <ResponsiveDialog
         open={editOpen}
         onOpenChange={(open) => !open && closeEdit()}
-        title="Editar turno"
+        title="Editar"
         description={appointmentToEdit ? `Turno ${appointmentToEdit.appointment.appointmentDate} ${appointmentToEdit.appointment.appointmentTime}` : ""}
       >
         {appointmentToEdit && (

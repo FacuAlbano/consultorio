@@ -51,17 +51,15 @@ export function ListadoPacientesOS() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form onSubmit={handleFilter} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Obra social</label>
+        <CardContent className="py-3 px-4 sm:px-6">
+          <Form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-medium text-foreground border-r border-border pr-3">Filtros</span>
+            <div className="flex flex-col gap-1 min-w-[140px]">
+              <label className="text-xs font-medium">Obra social</label>
               <select
                 value={insuranceCompany}
                 onChange={(e) => setInsuranceCompany(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm"
               >
                 <option value="">Todas</option>
                 {insuranceCompanies.map((c) => (
@@ -69,18 +67,16 @@ export function ListadoPacientesOS() {
                 ))}
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Fecha</label>
+            <div className="flex flex-col gap-1 min-w-[110px]">
+              <label className="text-xs font-medium">Fecha</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm"
               />
             </div>
-            <div>
-              <Button type="submit">Filtrar</Button>
-            </div>
+            <Button type="submit" size="sm" className="h-8">Filtrar</Button>
           </Form>
         </CardContent>
       </Card>

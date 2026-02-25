@@ -91,8 +91,6 @@ const menuItems: MenuItem[] = [
     icon: FileText,
     children: [
       { label: "Control Institucional", path: PATHS.listadosControl },
-      { label: "Agenda del Profesional", path: PATHS.listadosAgenda },
-      { label: "Gestión de disponibilidad", path: PATHS.listadosGestionDisponibilidad },
       { label: "Turnos de la Institución", path: PATHS.listadosTurnos },
       { label: "Pacientes", path: PATHS.listadosPacientes },
       { label: "Pacientes Atendidos", path: PATHS.listadosPacientesAtendidos },

@@ -7,7 +7,7 @@ export const PATHS = {
   login: "/login",
   logout: "/logout",
   dashboard: "/dashboard",
-  patientProfile: (id: string) => `/pacientes/${id}`,
+  patientProfile: (id: string) => `/dashboard/pacientes/${id}`,
   poolAtencion: "/dashboard/pool-atencion",
   atenderSinTurno: "/dashboard/atender-sin-turno",
   /** Vista agenda: turnos, calendario y agendar */

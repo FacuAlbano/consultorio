@@ -83,3 +83,17 @@ export function calculateAge(birthDate: string | Date | null | undefined): numbe
   }
   return age >= 0 ? age : null;
 }
+
+/**
+ * Pone la primera letra de cada palabra en mayúscula (para nombres, etc.)
+ * @param str Texto a formatear
+ * @returns Texto con primera letra en mayúscula por palabra
+ */
+export function capitalizeWords(str: string | null | undefined): string {
+  if (str == null || typeof str !== "string") return "";
+  return str
+    .trim()
+    .split(/\s+/)
+    .map((word) => (word.length === 0 ? "" : word[0].toUpperCase() + word.slice(1).toLowerCase()))
+    .join(" ");
+}
