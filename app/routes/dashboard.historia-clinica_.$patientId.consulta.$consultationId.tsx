@@ -199,14 +199,39 @@ export default function ConsultaDetalle() {
     );
   }
 
+  const INTENT_MESSAGES: Record<string, { ok: string }> = {
+    update: { ok: "Cambios guardados correctamente" },
+    addDiagnosis: { ok: "Diagnóstico agregado" },
+    updateDiagnosis: { ok: "Diagnóstico actualizado" },
+    deleteDiagnosis: { ok: "Diagnóstico eliminado" },
+    addTreatment: { ok: "Tratamiento agregado" },
+    updateTreatment: { ok: "Tratamiento actualizado" },
+    deleteTreatment: { ok: "Tratamiento eliminado" },
+    addStudy: { ok: "Estudio agregado" },
+    updateStudy: { ok: "Estudio actualizado" },
+    deleteStudy: { ok: "Estudio eliminado" },
+  };
+
   React.useEffect(() => {
     if (actionData && "createdId" in actionData && actionData.createdId) {
       toast.success("Consulta creada correctamente");
       navigate(PATHS.historiaClinicaConsulta(patient.id, actionData.createdId), { replace: true });
+      return;
     }
     if (actionData && "deleted" in actionData && actionData.deleted) {
       toast.success("Consulta eliminada");
       navigate(backUrl, { replace: true });
+      return;
+    }
+    if (actionData && "intent" in actionData && typeof actionData.intent === "string") {
+      const intent = actionData.intent as string;
+      if (actionData.success && INTENT_MESSAGES[intent]?.ok) {
+        toast.success(INTENT_MESSAGES[intent].ok);
+      } else if (actionData.success === false && actionData.error) {
+        toast.error(actionData.error);
+      }
+    } else if (actionData && actionData.success === false && actionData.error) {
+      toast.error(actionData.error);
     }
   }, [actionData, patient.id, backUrl, navigate]);
 
