@@ -552,8 +552,8 @@ export default function AgendaPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 min-h-0 flex flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+    <div className="p-3 sm:p-4 md:p-6 min-h-0 flex flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <CalendarIcon className="h-7 w-7" />
@@ -595,9 +595,9 @@ export default function AgendaPage() {
       </div>
 
       {view === "lista" ? (
-        <div className="flex flex-1 gap-6 min-h-0">
+        <div className="flex flex-col lg:flex-row flex-1 gap-4 lg:gap-6 min-h-0">
           {/* Panel izquierdo: Turno Fuera de Agenda, vista Día/Lista, fecha, calendario, filtros */}
-          <aside className="w-72 shrink-0 flex flex-col gap-4">
+          <aside className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
             <Button asChild className="w-full gap-2 bg-primary/90 hover:bg-primary">
               <Link to={PATHS.atenderSinTurno}>
                 <Plus className="h-4 w-4" />
@@ -772,9 +772,9 @@ export default function AgendaPage() {
                       return (
                         <div
                           key={slotTime}
-                          className="flex items-start gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
+                          className="flex items-start sm:items-center gap-2 sm:gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
                         >
-                          <div className="w-16 shrink-0 font-medium text-muted-foreground pt-0.5">{slotTime}</div>
+                          <div className="w-12 sm:w-16 shrink-0 font-medium text-muted-foreground text-sm sm:text-base pt-0.5">{slotTime}</div>
                           <div className="flex-1 min-w-0 flex flex-col gap-2">
                             {rows.length === 0 ? (
                               <div className="flex items-center gap-2 flex-wrap">
@@ -856,7 +856,7 @@ export default function AgendaPage() {
         </div>
       ) : (
         <>
-          <div className="mb-4 w-72 flex flex-col gap-4">
+          <div className="mb-4 w-full max-w-sm lg:max-w-none lg:w-72 flex flex-col gap-4">
             <Button asChild className="w-full gap-2 bg-primary/90 hover:bg-primary">
               <Link to={PATHS.atenderSinTurno}>
                 <Plus className="h-4 w-4" />
@@ -939,9 +939,9 @@ export default function AgendaPage() {
                 return (
                   <div
                     key={slotTime}
-                    className="flex items-start gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
+                    className="flex items-start sm:items-center gap-2 sm:gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
                   >
-                    <div className="w-16 shrink-0 font-medium text-muted-foreground pt-0.5">{slotTime}</div>
+                    <div className="w-12 sm:w-16 shrink-0 font-medium text-muted-foreground text-sm sm:text-base pt-0.5">{slotTime}</div>
                     <div className="flex-1 min-w-0 flex flex-col gap-2">
                       {rows.length === 0 ? (
                         <div className="flex items-center gap-2 flex-wrap">

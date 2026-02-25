@@ -20,6 +20,8 @@ interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   userInfo: UserInfo;
+  /** En drawer móvil el ancho lo controla el contenedor */
+  fullWidth?: boolean;
 }
 
 interface MenuItem {
@@ -144,7 +146,7 @@ function SidebarContent({ userInfo, isOpen, onToggle, children }: SidebarContent
   );
 }
 
-export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
+export function Sidebar({ isOpen, onToggle, userInfo, fullWidth }: SidebarProps) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [expandedSubItems, setExpandedSubItems] = useState<string[]>([]);
@@ -360,7 +362,7 @@ export function Sidebar({ isOpen, onToggle, userInfo }: SidebarProps) {
     <aside
       className={cn(
         "bg-sidebar border-r border-sidebar-border shadow-md transition-all duration-300 ease-in-out flex-shrink-0 flex flex-col h-screen min-h-0 overflow-hidden",
-        isOpen ? "w-64" : "w-16"
+        fullWidth ? "w-full" : isOpen ? "w-64" : "w-16"
       )}
     >
       <div className="flex flex-col h-full min-h-0 min-w-0 overflow-hidden flex-1">

@@ -167,6 +167,14 @@ body {
     @apply bg-background text-foreground;
     font-family: "Poppins", ui-sans-serif, system-ui, sans-serif,
       "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    /* Evitar zoom en inputs en iOS */
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Área segura para dispositivos con notch/home indicator */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
   }
   /* Selects alineados al tema de la página (evitar fondo blanco del nativo) */
   select {
