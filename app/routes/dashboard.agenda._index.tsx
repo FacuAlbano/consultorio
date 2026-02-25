@@ -127,9 +127,9 @@ export async function action({ request }: Route.ActionArgs) {
     const estado = (formData.get("estado") as string) || "";
     if (!appointmentId) return { success: false as const, error: "ID de turno requerido" };
     const updateData: { status?: string; isOverbooking?: boolean } = {};
-    if (estado === "attended") { updateData.status = "attended"; updateData.isOverbooking = false; }
-    else if (estado === "cancelled") { updateData.status = "cancelled"; updateData.isOverbooking = false; }
-    else if (estado === "no_show") { updateData.status = "no_show"; updateData.isOverbooking = false; }
+    if (estado === "attended") { updateData.status = "attended"; }
+    else if (estado === "cancelled") { updateData.status = "cancelled"; }
+    else if (estado === "no_show") { updateData.status = "no_show"; }
     else if (estado === "sobre_turno") { updateData.status = "scheduled"; updateData.isOverbooking = true; }
     else if (estado === "scheduled") { updateData.status = "scheduled"; updateData.isOverbooking = false; }
     if (Object.keys(updateData).length === 0) return { success: false as const, error: "Estado no válido" };
