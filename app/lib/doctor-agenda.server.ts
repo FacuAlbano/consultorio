@@ -158,6 +158,8 @@ export async function getSlotsForDoctorAndDate(
   doctorId: string,
   dateStr: string
 ): Promise<string[]> {
+  const unavailable = await isDoctorUnavailableOnDate(doctorId, dateStr);
+  if (unavailable) return [];
   const { getSlotsFromGeneratedBlocksForDoctorAndDate } = await import("~/lib/generated-agenda.server");
   const fromBlocks = await getSlotsFromGeneratedBlocksForDoctorAndDate(doctorId, dateStr);
   if (fromBlocks.length > 0) return fromBlocks;
