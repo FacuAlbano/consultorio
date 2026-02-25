@@ -57,7 +57,7 @@ export async function setDoctorWeeklySchedule(
   if (!isValidUUID(doctorId)) return { success: false, error: "Médico inválido" };
   const slot = Math.min(120, Math.max(5, Math.round(slotDurationMinutes)));
   
-  const validSchedules = [];
+  const validSchedules: { dayOfWeek: string; startTime: string; endTime: string }[] = [];
   for (const s of schedules) {
     const day = DAYS_OF_WEEK.includes(s.dayOfWeek as any) ? s.dayOfWeek : null;
     if (!day) continue;

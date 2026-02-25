@@ -568,14 +568,14 @@ export default function AgendaPage() {
               <button
                 type="button"
                 onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "dia"); p.set("date", dateFrom || getTodayLocalISO()); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Día
               </button>
               <button
                 type="button"
                 onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "lista"); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Lista
               </button>
@@ -793,14 +793,14 @@ export default function AgendaPage() {
               <button
                 type="button"
                 onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "dia"); p.set("date", date); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Día
               </button>
               <button
                 type="button"
                 onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "lista"); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Lista
               </button>
@@ -811,13 +811,13 @@ export default function AgendaPage() {
               <form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-center">
                 <input type="hidden" name="view" value={view} />
                 <span className="text-sm font-medium text-foreground border-r border-border pr-4">Filtros</span>
-                {view === "dia" && (
+                {(view as "dia" | "lista") === "dia" && (
                   <div className="flex flex-col gap-1 min-w-[110px]">
                     <Label htmlFor="date" className="text-xs">Fecha</Label>
                     <Input id="date" name="date" type="date" required defaultValue={date} className="h-8 w-full text-sm" />
                   </div>
                 )}
-                {view === "lista" && (
+                {(view as "dia" | "lista") === "lista" && (
                   <>
                     <div className="flex flex-col gap-1 min-w-[110px]"><Label htmlFor="dateFrom" className="text-xs">Desde</Label><Input id="dateFrom" name="dateFrom" type="date" defaultValue={dateFrom} className="h-8 w-full text-sm" /></div>
                     <div className="flex flex-col gap-1 min-w-[110px]"><Label htmlFor="dateTo" className="text-xs">Hasta</Label><Input id="dateTo" name="dateTo" type="date" defaultValue={dateTo} className="h-8 w-full text-sm" /></div>

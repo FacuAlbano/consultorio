@@ -34,6 +34,9 @@ yarn-error.log*
 
 # Testing
 coverage/
+playwright-report/
+playwright/.cache/
+test-results/
 
 # TypeScript
 *.tsbuildinfo
