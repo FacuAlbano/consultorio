@@ -56,21 +56,35 @@ export async function setDoctorWeeklySchedule(
 ): Promise<{ success: boolean; error?: string }> {
   if (!isValidUUID(doctorId)) return { success: false, error: "Médico inválido" };
   const slot = Math.min(120, Math.max(5, Math.round(slotDurationMinutes)));
-  await db.update(doctors).set({ slotDurationMinutes: String(slot), updatedAt: new Date() }).where(eq(doctors.id, doctorId));
-  await db.delete(doctorWeeklySchedule).where(eq(doctorWeeklySchedule.doctorId, doctorId));
+  
+  const validSchedules = [];
   for (const s of schedules) {
     const day = DAYS_OF_WEEK.includes(s.dayOfWeek as any) ? s.dayOfWeek : null;
     if (!day) continue;
     const start = normTime(s.startTime);
     const end = normTime(s.endTime);
     if (!start || !end || start >= end) continue;
-    await db.insert(doctorWeeklySchedule).values({
-      doctorId,
+    validSchedules.push({
       dayOfWeek: day,
       startTime: start + (start.length === 5 ? ":00" : ""),
       endTime: end + (end.length === 5 ? ":00" : ""),
     });
   }
+  
+  if (validSchedules.length === 0) {
+    return { success: false, error: "No hay horarios válidos. Verifique que la hora de inicio sea menor a la hora de fin." };
+  }
+  
+  await db.update(doctors).set({ slotDurationMinutes: String(slot), updatedAt: new Date() }).where(eq(doctors.id, doctorId));
+  await db.delete(doctorWeeklySchedule).where(eq(doctorWeeklySchedule.doctorId, doctorId));
+  
+  for (const schedule of validSchedules) {
+    await db.insert(doctorWeeklySchedule).values({
+      doctorId,
+      ...schedule,
+    });
+  }
+  
   return { success: true };
 }
 
@@ -148,7 +162,7 @@ export async function getSlotsForDoctorAndDate(
   return getAvailableSlotsForDoctorAndDate(doctorId, dateStr);
 }
 
-function buildSlotsBetween(start: string, end: string, intervalMinutes: number): string[] {
+export function buildSlotsBetween(start: string, end: string, intervalMinutes: number): string[] {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
   let startM = sh * 60 + sm;
