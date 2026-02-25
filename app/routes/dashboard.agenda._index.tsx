@@ -402,8 +402,12 @@ export default function AgendaPage() {
     }
   }, [editAppointment]);
 
+  const createPatientHandledRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    if (createPatientFetcher.state !== "idle" || !createPatientFetcher.data) return;
+    if (createPatientFetcher.state !== "idle" || !createPatientFetcher.data || !createPatientContext) return;
+    const key = `${createPatientFetcher.state}-${JSON.stringify(createPatientFetcher.data)}-${createPatientContext}`;
+    if (createPatientHandledRef.current === key) return;
+    createPatientHandledRef.current = key;
     const d = createPatientFetcher.data as { success?: boolean; patientId?: string; patientLabel?: string; error?: string };
     if (d.success && d.patientId && d.patientLabel) {
       toast.success("Paciente creado");
@@ -429,9 +433,11 @@ export default function AgendaPage() {
   }, [createPatientFetcher.state, createPatientFetcher.data, createPatientContext]);
 
   const fetcherHandledRef = React.useRef<string | null>(null);
+  const fetcherCounterRef = React.useRef(0);
   React.useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data) return;
-    const key = `${fetcher.state}-${JSON.stringify(fetcher.data)}`;
+    fetcherCounterRef.current += 1;
+    const key = `${fetcher.state}-${JSON.stringify(fetcher.data)}-${fetcherCounterRef.current}`;
     if (fetcherHandledRef.current === key) return;
     fetcherHandledRef.current = key;
     if (fetcher.data.success) {
