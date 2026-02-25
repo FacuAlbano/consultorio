@@ -464,14 +464,15 @@ export default function AgendaPage() {
     }
   }, [createPatientFetcher.state, createPatientFetcher.data, createPatientContext]);
 
-  const fetcherHandledRef = React.useRef<string | null>(null);
-  const fetcherCounterRef = React.useRef(0);
+  const pendingFetcherResponseRef = React.useRef(false);
+  const revalidateFnRef = React.useRef(revalidator.revalidate);
+  revalidateFnRef.current = revalidator.revalidate;
+  if (fetcher.state === "submitting" || fetcher.state === "loading") {
+    pendingFetcherResponseRef.current = true;
+  }
   React.useEffect(() => {
-    if (fetcher.state !== "idle" || !fetcher.data) return;
-    fetcherCounterRef.current += 1;
-    const key = `${fetcher.state}-${JSON.stringify(fetcher.data)}-${fetcherCounterRef.current}`;
-    if (fetcherHandledRef.current === key) return;
-    fetcherHandledRef.current = key;
+    if (fetcher.state !== "idle" || !fetcher.data || !pendingFetcherResponseRef.current) return;
+    pendingFetcherResponseRef.current = false;
     if (fetcher.data.success) {
       if ((fetcher.data as { deleted?: boolean }).deleted) {
         toast.success("Turno eliminado");
@@ -491,11 +492,11 @@ export default function AgendaPage() {
         setAgendarPatientResults([]);
         setAgendarTime("");
       }
-      revalidator.revalidate();
+      revalidateFnRef.current();
     } else if (fetcher.data.success === false && fetcher.data.error) {
       toast.error(fetcher.data.error);
     }
-  }, [fetcher.state, fetcher.data, revalidator]);
+  }, [fetcher.state, fetcher.data]);
 
   React.useEffect(() => {
     if (!agendarOpen || !agendarDoctorId || !agendarDate) {
