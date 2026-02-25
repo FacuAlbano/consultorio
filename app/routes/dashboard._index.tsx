@@ -75,9 +75,9 @@ export default function Index() {
     },
     {
       title: "Calendario",
-      description: "Ver agenda completa",
+      description: "Ver agenda de turnos",
       icon: Calendar,
-      href: PATHS.listadosAgenda,
+      href: PATHS.agenda,
       color: "bg-orange-500 hover:bg-orange-600",
     },
   ];

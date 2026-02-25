@@ -62,14 +62,9 @@ const menuItems: MenuItem[] = [
     icon: Settings,
     path: PATHS.administracion.consultorio,
     children: [
-      {
-        label: "Recursos para Generación de Agenda",
-        children: [
-          { label: "Asignación de Consultorio", path: PATHS.administracion.consultorio },
-          { label: "Días no Laborables", path: PATHS.administracion.diasNoLaborables },
-          { label: "Solicitar Tipo de Turno", path: PATHS.administracion.solicitarTurno },
-        ],
-      },
+      { label: "Asignación de Consultorio", path: PATHS.administracion.consultorio },
+      { label: "Días no Laborables", path: PATHS.administracion.diasNoLaborables },
+      { label: "Solicitar Tipo de Turno", path: PATHS.administracion.solicitarTurno },
       {
         label: "Recursos para la Página Web",
         children: [

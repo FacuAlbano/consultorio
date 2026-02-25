@@ -8,15 +8,16 @@ import { getAllDoctors } from "~/lib/doctors.server";
 import { getAllConsultingRooms } from "~/lib/consulting-rooms.server";
 import { getAllAppointmentTypes } from "~/lib/appointment-types.server";
 import { getSlotsForDoctorAndDate } from "~/lib/doctor-agenda.server";
-import { getTodayLocalISO } from "~/lib/utils";
+import { cn, formatDate, getTodayLocalISO } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
-import { Calendar, Clock, Plus, Loader2, User, List, CalendarDays, Settings, Pencil, Trash2, CalendarPlus } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Plus, Loader2, User, List, CalendarDays, Settings, Pencil, Trash2, CalendarPlus } from "lucide-react";
+import { Calendar } from "~/components/ui/calendar";
+import type { DayButtonProps } from "react-day-picker";
 import { PATHS } from "~/lib/constants";
-import { formatDate } from "~/lib/utils";
 
 /** Slots por defecto cuando no hay médico o no tiene agenda configurada: 8-18 cada 15 min */
 function buildDefaultSlots(): string[] {
@@ -45,19 +46,26 @@ export async function loader({ request }: Route.LoaderArgs) {
   const consultingRoomId = url.searchParams.get("consultingRoomId") || "";
   const appointmentTypeId = url.searchParams.get("appointmentTypeId") || "";
   const status = url.searchParams.get("status") || "";
-  const dateFrom = url.searchParams.get("dateFrom") || date;
-  const dateTo = url.searchParams.get("dateTo") || date;
 
   const monthStart = date.slice(0, 7) + "-01";
   const monthEnd = endOfMonth(monthStart);
+  // En vista Lista siempre usamos rango por mes: si no vienen en la URL, usamos el mes de date
+  const dateFrom =
+    url.searchParams.get("dateFrom") || (view === "lista" ? monthStart : date);
+  const dateTo =
+    url.searchParams.get("dateTo") || (view === "lista" ? monthEnd : date);
+
   const effectiveFrom = view === "lista" ? dateFrom : view === "mes" ? monthStart : date;
   const effectiveTo = view === "lista" ? dateTo : view === "mes" ? monthEnd : date;
+  // En lista cargamos siempre el mes completo para que el calendario muestre los conteos de todos los días
+  const queryFrom = view === "lista" ? monthStart : view === "mes" ? monthStart : date;
+  const queryTo = view === "lista" ? monthEnd : view === "mes" ? monthEnd : date;
 
   const [appointments, doctors, consultingRooms, appointmentTypes, slotsForDay] = await Promise.all([
     getAppointments({
       date: view === "dia" ? date : undefined,
-      dateFrom: view !== "dia" ? effectiveFrom : undefined,
-      dateTo: view !== "dia" ? effectiveTo : undefined,
+      dateFrom: view !== "dia" ? queryFrom : undefined,
+      dateTo: view !== "dia" ? queryTo : undefined,
       doctorId: doctorId || undefined,
       consultingRoomId: consultingRoomId || undefined,
       appointmentTypeId: appointmentTypeId || undefined,
@@ -169,79 +177,19 @@ function StatusBadge({ status, isOverbooking }: { status: string; isOverbooking?
 }
 
 type AppointmentRow = Awaited<ReturnType<typeof getAppointments>>[0];
-function MonthCalendar({
-  monthStart,
-  monthEnd,
-  appointmentsByDate,
-  onDayClick,
-}: {
-  monthStart: string;
-  monthEnd: string;
-  appointmentsByDate: Map<string, AppointmentRow[]>;
-  onDayClick: (date: string) => void;
-}) {
-  const start = new Date(monthStart + "T12:00:00");
-  const end = new Date(monthEnd + "T12:00:00");
-  const firstDay = new Date(start.getFullYear(), start.getMonth(), 1);
-  const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0);
-  const startWeekday = firstDay.getDay() === 0 ? 7 : firstDay.getDay();
-  const daysInMonth = lastDay.getDate();
-  const weeks: (string | null)[][] = [];
-  let week: (string | null)[] = Array(startWeekday - 1).fill(null);
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    week.push(dateStr);
-    if (week.length === 7) {
-      weeks.push(week);
-      week = [];
-    }
-  }
-  if (week.length) {
-    while (week.length < 7) week.push(null);
-    weeks.push(week);
-  }
-  const dayNames = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr>
-            {dayNames.map((n) => (
-              <th key={n} className="border border-border p-1 text-center font-medium text-muted-foreground">
-                {n}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {weeks.map((w, i) => (
-            <tr key={i}>
-              {w.map((dateStr, j) => {
-                if (!dateStr) return <td key={j} className="border border-border p-1 bg-muted/30" />;
-                const count = appointmentsByDate.get(dateStr)?.length ?? 0;
-                return (
-                  <td key={j} className="border border-border p-1 align-top">
-                    <button
-                      type="button"
-                      onClick={() => onDayClick(dateStr)}
-                      className="w-full min-h-[60px] rounded hover:bg-primary/10 text-left p-1"
-                    >
-                      <span className="text-muted-foreground">{dateStr.slice(8)}</span>
-                      {count > 0 && (
-                        <span className="block text-xs font-medium text-primary mt-1">
-                          {count} turno{count !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </button>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+
+/** Formatea un Date a YYYY-MM-DD (primer día del mes para navegación) */
+function toISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function toMonthStart(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}-01`;
 }
 
 export default function AgendaPage() {
@@ -338,6 +286,16 @@ export default function AgendaPage() {
     return map;
   }, [appointments]);
 
+  // En lista filtramos por dateFrom/dateTo para la tabla (el loader ya trae el mes completo para el calendario)
+  const listAppointments = React.useMemo(() => {
+    if (view !== "lista") return appointments;
+    return appointments.filter(
+      (row) =>
+        row.appointment.appointmentDate >= dateFrom &&
+        row.appointment.appointmentDate <= dateTo
+    );
+  }, [view, appointments, dateFrom, dateTo]);
+
   React.useEffect(() => {
     if (!patientSearch.trim() || patientSearch.length < 2) {
       setPatientResults([]);
@@ -433,7 +391,7 @@ export default function AgendaPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Calendar className="h-7 w-7" />
+            <CalendarIcon className="h-7 w-7" />
             Agenda de Turnos
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -443,7 +401,7 @@ export default function AgendaPage() {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" asChild>
             <Link to={PATHS.agendaCrear}>
-              <Calendar className="h-4 w-4 mr-1" />
+              <CalendarIcon className="h-4 w-4 mr-1" />
               Crear Agenda Propia
             </Link>
           </Button>
@@ -497,25 +455,54 @@ export default function AgendaPage() {
               <CardContent className="pt-4">
                 <form onSubmit={handleFilter} className="space-y-4">
                   <input type="hidden" name="view" value="lista" />
-                  <div className="space-y-2">
-                    <Label htmlFor="dateFrom">Fecha Desde</Label>
-                    <Input id="dateFrom" name="dateFrom" type="date" defaultValue={dateFrom} className="h-9 w-full" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dateTo">Fecha Hasta</Label>
-                    <Input id="dateTo" name="dateTo" type="date" defaultValue={dateTo} className="h-9 w-full" />
-                  </div>
+                  <input type="hidden" name="dateFrom" value={monthStart} />
+                  <input type="hidden" name="dateTo" value={monthEnd} />
                   <div className="pt-2">
-                    <p className="text-xs text-muted-foreground mb-2">Clic en un día para ver ese día con horarios y asignar pacientes</p>
-                    <MonthCalendar
-                      monthStart={monthStart}
-                      monthEnd={monthEnd}
-                      appointmentsByDate={appointmentsByDate}
-                      onDayClick={(d) => {
+                    <p className="text-xs text-muted-foreground mb-2">Clic en un día para ver la lista de turnos de ese día. Use el botón Día para la vista por horarios.</p>
+                    <Calendar
+                      mode="single"
+                      selected={new Date(date + "T12:00:00")}
+                      onSelect={(selected) => {
+                        if (!selected) return;
+                        const d = toISODate(selected);
                         const p = new URLSearchParams(searchParams);
                         p.set("date", d);
-                        p.set("view", "dia");
+                        p.set("view", "lista");
+                        p.set("dateFrom", d);
+                        p.set("dateTo", d);
                         setSearchParams(p, { replace: true });
+                      }}
+                      month={new Date(monthStart + "T12:00:00")}
+                      onMonthChange={(month) => {
+                        const p = new URLSearchParams(searchParams);
+                        const start = toMonthStart(month);
+                        p.set("date", start);
+                        if (view === "lista") {
+                          p.set("dateFrom", start);
+                          p.set("dateTo", endOfMonth(start));
+                        }
+                        setSearchParams(p, { replace: true });
+                      }}
+                      weekStartsOn={1}
+                      components={{
+                        DayButton: (props: DayButtonProps) => {
+                          const dateStr = toISODate(props.day.date);
+                          const count = appointmentsByDate.get(dateStr)?.length ?? 0;
+                          return (
+                            <button
+                              type="button"
+                              {...props}
+                              className={cn("w-full min-h-12 flex flex-col items-center justify-center gap-0 rounded-md overflow-hidden", props.className)}
+                            >
+                              <span>{props.day.date.getDate()}</span>
+                              {count > 0 && (
+                                <span className="text-[10px] font-medium text-primary leading-tight truncate max-w-full">
+                                  {count} t.
+                                </span>
+                              )}
+                            </button>
+                          );
+                        },
                       }}
                     />
                   </div>
@@ -591,12 +578,12 @@ export default function AgendaPage() {
           <div className="flex-1 min-w-0 flex flex-col">
             <div className="mb-2">
               <h2 className="text-lg font-semibold text-foreground">Agenda de Turnos</h2>
-              <p className="text-muted-foreground text-sm">Total {appointments.length} elemento{appointments.length !== 1 ? "s" : ""}.</p>
+              <p className="text-muted-foreground text-sm">Total {listAppointments.length} elemento{listAppointments.length !== 1 ? "s" : ""}.</p>
               <p className="text-muted-foreground text-xs mt-1">Para armar la agenda por día (casilleros cada 15 min e ir poniendo pacientes): elija <strong>Vista Día</strong> arriba o haga clic en un día del calendario.</p>
             </div>
             <Card className="flex-1 min-h-0 flex flex-col">
               <CardContent className="pt-4 flex-1 overflow-auto">
-                {appointments.length === 0 ? (
+                {listAppointments.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No hay turnos en el rango seleccionado.</p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -615,7 +602,7 @@ export default function AgendaPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {appointments.map(({ appointment, patient, doctor, appointmentType }) => (
+                        {listAppointments.map(({ appointment, patient, doctor, appointmentType }) => (
                           <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
                             <td className="py-2 px-2">{normTime(appointment.appointmentTime)}</td>
                             <td className="py-2 px-2">{appointmentType?.name ?? "—"}</td>
@@ -795,14 +782,54 @@ export default function AgendaPage() {
               <CalendarDays className="h-5 w-5" />
               {formatDate(monthStart, "es-AR", { month: "long", year: "numeric" })}
             </CardTitle>
-            <p className="text-muted-foreground text-sm">Clic en un día para ver la agenda del día.</p>
+            <p className="text-muted-foreground text-sm">Clic en un día para ver la lista de turnos de ese día.</p>
           </CardHeader>
           <CardContent>
-            <MonthCalendar
-              monthStart={monthStart}
-              monthEnd={monthEnd}
-              appointmentsByDate={appointmentsByDate}
-              onDayClick={goToDay}
+            <Calendar
+              mode="single"
+              selected={new Date(date + "T12:00:00")}
+              onSelect={(selected) => {
+                if (!selected) return;
+                const d = toISODate(selected);
+                const p = new URLSearchParams(searchParams);
+                p.set("date", d);
+                p.set("view", "lista");
+                p.set("dateFrom", d);
+                p.set("dateTo", d);
+                setSearchParams(p, { replace: true });
+              }}
+              month={new Date(monthStart + "T12:00:00")}
+              onMonthChange={(month) => {
+                const p = new URLSearchParams(searchParams);
+                const start = toMonthStart(month);
+                p.set("date", start);
+                if (view === "lista") {
+                  p.set("dateFrom", start);
+                  p.set("dateTo", endOfMonth(start));
+                }
+                setSearchParams(p, { replace: true });
+              }}
+              weekStartsOn={1}
+              components={{
+                DayButton: (props: DayButtonProps) => {
+                  const dateStr = toISODate(props.day.date);
+                  const count = appointmentsByDate.get(dateStr)?.length ?? 0;
+                  return (
+                    <button
+                      type="button"
+                      {...props}
+                      className={cn("w-full min-h-12 flex flex-col items-center justify-center gap-0 rounded-md overflow-hidden", props.className)}
+                    >
+                      <span>{props.day.date.getDate()}</span>
+                      {count > 0 && (
+                        <span className="text-[10px] font-medium text-primary leading-tight truncate max-w-full">
+                          {count} t.
+                        </span>
+                      )}
+                    </button>
+                  );
+                },
+              }}
             />
           </CardContent>
         </Card>
