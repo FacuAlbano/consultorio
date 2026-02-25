@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import type { Route } from "./+types/dashboard.agenda._index";
 import { requireAuth } from "~/lib/middleware";
 import { getAppointments, createAppointment, updateAppointment, deleteAppointment } from "~/lib/appointments.server";
+import { createPatient, getPatientByDocument } from "~/lib/patients.server";
 import { getAllDoctors } from "~/lib/doctors.server";
 import { getAllConsultingRooms } from "~/lib/consulting-rooms.server";
 import { getAllAppointmentTypes } from "~/lib/appointment-types.server";
@@ -14,7 +15,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
-import { Calendar as CalendarIcon, Clock, Plus, Loader2, User, List, CalendarDays, Settings, Pencil, Trash2, CalendarPlus } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Plus, Loader2, User, List, Settings, Pencil, Trash2, CalendarPlus } from "lucide-react";
 import { Calendar } from "~/components/ui/calendar";
 import type { DayButtonProps } from "react-day-picker";
 import { PATHS } from "~/lib/constants";
@@ -41,7 +42,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const date = url.searchParams.get("date") || getTodayLocalISO();
-  const view = (url.searchParams.get("view") || "lista") as "dia" | "lista" | "mes";
+  const viewParam = url.searchParams.get("view") || "lista";
+  const view = (viewParam === "mes" ? "lista" : viewParam) as "dia" | "lista";
   const doctorId = url.searchParams.get("doctorId") || "";
   const consultingRoomId = url.searchParams.get("consultingRoomId") || "";
   const appointmentTypeId = url.searchParams.get("appointmentTypeId") || "";
@@ -49,17 +51,15 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const monthStart = date.slice(0, 7) + "-01";
   const monthEnd = endOfMonth(monthStart);
-  // En vista Lista siempre usamos rango por mes: si no vienen en la URL, usamos el mes de date
   const dateFrom =
     url.searchParams.get("dateFrom") || (view === "lista" ? monthStart : date);
   const dateTo =
     url.searchParams.get("dateTo") || (view === "lista" ? monthEnd : date);
 
-  const effectiveFrom = view === "lista" ? dateFrom : view === "mes" ? monthStart : date;
-  const effectiveTo = view === "lista" ? dateTo : view === "mes" ? monthEnd : date;
-  // En lista cargamos siempre el mes completo para que el calendario muestre los conteos de todos los días
-  const queryFrom = view === "lista" ? monthStart : view === "mes" ? monthStart : date;
-  const queryTo = view === "lista" ? monthEnd : view === "mes" ? monthEnd : date;
+  const effectiveFrom = view === "lista" ? dateFrom : date;
+  const effectiveTo = view === "lista" ? dateTo : date;
+  const queryFrom = view === "lista" ? monthStart : date;
+  const queryTo = view === "lista" ? monthEnd : date;
 
   const [appointments, doctors, consultingRooms, appointmentTypes, slotsForDay] = await Promise.all([
     getAppointments({
@@ -110,11 +110,49 @@ function endOfMonth(dateStr: string): string {
 const INTENT_CREATE = "create";
 const INTENT_UPDATE = "updateAppointment";
 const INTENT_DELETE = "deleteAppointment";
+const INTENT_CREATE_PATIENT = "createPatient";
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
   const formData = await request.formData();
   const intent = formData.get("_intent");
+
+  if (intent === INTENT_CREATE_PATIENT) {
+    const firstName = (formData.get("firstName") as string)?.trim() || "";
+    const lastName = (formData.get("lastName") as string)?.trim() || "";
+    const documentNumber = (formData.get("documentNumber") as string)?.trim() || "";
+    const documentType = (formData.get("documentType") as string) || "DNI";
+    const phone = (formData.get("phone") as string)?.trim() || undefined;
+    const email = (formData.get("email") as string)?.trim() || undefined;
+    if (!firstName || !lastName || !documentNumber) {
+      return { success: false as const, error: "Nombre, apellido y documento son obligatorios" };
+    }
+    const existing = await getPatientByDocument(documentNumber);
+    if (existing) {
+      return {
+        success: false as const,
+        error: "Ya existe un paciente con ese número de documento",
+        patientId: existing.id,
+        patientLabel: `${existing.firstName} ${existing.lastName}`,
+      };
+    }
+    const result = await createPatient({
+      firstName,
+      lastName,
+      documentNumber,
+      documentType,
+      phone,
+      email,
+    });
+    if (!result.success || !result.data) {
+      return { success: false as const, error: "Error al crear el paciente" };
+    }
+    return {
+      success: true as const,
+      patientId: result.data.id,
+      patientLabel: `${result.data.firstName} ${result.data.lastName}`,
+    };
+  }
 
   if (intent === INTENT_DELETE) {
     const appointmentId = formData.get("appointmentId") as string;
@@ -131,6 +169,7 @@ export async function action({ request }: Route.ActionArgs) {
     const updateData: { status?: string; isOverbooking?: boolean } = {};
     if (estado === "attended") { updateData.status = "attended"; updateData.isOverbooking = false; }
     else if (estado === "cancelled") { updateData.status = "cancelled"; updateData.isOverbooking = false; }
+    else if (estado === "no_show") { updateData.status = "no_show"; updateData.isOverbooking = false; }
     else if (estado === "sobre_turno") { updateData.status = "scheduled"; updateData.isOverbooking = true; }
     else if (estado === "scheduled") { updateData.status = "scheduled"; updateData.isOverbooking = false; }
     if (Object.keys(updateData).length === 0) return { success: false as const, error: "Estado no válido" };
@@ -169,11 +208,27 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: true as const };
 }
 
-/** Estados: Disponible, Atendido, Cancelado, No asistió, Sobre turno */
+/** Opciones de estado: mismo color en el select (Editar turno) y en la lista (StatusBadge) */
+const ESTADO_OPTIONS = [
+  { value: "scheduled", label: "En espera", badgeClass: "bg-sky-500/20 text-sky-800 dark:text-sky-200", selectClass: "bg-sky-500/20 border-sky-500/50 text-sky-800 dark:text-sky-200" },
+  { value: "attended", label: "Atendido", badgeClass: "bg-green-600/20 text-green-700 dark:text-green-300", selectClass: "bg-green-600/20 border-green-600/50 text-green-800 dark:text-green-200" },
+  { value: "cancelled", label: "Cancelado", badgeClass: "bg-red-600/20 text-red-700 dark:text-red-300", selectClass: "bg-red-600/20 border-red-600/50 text-red-800 dark:text-red-200" },
+  { value: "no_show", label: "No asistió", badgeClass: "bg-rose-200 text-rose-900 dark:bg-rose-900/60 dark:text-rose-100", selectClass: "bg-rose-200 text-rose-900 border-rose-400 dark:bg-rose-900/60 dark:text-rose-100 dark:border-rose-700" },
+  { value: "sobre_turno", label: "Sobre turno", badgeClass: "bg-amber-500/20 text-amber-700 dark:text-amber-300", selectClass: "bg-amber-500/20 border-amber-500/50 text-amber-800 dark:text-amber-200" },
+] as const;
+
+function getEstadoDisplay(status: string, isOverbooking?: boolean): { value: string; label: string; badgeClass: string } {
+  if (status === "cancelled") return { value: "cancelled", label: "Cancelado", badgeClass: ESTADO_OPTIONS.find(o => o.value === "cancelled")!.badgeClass };
+  if (status === "attended") return { value: "attended", label: "Atendido", badgeClass: ESTADO_OPTIONS.find(o => o.value === "attended")!.badgeClass };
+  if (status === "no_show") return { value: "no_show", label: "No asistió", badgeClass: ESTADO_OPTIONS.find(o => o.value === "no_show")!.badgeClass };
+  if (isOverbooking) return { value: "sobre_turno", label: "Sobre turno", badgeClass: ESTADO_OPTIONS.find(o => o.value === "sobre_turno")!.badgeClass };
+  return { value: "scheduled", label: "En espera", badgeClass: ESTADO_OPTIONS.find(o => o.value === "scheduled")!.badgeClass };
+}
+
+/** Badge de estado en la lista de turnos: mismos colores que el select de Editar turno */
 function StatusBadge({ status, isOverbooking }: { status: string; isOverbooking?: boolean }) {
-  const label = status === "cancelled" ? "Cancelado" : status === "attended" ? "Atendido" : status === "no_show" ? "No asistió" : isOverbooking ? "Sobre turno" : "Disponible";
-  const variant = status === "cancelled" ? "bg-muted text-muted-foreground" : status === "attended" ? "bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300" : status === "no_show" ? "bg-orange-500/20 text-orange-700 dark:text-orange-300" : isOverbooking ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300";
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variant}`}>{label}</span>;
+  const { label, badgeClass } = getEstadoDisplay(status, isOverbooking);
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass}`}>{label}</span>;
 }
 
 type AppointmentRow = Awaited<ReturnType<typeof getAppointments>>[0];
@@ -232,7 +287,11 @@ export default function AgendaPage() {
   const [patientResults, setPatientResults] = React.useState<Array<{ id: string; label: string; documentNumber?: string }>>([]);
   const [selectedPatient, setSelectedPatient] = React.useState<{ id: string; label: string } | null>(null);
   const [editAppointment, setEditAppointment] = React.useState<{ id: string; status: string; isOverbooking: boolean } | null>(null);
+  const [editEstado, setEditEstado] = React.useState<string>("scheduled");
+  const [createPatientOpen, setCreatePatientOpen] = React.useState(false);
+  const [createPatientContext, setCreatePatientContext] = React.useState<"agendar" | "assign" | null>(null);
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const createPatientFetcher = useFetcher<typeof action>();
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,9 +305,6 @@ export default function AgendaPage() {
       const to = fd.get("dateTo") as string;
       if (from) params.set("dateFrom", from);
       if (to) params.set("dateTo", to);
-    } else if (v === "mes") {
-      const m = fd.get("date") as string;
-      if (m) params.set("date", m.length === 7 ? m + "-01" : m);
     } else {
       const d = fd.get("date") as string;
       if (d) params.set("date", d);
@@ -316,7 +372,54 @@ export default function AgendaPage() {
   }, [patientSearch]);
 
   React.useEffect(() => {
-    if (fetcher.data?.success) {
+    if (editAppointment) {
+      setEditEstado(
+        editAppointment.status === "cancelled"
+          ? "cancelled"
+          : editAppointment.status === "attended"
+            ? "attended"
+            : editAppointment.status === "no_show"
+              ? "no_show"
+              : editAppointment.isOverbooking
+                ? "sobre_turno"
+                : "scheduled"
+      );
+    }
+  }, [editAppointment]);
+
+  React.useEffect(() => {
+    if (createPatientFetcher.state !== "idle" || !createPatientFetcher.data) return;
+    const d = createPatientFetcher.data as { success?: boolean; patientId?: string; patientLabel?: string; error?: string };
+    if (d.success && d.patientId && d.patientLabel) {
+      toast.success("Paciente creado");
+      if (createPatientContext === "agendar") {
+        setAgendarSelectedPatient({ id: d.patientId, label: d.patientLabel });
+      } else if (createPatientContext === "assign") {
+        setSelectedPatient({ id: d.patientId, label: d.patientLabel });
+      }
+      setCreatePatientOpen(false);
+      setCreatePatientContext(null);
+    } else if (d.success === false && d.patientId && d.patientLabel) {
+      toast.info("Paciente ya existía. Se asignó a la búsqueda.");
+      if (createPatientContext === "agendar") {
+        setAgendarSelectedPatient({ id: d.patientId, label: d.patientLabel });
+      } else if (createPatientContext === "assign") {
+        setSelectedPatient({ id: d.patientId, label: d.patientLabel });
+      }
+      setCreatePatientOpen(false);
+      setCreatePatientContext(null);
+    } else if (d.success === false && d.error) {
+      toast.error(d.error);
+    }
+  }, [createPatientFetcher.state, createPatientFetcher.data, createPatientContext]);
+
+  const fetcherHandledRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    const key = `${fetcher.state}-${JSON.stringify(fetcher.data)}`;
+    if (fetcherHandledRef.current === key) return;
+    fetcherHandledRef.current = key;
+    if (fetcher.data.success) {
       if ((fetcher.data as { deleted?: boolean }).deleted) {
         toast.success("Turno eliminado");
         setAssignSlot(null);
@@ -336,10 +439,10 @@ export default function AgendaPage() {
         setAgendarTime("");
       }
       revalidator.revalidate();
-    } else if (fetcher.data?.success === false && fetcher.data?.error) {
+    } else if (fetcher.data.success === false && fetcher.data.error) {
       toast.error(fetcher.data.error);
     }
-  }, [fetcher.data, revalidator]);
+  }, [fetcher.state, fetcher.data, revalidator]);
 
   React.useEffect(() => {
     if (!agendarOpen || !agendarDoctorId || !agendarDate) {
@@ -373,8 +476,9 @@ export default function AgendaPage() {
   }, [agendarPatientSearch]);
 
   const assignOpen = assignSlot !== null;
+  const CreatePatientForm = createPatientFetcher.Form;
 
-  const setView = (v: "dia" | "lista" | "mes") => {
+  const setView = (v: "dia" | "lista") => {
     const p = new URLSearchParams(searchParams);
     p.set("view", v);
     setSearchParams(p, { replace: true });
@@ -395,7 +499,7 @@ export default function AgendaPage() {
             Agenda de Turnos
           </h1>
           <p className="text-muted-foreground mt-1">
-            Vea todos los turnos por día, lista o mes. Agende hasta varias semanas adelante.
+            Vea todos los turnos por día o lista. Agende hasta varias semanas adelante.
           </p>
         </div>
         <div className="flex gap-2">
@@ -420,7 +524,7 @@ export default function AgendaPage() {
 
       {view === "lista" ? (
         <div className="flex flex-1 gap-6 min-h-0">
-          {/* Panel izquierdo: Turno Fuera de Agenda, vista Día/Lista/Mes, fecha, calendario, filtros */}
+          {/* Panel izquierdo: Turno Fuera de Agenda, vista Día/Lista, fecha, calendario, filtros */}
           <aside className="w-72 shrink-0 flex flex-col gap-4">
             <Button asChild className="w-full gap-2 bg-primary/90 hover:bg-primary">
               <Link to={PATHS.atenderSinTurno}>
@@ -442,13 +546,6 @@ export default function AgendaPage() {
                 className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 Lista
-              </button>
-              <button
-                type="button"
-                onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "mes"); setSearchParams(p, { replace: true }); }}
-                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "mes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                Mes
               </button>
             </div>
             <Card>
@@ -663,7 +760,6 @@ export default function AgendaPage() {
                 <div className="flex gap-2 items-center border-r pr-4">
                   <button type="button" onClick={() => setView("dia")} className={`text-sm font-medium px-2 py-1 rounded ${view === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>Día</button>
                   <button type="button" onClick={() => setView("lista")} className={`text-sm font-medium px-2 py-1 rounded ${view === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>Lista</button>
-                  <button type="button" onClick={() => setView("mes")} className={`text-sm font-medium px-2 py-1 rounded ${view === "mes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>Mes</button>
                 </div>
                 {view === "dia" && (
                   <div className="space-y-1 min-w-[140px]">
@@ -676,12 +772,6 @@ export default function AgendaPage() {
                     <div className="space-y-1 min-w-[140px]"><Label htmlFor="dateFrom">Desde</Label><Input id="dateFrom" name="dateFrom" type="date" defaultValue={dateFrom} className="h-9 w-full" /></div>
                     <div className="space-y-1 min-w-[140px]"><Label htmlFor="dateTo">Hasta</Label><Input id="dateTo" name="dateTo" type="date" defaultValue={dateTo} className="h-9 w-full" /></div>
                   </>
-                )}
-                {view === "mes" && (
-                  <div className="space-y-1 min-w-[140px]">
-                    <Label htmlFor="month">Mes</Label>
-                    <Input id="month" name="date" type="month" defaultValue={monthStart.slice(0, 7)} className="h-9 w-full" />
-                  </div>
                 )}
                 <div className="space-y-1 min-w-[180px]">
                   <Label htmlFor="doctorId">Médico</Label>
@@ -775,65 +865,6 @@ export default function AgendaPage() {
         </Card>
       )}
 
-      {view === "mes" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CalendarDays className="h-5 w-5" />
-              {formatDate(monthStart, "es-AR", { month: "long", year: "numeric" })}
-            </CardTitle>
-            <p className="text-muted-foreground text-sm">Clic en un día para ver la lista de turnos de ese día.</p>
-          </CardHeader>
-          <CardContent>
-            <Calendar
-              mode="single"
-              selected={new Date(date + "T12:00:00")}
-              onSelect={(selected) => {
-                if (!selected) return;
-                const d = toISODate(selected);
-                const p = new URLSearchParams(searchParams);
-                p.set("date", d);
-                p.set("view", "lista");
-                p.set("dateFrom", d);
-                p.set("dateTo", d);
-                setSearchParams(p, { replace: true });
-              }}
-              month={new Date(monthStart + "T12:00:00")}
-              onMonthChange={(month) => {
-                const p = new URLSearchParams(searchParams);
-                const start = toMonthStart(month);
-                p.set("date", start);
-                if (view === "lista") {
-                  p.set("dateFrom", start);
-                  p.set("dateTo", endOfMonth(start));
-                }
-                setSearchParams(p, { replace: true });
-              }}
-              weekStartsOn={1}
-              components={{
-                DayButton: (props: DayButtonProps) => {
-                  const dateStr = toISODate(props.day.date);
-                  const count = appointmentsByDate.get(dateStr)?.length ?? 0;
-                  return (
-                    <button
-                      type="button"
-                      {...props}
-                      className={cn("w-full min-h-12 flex flex-col items-center justify-center gap-0 rounded-md overflow-hidden", props.className)}
-                    >
-                      <span>{props.day.date.getDate()}</span>
-                      {count > 0 && (
-                        <span className="text-[10px] font-medium text-primary leading-tight truncate max-w-full">
-                          {count} t.
-                        </span>
-                      )}
-                    </button>
-                  );
-                },
-              }}
-            />
-          </CardContent>
-        </Card>
-      )}
         </>
       )}
 
@@ -928,10 +959,17 @@ export default function AgendaPage() {
             )}
             <p className="text-xs text-muted-foreground">
               ¿El paciente no existe?{" "}
-              <Link to={PATHS.atenderSinTurno} className="text-primary underline hover:no-underline" onClick={() => setAgendarOpen(false)}>
-                Cargar nuevo paciente
-              </Link>
-              . Luego vuelva a Agendar turno y búsquelo.
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto p-0 text-primary underline hover:no-underline"
+                onClick={() => {
+                  setCreatePatientContext("agendar");
+                  setCreatePatientOpen(true);
+                }}
+              >
+                Crear nuevo paciente
+              </Button>
             </p>
           </div>
           <fetcher.Form method="post" className="space-y-2">
@@ -977,13 +1015,18 @@ export default function AgendaPage() {
               <Label>Estado</Label>
               <select
                 name="estado"
-                defaultValue={editAppointment.status === "cancelled" ? "cancelled" : editAppointment.status === "attended" ? "attended" : editAppointment.isOverbooking ? "sobre_turno" : "scheduled"}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                value={editEstado}
+                onChange={(e) => setEditEstado(e.target.value)}
+                className={cn(
+                  "flex h-10 w-full rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+                  ESTADO_OPTIONS.find((o) => o.value === editEstado)?.selectClass ?? "border-input bg-transparent"
+                )}
               >
-                <option value="scheduled">Disponible</option>
-                <option value="attended">Atendido</option>
-                <option value="cancelled">Cancelado</option>
-                <option value="sobre_turno">Sobre turno</option>
+                {ESTADO_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="flex gap-2 justify-end">
@@ -1046,10 +1089,17 @@ export default function AgendaPage() {
               )}
               <p className="text-xs text-muted-foreground">
                 ¿El paciente no existe?{" "}
-                <Link to={PATHS.atenderSinTurno} className="text-primary underline hover:no-underline" onClick={() => setAssignSlot(null)}>
-                  Cargar nuevo paciente
-                </Link>
-                . Luego vuelva a este horario y asígnelo.
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto p-0 text-primary underline hover:no-underline"
+                  onClick={() => {
+                    setCreatePatientContext("assign");
+                    setCreatePatientOpen(true);
+                  }}
+                >
+                  Crear nuevo paciente
+                </Button>
               </p>
             </div>
 
@@ -1098,6 +1148,70 @@ export default function AgendaPage() {
             </fetcher.Form>
           </div>
         )}
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={createPatientOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreatePatientOpen(false);
+            setCreatePatientContext(null);
+          }
+        }}
+        title="Crear paciente"
+        description="Complete los datos del nuevo paciente. Se asignará al turno al guardar."
+      >
+        <CreatePatientForm method="post" className="space-y-4">
+          <input type="hidden" name="_intent" value={INTENT_CREATE_PATIENT} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cp-firstName">Nombre *</Label>
+              <Input id="cp-firstName" name="firstName" required placeholder="Nombre" className="h-9" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cp-lastName">Apellido *</Label>
+              <Input id="cp-lastName" name="lastName" required placeholder="Apellido" className="h-9" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cp-documentType">Tipo documento</Label>
+              <select
+                id="cp-documentType"
+                name="documentType"
+                defaultValue="DNI"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              >
+                <option value="DNI">DNI</option>
+                <option value="LC">LC</option>
+                <option value="LE">LE</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cp-documentNumber">Número documento *</Label>
+              <Input id="cp-documentNumber" name="documentNumber" required placeholder="12345678" className="h-9" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cp-phone">Teléfono</Label>
+            <Input id="cp-phone" name="phone" type="tel" placeholder="Opcional" className="h-9" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cp-email">Email</Label>
+            <Input id="cp-email" name="email" type="email" placeholder="Opcional" className="h-9" />
+          </div>
+          {createPatientFetcher.data && (createPatientFetcher.data as { success?: boolean }).success === false && (createPatientFetcher.data as { error?: string }).error && (
+            <p className="text-sm text-destructive">{(createPatientFetcher.data as { error: string }).error}</p>
+          )}
+          <div className="flex gap-2 justify-end pt-2">
+            <Button type="button" variant="outline" onClick={() => { setCreatePatientOpen(false); setCreatePatientContext(null); }}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={createPatientFetcher.state !== "idle"}>
+              {createPatientFetcher.state !== "idle" ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : "Crear paciente"}
+            </Button>
+          </div>
+        </CreatePatientForm>
       </ResponsiveDialog>
     </div>
   );
