@@ -127,7 +127,7 @@ export type PatientHistoryPdfData = {
 };
 
 function addNewPageIfNeeded(
-  doc: { addPage: () => void; getPageHeight?: () => number },
+  doc: import("jspdf").jsPDF,
   y: number,
   margin: number,
   pageHeight: number,

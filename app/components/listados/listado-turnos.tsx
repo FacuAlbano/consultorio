@@ -194,7 +194,9 @@ export function ListadoTurnos() {
     } else if (createFetcher.data?.success === false && createFetcher.data?.error) {
       toast.error(createFetcher.data.error);
     }
-  }, [createFetcher.data, revalidator]);
+    // No incluir revalidator en deps para evitar bucle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createFetcher.data]);
 
   React.useEffect(() => {
     if (editFetcher.data?.success) {
@@ -204,7 +206,9 @@ export function ListadoTurnos() {
     } else if (editFetcher.data?.success === false && editFetcher.data?.error) {
       toast.error(editFetcher.data.error);
     }
-  }, [editFetcher.data, revalidator, closeEdit]);
+    // No incluir revalidator en deps para evitar bucle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editFetcher.data]);
 
   React.useEffect(() => {
     if (actionData?.success && (actionData?.cancelled || actionData?.deleted)) {
@@ -213,7 +217,9 @@ export function ListadoTurnos() {
     } else if (actionData?.success === false && actionData?.error) {
       toast.error(actionData.error);
     }
-  }, [actionData, revalidator]);
+    // No incluir revalidator en deps para evitar bucle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData]);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();

@@ -72,7 +72,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const safeName = `${patient.lastName}-${patient.firstName}`.replace(/[^a-zA-Z0-9-_]/g, "_");
     const filename = `historia-clinica-${safeName}.pdf`;
     const byteLength = pdfBuffer.byteLength ?? pdfBuffer.length;
-    return new Response(pdfBuffer, {
+    return new Response(pdfBuffer as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

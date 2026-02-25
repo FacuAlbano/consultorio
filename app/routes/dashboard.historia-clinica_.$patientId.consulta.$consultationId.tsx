@@ -74,7 +74,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get("_intent") as string;
   const { patientId, consultationId } = params;
-  if (!patientId || !isValidUUID(patientId)) return { success: false, error: "Paciente inválido" };
+  if (!patientId || !isValidUUID(patientId)) return { success: false, error: "Paciente inválido", actionType: null };
 
   if (intent === INTENTS.create) {
     const res = await createConsultation({
@@ -85,8 +85,8 @@ export async function action({ request, params }: Route.ActionArgs) {
       reason: (formData.get("reason") as string) || null,
       notes: (formData.get("notes") as string) || null,
     });
-    if (res.success && res.data) return { success: true, createdId: res.data.id };
-    return { success: false, error: res.error };
+    if (res.success && res.data) return { success: true, createdId: res.data.id, actionType: INTENTS.create };
+    return { success: false, error: res.error, actionType: INTENTS.create };
   }
 
   if (intent === INTENTS.update && consultationId && consultationId !== "nueva") {
@@ -96,13 +96,13 @@ export async function action({ request, params }: Route.ActionArgs) {
       reason: (formData.get("reason") as string) || null,
       notes: (formData.get("notes") as string) || null,
     });
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.update };
   }
 
   if (intent === INTENTS.delete && consultationId && consultationId !== "nueva") {
     const res = await deleteConsultation(consultationId);
-    if (res.success) return { success: true, deleted: true };
-    return res;
+    if (res.success) return { success: true, deleted: true, actionType: INTENTS.delete };
+    return { ...res, actionType: INTENTS.delete };
   }
 
   if (intent === INTENTS.addDiagnosis && consultationId && consultationId !== "nueva") {
@@ -111,7 +111,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       name: (formData.get("name") as string) || "",
       description: (formData.get("description") as string) || undefined,
     });
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.addDiagnosis };
   }
 
   if (intent === INTENTS.updateDiagnosis) {
@@ -121,27 +121,27 @@ export async function action({ request, params }: Route.ActionArgs) {
       name: (formData.get("name") as string) || undefined,
       description: (formData.get("description") as string) || undefined,
     });
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.updateDiagnosis };
   }
 
   if (intent === INTENTS.deleteDiagnosis) {
     const res = await deleteDiagnosis(formData.get("diagnosisId") as string);
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.deleteDiagnosis };
   }
 
   if (intent === INTENTS.addTreatment && consultationId && consultationId !== "nueva") {
     const res = await addTreatment(consultationId, (formData.get("description") as string) || "");
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.addTreatment };
   }
 
   if (intent === INTENTS.updateTreatment) {
     const res = await updateTreatment(formData.get("treatmentId") as string, (formData.get("description") as string) || "");
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.updateTreatment };
   }
 
   if (intent === INTENTS.deleteTreatment) {
     const res = await deleteTreatment(formData.get("treatmentId") as string);
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.deleteTreatment };
   }
 
   if (intent === INTENTS.addStudy && consultationId && consultationId !== "nueva") {
@@ -149,7 +149,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       description: (formData.get("description") as string) || "",
       result: (formData.get("result") as string) || undefined,
     });
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.addStudy };
   }
 
   if (intent === INTENTS.updateStudy) {
@@ -157,15 +157,15 @@ export async function action({ request, params }: Route.ActionArgs) {
       description: (formData.get("description") as string) || undefined,
       result: (formData.get("result") as string) || undefined,
     });
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.updateStudy };
   }
 
   if (intent === INTENTS.deleteStudy) {
     const res = await deleteStudy(formData.get("studyId") as string);
-    return { ...res, intent };
+    return { ...res, actionType: INTENTS.deleteStudy };
   }
 
-  return { success: false, error: "Acción no válida" };
+  return { success: false, error: "Acción no válida", actionType: null };
 }
 
 export default function ConsultaDetalle() {
@@ -214,7 +214,7 @@ export default function ConsultaDetalle() {
 
   React.useEffect(() => {
     if (actionData && "createdId" in actionData && actionData.createdId) {
-      toast.success("Consulta creada");
+      toast.success("Consulta creada correctamente");
       navigate(PATHS.historiaClinicaConsulta(patient.id, actionData.createdId), { replace: true });
       return;
     }
@@ -234,6 +234,29 @@ export default function ConsultaDetalle() {
       toast.error(actionData.error);
     }
   }, [actionData, patient.id, backUrl, navigate]);
+
+  const actionTypeMessages: Record<string, string> = {
+    [INTENTS.update]: "Consulta actualizada correctamente",
+    [INTENTS.addDiagnosis]: "Diagnóstico agregado",
+    [INTENTS.updateDiagnosis]: "Diagnóstico actualizado",
+    [INTENTS.deleteDiagnosis]: "Diagnóstico eliminado",
+    [INTENTS.addTreatment]: "Tratamiento agregado",
+    [INTENTS.updateTreatment]: "Tratamiento actualizado",
+    [INTENTS.deleteTreatment]: "Tratamiento eliminado",
+    [INTENTS.addStudy]: "Estudio agregado",
+    [INTENTS.updateStudy]: "Estudio actualizado",
+    [INTENTS.deleteStudy]: "Estudio eliminado",
+  };
+
+  React.useEffect(() => {
+    if (!actionData || "createdId" in actionData || "deleted" in actionData) return;
+    const actionType = (actionData as { actionType?: string }).actionType;
+    if (actionData.success === true && actionType && actionTypeMessages[actionType]) {
+      toast.success(actionTypeMessages[actionType]);
+    } else if (actionData.success === false && actionData.error) {
+      toast.error(actionData.error);
+    }
+  }, [actionData]);
 
   if (isNew) {
     return (
@@ -362,8 +385,8 @@ export default function ConsultaDetalle() {
           <CardTitle className="text-lg">Diagnósticos</CardTitle>
           <Form method="post" className="flex gap-2 flex-wrap flex-1 min-w-0">
             <input type="hidden" name="_intent" value={INTENTS.addDiagnosis} />
-            <Input name="name" placeholder="Diagnóstico" className="min-w-[200px] flex-1 sm:min-w-[280px]" required />
-            <Input name="code" placeholder="Código (opc.)" className="w-24 sm:w-28 shrink-0 hidden sm:block" />
+            <Input name="name" placeholder="Nombre del diagnóstico" className="min-w-[200px] sm:min-w-[280px] flex-1 max-w-md" required />
+            <Input name="code" placeholder="Código (opc.)" className="w-24 hidden sm:block shrink-0" />
             <Button type="submit" size="sm" className="gap-1 shrink-0"><Plus className="h-4 w-4" /> Agregar</Button>
           </Form>
         </CardHeader>

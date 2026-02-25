@@ -4,6 +4,9 @@ declare module "jspdf" {
     output(format: "arraybuffer"): ArrayBuffer;
     getPageWidth(): number;
     getPageHeight(): number;
+    addPage(): void;
+    getNumberOfPages(): number;
+    setPage(n: number): void;
     setFontSize(n: number): void;
     setFont(font: string, style: string): void;
     setTextColor(r: number, g: number, b: number): void;

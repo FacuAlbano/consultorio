@@ -117,7 +117,9 @@ export default function EliminarAgenda() {
     } else if (fetcher.data?.success === false && (fetcher.data as { error?: string }).error) {
       toast.error((fetcher.data as { error: string }).error);
     }
-  }, [fetcher.data, revalidator]);
+    // No incluir revalidator en deps para evitar bucle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.data]);
 
   const periodLabel = (p: string) => (p === "morning" ? "Mañana" : "Tarde");
 

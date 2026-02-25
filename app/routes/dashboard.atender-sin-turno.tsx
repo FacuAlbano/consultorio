@@ -198,7 +198,7 @@ export default function AtenderSinTurno() {
                 <CheckCircle2 className="h-5 w-5 shrink-0" />
                 <p className="font-medium">{actionData.message}</p>
               </div>
-              {"consultationId" in actionData && actionData.patientId && (
+              {"consultationId" in actionData && actionData.patientId && actionData.consultationId && (
                 <Button asChild size="sm" variant="secondary" className="gap-1">
                   <Link to={PATHS.historiaClinicaConsulta(actionData.patientId, actionData.consultationId)}>
                     <FileText className="h-4 w-4" />

@@ -78,7 +78,9 @@ export function ListadoAgenda() {
     } else if (data?.success === false && data?.error) {
       toast.error(data.error);
     }
-  }, [fetcher.data, actionData, revalidator]);
+    // No incluir revalidator en deps para evitar bucle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.data, actionData]);
 
   const selectedDoctor = doctors.find((d) => d.id === doctorId);
   const statusLabel: Record<string, string> = {

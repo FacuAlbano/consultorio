@@ -56,7 +56,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const date = url.searchParams.get("date") || getTodayLocalISO();
-  const viewParam = url.searchParams.get("view") || "lista";
+  const viewParam = url.searchParams.get("view") || "mes";
   const view = (viewParam === "mes" ? "lista" : viewParam) as "dia" | "lista";
   const doctorId = url.searchParams.get("doctorId") || "";
   const consultingRoomId = url.searchParams.get("consultingRoomId") || "";
@@ -197,6 +197,7 @@ export async function action({ request }: Route.ActionArgs) {
     if (estado === "attended") { updateData.status = "attended"; updateData.isOverbooking = false; }
     else if (estado === "cancelled") { updateData.status = "cancelled"; updateData.isOverbooking = false; }
     else if (estado === "no_show") { updateData.status = "no_show"; updateData.isOverbooking = false; }
+    else if (estado === "en_lista") { updateData.status = "en_lista"; updateData.isOverbooking = false; }
     else if (estado === "sobre_turno") { updateData.status = "scheduled"; updateData.isOverbooking = true; }
     else if (estado === "scheduled") { updateData.status = "scheduled"; updateData.isOverbooking = false; }
     if (Object.keys(updateData).length === 0) return { success: false as const, error: "Estado no válido" };
@@ -242,6 +243,7 @@ export async function action({ request }: Route.ActionArgs) {
 /** Opciones de estado: mismo color en el select (Editar) y en la lista (StatusBadge) */
 const ESTADO_OPTIONS = [
   { value: "scheduled", label: "En espera", badgeClass: "bg-sky-500/20 text-sky-800 dark:text-sky-200", selectClass: "bg-sky-500/20 border-sky-500/50 text-sky-800 dark:text-sky-200" },
+  { value: "en_lista", label: "En lista", badgeClass: "bg-yellow-500/20 text-yellow-800 dark:text-yellow-200", selectClass: "bg-yellow-500/20 border-yellow-500/50 text-yellow-800 dark:text-yellow-200" },
   { value: "attended", label: "Atendido", badgeClass: "bg-green-600/20 text-green-700 dark:text-green-300", selectClass: "bg-green-600/20 border-green-600/50 text-green-800 dark:text-green-200" },
   { value: "cancelled", label: "Cancelado", badgeClass: "bg-red-600/20 text-red-700 dark:text-red-300", selectClass: "bg-red-600/20 border-red-600/50 text-red-800 dark:text-red-200" },
   { value: "no_show", label: "No asistió", badgeClass: "bg-rose-200 text-rose-900 dark:bg-rose-900/60 dark:text-rose-100", selectClass: "bg-rose-200 text-rose-900 border-rose-400 dark:bg-rose-900/60 dark:text-rose-100 dark:border-rose-700" },
@@ -252,6 +254,7 @@ function getEstadoDisplay(status: string, isOverbooking?: boolean): { value: str
   if (status === "cancelled") return { value: "cancelled", label: "Cancelado", badgeClass: ESTADO_OPTIONS.find(o => o.value === "cancelled")!.badgeClass };
   if (status === "attended") return { value: "attended", label: "Atendido", badgeClass: ESTADO_OPTIONS.find(o => o.value === "attended")!.badgeClass };
   if (status === "no_show") return { value: "no_show", label: "No asistió", badgeClass: ESTADO_OPTIONS.find(o => o.value === "no_show")!.badgeClass };
+  if (status === "en_lista") return { value: "en_lista", label: "En lista", badgeClass: ESTADO_OPTIONS.find(o => o.value === "en_lista")!.badgeClass };
   if (isOverbooking) return { value: "sobre_turno", label: "Sobre turno", badgeClass: ESTADO_OPTIONS.find(o => o.value === "sobre_turno")!.badgeClass };
   return { value: "scheduled", label: "En espera", badgeClass: ESTADO_OPTIONS.find(o => o.value === "scheduled")!.badgeClass };
 }
@@ -427,9 +430,11 @@ export default function AgendaPage() {
             ? "attended"
             : editAppointment.status === "no_show"
               ? "no_show"
-              : editAppointment.isOverbooking
-                ? "sobre_turno"
-                : "scheduled"
+              : editAppointment.status === "en_lista"
+                ? "en_lista"
+                : editAppointment.isOverbooking
+                  ? "sobre_turno"
+                  : "scheduled"
       );
     }
   }, [editAppointment]);
@@ -496,6 +501,8 @@ export default function AgendaPage() {
     } else if (fetcher.data.success === false && fetcher.data.error) {
       toast.error(fetcher.data.error);
     }
+    // No incluir revalidator en deps para evitar bucle (revalidate → loader → re-render → efecto otra vez)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data]);
 
   React.useEffect(() => {
@@ -553,7 +560,7 @@ export default function AgendaPage() {
             Agenda de Turnos
           </h1>
           <p className="text-muted-foreground mt-1">
-            Vea todos los turnos por día o lista. Agende hasta varias semanas adelante.
+            Vea todos los turnos por día o mes. Agende hasta varias semanas adelante.
           </p>
         </div>
         <div className="flex gap-2">
@@ -607,16 +614,16 @@ export default function AgendaPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "lista"); setSearchParams(p, { replace: true }); }}
+                onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "mes"); setSearchParams(p, { replace: true }); }}
                 className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
-                Lista
+                Mes
               </button>
             </div>
             <Card>
               <CardContent className="pt-4">
                 <form onSubmit={handleFilter} className="space-y-4">
-                  <input type="hidden" name="view" value="lista" />
+                  <input type="hidden" name="view" value="mes" />
                   <input type="hidden" name="dateFrom" value={monthStart} />
                   <input type="hidden" name="dateTo" value={monthEnd} />
                   <div className="pt-2">
@@ -628,7 +635,7 @@ export default function AgendaPage() {
                         const d = toISODate(selected);
                         const p = new URLSearchParams(searchParams);
                         p.set("date", d);
-                        p.set("view", "lista");
+                        p.set("view", "mes");
                         p.set("dateFrom", d);
                         p.set("dateTo", d);
                         setSearchParams(p, { replace: true });
@@ -730,6 +737,7 @@ export default function AgendaPage() {
                     >
                       <option value="">Buscar por estado de turno...</option>
                       <option value="scheduled">Programado</option>
+                      <option value="en_lista">En lista</option>
                       <option value="attended">Atendido</option>
                       <option value="cancelled">Cancelado</option>
                       <option value="no_show">No asistió</option>
@@ -748,7 +756,7 @@ export default function AgendaPage() {
                 {formatDate(date, "es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} — Total {listAppointments.length} turno{listAppointments.length !== 1 ? "s" : ""}.
               </p>
               <p className="text-muted-foreground text-xs mt-1">
-                Se muestra el rango horario en que trabaja el médico (desde Crear Agenda Propia o horario semanal). Clic en <strong>Agendar</strong> para cargar un turno en ese horario.
+                Se muestra el rango horario en que trabaja el médico (desde Crear Agenda Propia o horario semanal). Use el botón <strong>Agendar turno</strong> del encabezado para cargar turnos.
               </p>
             </div>
             <Card className="flex-1 min-w-0 flex flex-col">
@@ -771,9 +779,16 @@ export default function AgendaPage() {
                             {rows.map((row) => (
                               <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap">
                                 <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="font-medium">
-                                  {row.patient ? capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`) : "—"}
-                                </span>
+                                {row.patient ? (
+                                  <Link
+                                    to={PATHS.historiaClinicaPaciente(row.patient.id)}
+                                    className="font-medium text-primary underline-offset-4 hover:underline"
+                                  >
+                                    {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
+                                  </Link>
+                                ) : (
+                                  <span className="font-medium">—</span>
+                                )}
                                 <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
                                 <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
                                   <Pencil className="h-3.5 w-3.5" />
@@ -787,18 +802,19 @@ export default function AgendaPage() {
                                     Eliminar
                                   </Button>
                                 </fetcher.Form>
-                                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => { setAgendarDoctorId(row.doctor?.id || ""); setAgendarDate(row.appointment.appointmentDate); setAgendarTime(slotTime); setAgendarOpen(true); }}>
-                                  <CalendarPlus className="h-3.5 w-3.5" />
-                                  Agendar
-                                </Button>
                               </div>
                             ))}
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="gap-1 h-9"
-                              onClick={() => setAssignSlot(slotTime)}
+                              className="gap-1 h-9 shrink-0"
+                              onClick={() => {
+                                setAgendarDoctorId(doctorId || rows[0]?.doctor?.id || doctors[0]?.id || "");
+                                setAgendarDate(date);
+                                setAgendarTime(slotTime);
+                                setAgendarOpen(true);
+                              }}
                             >
                               <CalendarPlus className="h-4 w-4" />
                               Agendar
@@ -832,10 +848,10 @@ export default function AgendaPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "lista"); setSearchParams(p, { replace: true }); }}
+                onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "mes"); setSearchParams(p, { replace: true }); }}
                 className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${(view as "dia" | "lista") === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
-                Lista
+                Mes
               </button>
             </div>
           </div>
@@ -905,9 +921,16 @@ export default function AgendaPage() {
                       {rows.map((row) => (
                         <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap">
                           <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="font-medium">
-                            {row.patient ? capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`) : "—"}
-                          </span>
+                          {row.patient ? (
+                            <Link
+                              to={PATHS.historiaClinicaPaciente(row.patient.id)}
+                              className="font-medium text-primary underline-offset-4 hover:underline"
+                            >
+                              {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
+                            </Link>
+                          ) : (
+                            <span className="font-medium">—</span>
+                          )}
                           <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
                           <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
                             <Pencil className="h-3.5 w-3.5" />
@@ -927,8 +950,13 @@ export default function AgendaPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="gap-1 h-9"
-                        onClick={() => setAssignSlot(slotTime)}
+                        className="gap-1 h-9 shrink-0"
+                        onClick={() => {
+                          setAgendarDoctorId(doctorId || rows[0]?.doctor?.id || doctors[0]?.id || "");
+                          setAgendarDate(date);
+                          setAgendarTime(slotTime);
+                          setAgendarOpen(true);
+                        }}
                       >
                         <CalendarPlus className="h-4 w-4" />
                         Agendar

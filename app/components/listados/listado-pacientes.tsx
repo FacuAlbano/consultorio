@@ -5,9 +5,11 @@ import {
   useFetcher,
   useRevalidator,
   useNavigate,
+  useActionData,
   Form,
   Link,
 } from "react-router";
+import { toast } from "sonner";
 import { calculateAge } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -126,6 +128,7 @@ export function ListadoPacientes() {
   const revalidator = useRevalidator();
   const navigate = useNavigate();
 
+  const actionData = useActionData<{ success?: boolean; error?: string; deleted?: boolean }>();
   const createFetcher = useFetcher<{ success?: boolean; error?: string; createdId?: string }>();
   const editFetcher = useFetcher<{ success?: boolean; error?: string }>();
 
@@ -157,17 +160,38 @@ export function ListadoPacientes() {
 
   React.useEffect(() => {
     if (createFetcher.data?.success) {
+      toast.success("Paciente creado correctamente");
       setCreateOpen(false);
       revalidator.revalidate();
+    } else if (createFetcher.data?.success === false && createFetcher.data?.error) {
+      toast.error(createFetcher.data.error);
     }
-  }, [createFetcher.data, revalidator]);
+    // Solo reaccionar al cambio de data; revalidator estable para evitar bucle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createFetcher.data]);
 
   React.useEffect(() => {
     if (editFetcher.data?.success) {
+      toast.success("Paciente actualizado correctamente");
       closeEdit();
       revalidator.revalidate();
+    } else if (editFetcher.data?.success === false && editFetcher.data?.error) {
+      toast.error(editFetcher.data.error);
     }
-  }, [editFetcher.data, revalidator]);
+    // Solo reaccionar al cambio de data; revalidator estable para evitar bucle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editFetcher.data]);
+
+  React.useEffect(() => {
+    if (actionData?.success && actionData?.deleted) {
+      toast.success("Paciente eliminado correctamente");
+      revalidator.revalidate();
+    } else if (actionData?.success === false && actionData?.error) {
+      toast.error(actionData.error);
+    }
+    // Solo reaccionar al cambio de actionData; revalidator estable para evitar bucle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData]);
 
   const editOpen = !!patientToEdit;
 
