@@ -101,19 +101,19 @@ export function ListadoAgenda() {
       </div>
 
       <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm font-medium text-foreground mb-3">Filtros</p>
-          <Form onSubmit={handleFilter} className="flex flex-wrap gap-4 items-end">
-            <div className="space-y-1 min-w-[140px]">
-              <label className="text-sm font-medium">Fecha</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="h-9 w-full" />
+        <CardContent className="py-3 px-4 sm:px-6">
+          <Form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-medium text-foreground border-r border-border pr-3">Filtros</span>
+            <div className="flex flex-col gap-1 min-w-[110px]">
+              <label className="text-xs font-medium">Fecha</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="h-8 w-full text-sm" />
             </div>
-            <div className="space-y-1 min-w-[180px]">
-              <label className="text-sm font-medium">Médico</label>
+            <div className="flex flex-col gap-1 min-w-[140px]">
+              <label className="text-xs font-medium">Médico</label>
               <select
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm"
               >
                 <option value="">Seleccionar médico</option>
                 {doctors.map((d) => (
@@ -124,9 +124,9 @@ export function ListadoAgenda() {
               </select>
             </div>
             <div className="flex gap-2">
-              <Button type="submit" className="h-9">Ver agenda</Button>
+              <Button type="submit" size="sm" className="h-8">Ver agenda</Button>
               {doctorId && (
-                <Button type="button" className="h-9 gap-1" onClick={() => setCreateOpen(true)}>
+                <Button type="button" size="sm" className="h-8 gap-1" onClick={() => setCreateOpen(true)}>
                   <Plus className="h-4 w-4" />
                   Agregar turno
                 </Button>

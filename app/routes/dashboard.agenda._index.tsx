@@ -9,7 +9,7 @@ import { getAllDoctors } from "~/lib/doctors.server";
 import { getAllConsultingRooms } from "~/lib/consulting-rooms.server";
 import { getAllAppointmentTypes } from "~/lib/appointment-types.server";
 import { getSlotsForDoctorAndDate } from "~/lib/doctor-agenda.server";
-import { cn, formatDate, getTodayLocalISO } from "~/lib/utils";
+import { cn, formatDate, getTodayLocalISO, calculateAge, capitalizeWords } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -124,6 +124,10 @@ export async function action({ request }: Route.ActionArgs) {
     const documentType = (formData.get("documentType") as string) || "DNI";
     const phone = (formData.get("phone") as string)?.trim() || undefined;
     const email = (formData.get("email") as string)?.trim() || undefined;
+    const birthDateRaw = (formData.get("birthDate") as string)?.trim() || null;
+    const birthDate = birthDateRaw && birthDateRaw.length >= 10 ? birthDateRaw.slice(0, 10) : null;
+    const insuranceCompany = (formData.get("insuranceCompany") as string)?.trim() || null;
+    const insuranceNumber = (formData.get("insuranceNumber") as string)?.trim() || null;
     if (!firstName || !lastName || !documentNumber) {
       return { success: false as const, error: "Nombre, apellido y documento son obligatorios" };
     }
@@ -143,6 +147,9 @@ export async function action({ request }: Route.ActionArgs) {
       documentType,
       phone,
       email,
+      birthDate,
+      insuranceCompany,
+      insuranceNumber,
     });
     if (!result.success || !result.data) {
       return { success: false as const, error: "Error al crear el paciente" };
@@ -208,7 +215,7 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: true as const };
 }
 
-/** Opciones de estado: mismo color en el select (Editar turno) y en la lista (StatusBadge) */
+/** Opciones de estado: mismo color en el select (Editar) y en la lista (StatusBadge) */
 const ESTADO_OPTIONS = [
   { value: "scheduled", label: "En espera", badgeClass: "bg-sky-500/20 text-sky-800 dark:text-sky-200", selectClass: "bg-sky-500/20 border-sky-500/50 text-sky-800 dark:text-sky-200" },
   { value: "attended", label: "Atendido", badgeClass: "bg-green-600/20 text-green-700 dark:text-green-300", selectClass: "bg-green-600/20 border-green-600/50 text-green-800 dark:text-green-200" },
@@ -225,7 +232,7 @@ function getEstadoDisplay(status: string, isOverbooking?: boolean): { value: str
   return { value: "scheduled", label: "En espera", badgeClass: ESTADO_OPTIONS.find(o => o.value === "scheduled")!.badgeClass };
 }
 
-/** Badge de estado en la lista de turnos: mismos colores que el select de Editar turno */
+/** Badge de estado en la lista de turnos: mismos colores que el select de Editar */
 function StatusBadge({ status, isOverbooking }: { status: string; isOverbooking?: boolean }) {
   const { label, badgeClass } = getEstadoDisplay(status, isOverbooking);
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass}`}>{label}</span>;
@@ -342,15 +349,23 @@ export default function AgendaPage() {
     return map;
   }, [appointments]);
 
-  // En lista filtramos por dateFrom/dateTo para la tabla (el loader ya trae el mes completo para el calendario)
+  // En lista mostramos solo el día seleccionado en el calendario (date), no todo el mes
   const listAppointments = React.useMemo(() => {
     if (view !== "lista") return appointments;
-    return appointments.filter(
-      (row) =>
-        row.appointment.appointmentDate >= dateFrom &&
-        row.appointment.appointmentDate <= dateTo
-    );
-  }, [view, appointments, dateFrom, dateTo]);
+    return appointments.filter((row) => row.appointment.appointmentDate === date);
+  }, [view, appointments, date]);
+
+  // Para vista lista: agrupar turnos del día por hora (igual que vista día)
+  const listAppointmentsByTime = React.useMemo(() => {
+    const map = new Map<string, (typeof listAppointments)[0][]>();
+    for (const row of listAppointments) {
+      const key = normTime(row.appointment.appointmentTime);
+      const arr = map.get(key) || [];
+      arr.push(row);
+      map.set(key, arr);
+    }
+    return map;
+  }, [listAppointments]);
 
   React.useEffect(() => {
     if (!patientSearch.trim() || patientSearch.length < 2) {
@@ -555,7 +570,6 @@ export default function AgendaPage() {
                   <input type="hidden" name="dateFrom" value={monthStart} />
                   <input type="hidden" name="dateTo" value={monthEnd} />
                   <div className="pt-2">
-                    <p className="text-xs text-muted-foreground mb-2">Clic en un día para ver la lista de turnos de ese día. Use el botón Día para la vista por horarios.</p>
                     <Calendar
                       mode="single"
                       selected={new Date(date + "T12:00:00")}
@@ -573,10 +587,15 @@ export default function AgendaPage() {
                       onMonthChange={(month) => {
                         const p = new URLSearchParams(searchParams);
                         const start = toMonthStart(month);
-                        p.set("date", start);
+                        // Mantener el mismo día del mes si existe (ej. 25 → 25 del nuevo mes), sino día 1
+                        const prevDay = new Date(date + "T12:00:00").getDate();
+                        const lastDayNew = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+                        const day = Math.min(prevDay, lastDayNew);
+                        const newDate = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                        p.set("date", newDate);
                         if (view === "lista") {
-                          p.set("dateFrom", start);
-                          p.set("dateTo", endOfMonth(start));
+                          p.set("dateFrom", newDate);
+                          p.set("dateTo", newDate);
                         }
                         setSearchParams(p, { replace: true });
                       }}
@@ -671,79 +690,73 @@ export default function AgendaPage() {
               </CardContent>
             </Card>
           </aside>
-          {/* Panel derecho: título, total, tabla como en la referencia */}
+          {/* Panel derecho: rango horario del médico (como vista día) para cargar turnos fácil */}
           <div className="flex-1 min-w-0 flex flex-col">
             <div className="mb-2">
               <h2 className="text-lg font-semibold text-foreground">Agenda de Turnos</h2>
-              <p className="text-muted-foreground text-sm">Total {listAppointments.length} elemento{listAppointments.length !== 1 ? "s" : ""}.</p>
-              <p className="text-muted-foreground text-xs mt-1">Para armar la agenda por día (casilleros cada 15 min e ir poniendo pacientes): elija <strong>Vista Día</strong> arriba o haga clic en un día del calendario.</p>
+              <p className="text-muted-foreground text-sm">
+                {formatDate(date, "es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} — Total {listAppointments.length} turno{listAppointments.length !== 1 ? "s" : ""}.
+              </p>
+              <p className="text-muted-foreground text-xs mt-1">
+                Se muestra el rango horario en que trabaja el médico (desde Crear Agenda Propia o horario semanal). Clic en <strong>Agendar</strong> para cargar un turno en ese horario.
+              </p>
             </div>
-            <Card className="flex-1 min-h-0 flex flex-col">
-              <CardContent className="pt-4 flex-1 overflow-auto">
-                {listAppointments.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No hay turnos en el rango seleccionado.</p>
+            <Card className="flex-1 min-w-0 flex flex-col">
+              <CardContent className="pt-4">
+                {doctorId && slotsForDay.length === 0 ? (
+                  <p className="text-muted-foreground py-4">
+                    Este médico no tiene horario definido para este día. Use <strong>Crear Agenda Propia</strong> para generar disponibilidad o configure el horario semanal del médico.
+                  </p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border bg-primary/10">
-                          <th className="text-left py-2 px-2 font-medium">Hora</th>
-                          <th className="text-left py-2 px-2 font-medium">Tipo de Turno</th>
-                          <th className="text-left py-2 px-2 font-medium">Profesional</th>
-                          <th className="text-left py-2 px-2 font-medium">Estado</th>
-                          <th className="text-left py-2 px-2 font-medium">Sobre Turno</th>
-                          <th className="text-left py-2 px-2 font-medium">R. Web</th>
-                          <th className="text-left py-2 px-2 font-medium">Documento</th>
-                          <th className="text-left py-2 px-2 font-medium">Paciente</th>
-                          <th className="text-left py-2 px-2 font-medium">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {listAppointments.map(({ appointment, patient, doctor, appointmentType }) => (
-                          <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
-                            <td className="py-2 px-2">{normTime(appointment.appointmentTime)}</td>
-                            <td className="py-2 px-2">{appointmentType?.name ?? "—"}</td>
-                            <td className="py-2 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>
-                            <td className="py-2 px-2"><StatusBadge status={appointment.status} isOverbooking={appointment.isOverbooking} /></td>
-                            <td className="py-2 px-2">{appointment.isOverbooking ? "Sí" : "—"}</td>
-                            <td className="py-2 px-2">—</td>
-                            <td className="py-2 px-2">{patient?.documentNumber ?? "—"}</td>
-                            <td className="py-2 px-2">
-                              {patient ? (
-                                <Link to={PATHS.patientProfile(patient.id)} className="text-primary hover:underline">
-                                  {patient.firstName} {patient.lastName}
-                                </Link>
-                              ) : "—"}
-                            </td>
-                            <td className="py-2 px-2">
-                              <div className="flex flex-wrap gap-1">
-                              {patient && (
-                                <Button asChild variant="ghost" size="sm" className="h-8">
-                                  <Link to={PATHS.patientProfile(patient.id)}>Ver</Link>
+                  <div className="space-y-2">
+                    {(slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
+                      const rows = listAppointmentsByTime.get(slotTime) || [];
+                      return (
+                        <div
+                          key={slotTime}
+                          className="flex items-center gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
+                        >
+                          <div className="w-16 shrink-0 font-medium text-muted-foreground">{slotTime}</div>
+                          <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
+                            {rows.map((row) => (
+                              <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap">
+                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span className="font-medium">
+                                  {row.patient ? capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`) : "—"}
+                                </span>
+                                <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
+                                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  Editar
                                 </Button>
-                              )}
-                              <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: appointment.id, status: appointment.status, isOverbooking: appointment.isOverbooking })}>
-                                <Pencil className="h-3.5 w-3.5" />
-                                Editar turno
-                              </Button>
-                              <fetcher.Form method="post" className="inline">
-                                <input type="hidden" name="_intent" value={INTENT_DELETE} />
-                                <input type="hidden" name="appointmentId" value={appointment.id} />
-                                <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  Eliminar turno
+                                <fetcher.Form method="post" className="inline">
+                                  <input type="hidden" name="_intent" value={INTENT_DELETE} />
+                                  <input type="hidden" name="appointmentId" value={row.appointment.id} />
+                                  <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Eliminar
+                                  </Button>
+                                </fetcher.Form>
+                                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => { setAgendarDoctorId(row.doctor?.id || ""); setAgendarDate(row.appointment.appointmentDate); setAgendarTime(slotTime); setAgendarOpen(true); }}>
+                                  <CalendarPlus className="h-3.5 w-3.5" />
+                                  Agendar
                                 </Button>
-                              </fetcher.Form>
-                              <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => { setAgendarDoctorId(doctor?.id || ""); setAgendarDate(appointment.appointmentDate); setAgendarTime(normTime(appointment.appointmentTime)); setAgendarOpen(true); }}>
-                                <CalendarPlus className="h-3.5 w-3.5" />
-                                Agendar reserva
-                              </Button>
                               </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 h-9"
+                              onClick={() => setAssignSlot(slotTime)}
+                            >
+                              <CalendarPlus className="h-4 w-4" />
+                              Agendar
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -752,42 +765,62 @@ export default function AgendaPage() {
         </div>
       ) : (
         <>
+          <div className="mb-4 w-72 flex flex-col gap-4">
+            <Button asChild className="w-full gap-2 bg-primary/90 hover:bg-primary">
+              <Link to={PATHS.atenderSinTurno}>
+                <Plus className="h-4 w-4" />
+                Turno Fuera de Agenda
+              </Link>
+            </Button>
+            <div className="flex gap-1 p-1 rounded-lg bg-muted/50">
+              <button
+                type="button"
+                onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "dia"); p.set("date", date); setSearchParams(p, { replace: true }); }}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Día
+              </button>
+              <button
+                type="button"
+                onClick={() => { const p = new URLSearchParams(searchParams); p.set("view", "lista"); setSearchParams(p, { replace: true }); }}
+                className={`flex-1 text-sm font-medium px-2 py-1.5 rounded ${view === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Lista
+              </button>
+            </div>
+          </div>
           <Card className="mb-4">
-            <CardContent className="pt-6">
-              <p className="text-sm font-medium text-foreground mb-3">Filtros</p>
-              <form onSubmit={handleFilter} className="flex flex-wrap gap-4 items-end">
+            <CardContent className="py-3 px-4 sm:px-6">
+              <form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-center">
                 <input type="hidden" name="view" value={view} />
-                <div className="flex gap-2 items-center border-r pr-4">
-                  <button type="button" onClick={() => setView("dia")} className={`text-sm font-medium px-2 py-1 rounded ${view === "dia" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>Día</button>
-                  <button type="button" onClick={() => setView("lista")} className={`text-sm font-medium px-2 py-1 rounded ${view === "lista" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>Lista</button>
-                </div>
+                <span className="text-sm font-medium text-foreground border-r border-border pr-4">Filtros</span>
                 {view === "dia" && (
-                  <div className="space-y-1 min-w-[140px]">
-                    <Label htmlFor="date">Fecha</Label>
-                    <Input id="date" name="date" type="date" required defaultValue={date} className="h-9 w-full" />
+                  <div className="flex flex-col gap-1 min-w-[110px]">
+                    <Label htmlFor="date" className="text-xs">Fecha</Label>
+                    <Input id="date" name="date" type="date" required defaultValue={date} className="h-8 w-full text-sm" />
                   </div>
                 )}
                 {view === "lista" && (
                   <>
-                    <div className="space-y-1 min-w-[140px]"><Label htmlFor="dateFrom">Desde</Label><Input id="dateFrom" name="dateFrom" type="date" defaultValue={dateFrom} className="h-9 w-full" /></div>
-                    <div className="space-y-1 min-w-[140px]"><Label htmlFor="dateTo">Hasta</Label><Input id="dateTo" name="dateTo" type="date" defaultValue={dateTo} className="h-9 w-full" /></div>
+                    <div className="flex flex-col gap-1 min-w-[110px]"><Label htmlFor="dateFrom" className="text-xs">Desde</Label><Input id="dateFrom" name="dateFrom" type="date" defaultValue={dateFrom} className="h-8 w-full text-sm" /></div>
+                    <div className="flex flex-col gap-1 min-w-[110px]"><Label htmlFor="dateTo" className="text-xs">Hasta</Label><Input id="dateTo" name="dateTo" type="date" defaultValue={dateTo} className="h-8 w-full text-sm" /></div>
                   </>
                 )}
-                <div className="space-y-1 min-w-[180px]">
-                  <Label htmlFor="doctorId">Médico</Label>
-                  <select id="doctorId" name="doctorId" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm" defaultValue={doctorId}>
+                <div className="flex flex-col gap-1 min-w-[140px]">
+                  <Label htmlFor="doctorId" className="text-xs">Médico</Label>
+                  <select id="doctorId" name="doctorId" className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm" defaultValue={doctorId}>
                     <option value="">Todos</option>
                     {doctors.map((d) => (<option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>))}
                   </select>
                 </div>
-                <div className="space-y-1 min-w-[140px]">
-                  <Label htmlFor="consultingRoomId">Consultorio</Label>
-                  <select id="consultingRoomId" name="consultingRoomId" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm" defaultValue={consultingRoomId}>
+                <div className="flex flex-col gap-1 min-w-[120px]">
+                  <Label htmlFor="consultingRoomId" className="text-xs">Consultorio</Label>
+                  <select id="consultingRoomId" name="consultingRoomId" className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm" defaultValue={consultingRoomId}>
                     <option value="">Todos</option>
                     {consultingRooms.map((r) => (<option key={r.id} value={r.id}>{r.name}</option>))}
                   </select>
                 </div>
-                <Button type="submit" size="sm" className="h-9">Ver</Button>
+                <Button type="submit" size="sm" className="h-8">Ver</Button>
               </form>
             </CardContent>
           </Card>
@@ -809,7 +842,7 @@ export default function AgendaPage() {
                 Este médico no tiene horario definido para este día. Use <strong>Crear Agenda Propia</strong> para generar disponibilidad o configure el horario semanal del médico.
               </p>
             ) : (
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
               {(slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
                 const rows = appointmentsByTime.get(slotTime) || [];
                 return (
@@ -823,24 +856,19 @@ export default function AgendaPage() {
                         <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap">
                           <User className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span className="font-medium">
-                            {row.patient ? `${row.patient.firstName} ${row.patient.lastName}` : "—"}
+                            {row.patient ? capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`) : "—"}
                           </span>
                           <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
-                          {row.patient && (
-                            <Button asChild variant="ghost" size="sm" className="h-8">
-                              <Link to={PATHS.patientProfile(row.patient.id)}>Ver paciente</Link>
-                            </Button>
-                          )}
                           <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
                             <Pencil className="h-3.5 w-3.5" />
-                            Editar turno
+                            Editar
                           </Button>
                           <fetcher.Form method="post" className="inline">
                             <input type="hidden" name="_intent" value={INTENT_DELETE} />
                             <input type="hidden" name="appointmentId" value={row.appointment.id} />
                             <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
                               <Trash2 className="h-3.5 w-3.5" />
-                              Eliminar turno
+                              Eliminar
                             </Button>
                           </fetcher.Form>
                         </div>
@@ -853,7 +881,7 @@ export default function AgendaPage() {
                         onClick={() => setAssignSlot(slotTime)}
                       >
                         <CalendarPlus className="h-4 w-4" />
-                        Agendar reserva
+                        Agendar
                       </Button>
                     </div>
                   </div>
@@ -1004,7 +1032,7 @@ export default function AgendaPage() {
       <ResponsiveDialog
         open={!!editAppointment}
         onOpenChange={(open) => { if (!open) setEditAppointment(null); }}
-        title="Editar turno"
+        title="Editar"
         description="Cambie el estado del turno."
       >
         {editAppointment && (
@@ -1191,6 +1219,18 @@ export default function AgendaPage() {
               <Label htmlFor="cp-documentNumber">Número documento *</Label>
               <Input id="cp-documentNumber" name="documentNumber" required placeholder="12345678" className="h-9" />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cp-birthDate">Fecha de nacimiento</Label>
+            <Input id="cp-birthDate" name="birthDate" type="date" className="h-9" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cp-insuranceCompany">Obra social</Label>
+            <Input id="cp-insuranceCompany" name="insuranceCompany" placeholder="Opcional" className="h-9" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cp-insuranceNumber">Número de afiliado</Label>
+            <Input id="cp-insuranceNumber" name="insuranceNumber" placeholder="Opcional" className="h-9" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="cp-phone">Teléfono</Label>

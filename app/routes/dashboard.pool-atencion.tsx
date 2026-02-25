@@ -126,37 +126,31 @@ export default function PoolAtencion() {
         </div>
       </div>
 
-      {/* Filtros */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtros
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                <Calendar className="h-4 w-4 inline mr-1" />
+        <CardContent className="py-3 px-4 sm:px-6">
+          <div className="flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-medium text-foreground border-r border-border pr-3">Filtros</span>
+            <div className="flex flex-col gap-1 min-w-[110px]">
+              <label className="text-xs font-medium text-foreground flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
                 Fecha
               </label>
               <Input
                 type="date"
                 value={selectedDate}
                 onChange={handleDateChange}
-                className="w-full"
+                className="w-full h-8 text-sm"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                <User className="h-4 w-4 inline mr-1" />
+            <div className="flex flex-col gap-1 min-w-[140px]">
+              <label className="text-xs font-medium text-foreground flex items-center gap-1">
+                <User className="h-3.5 w-3.5" />
                 Médico
               </label>
               <select
                 value={selectedDoctorId}
                 onChange={handleDoctorChange}
-                className="w-full h-9 px-3 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full h-8 px-2 py-1 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Todos los médicos</option>
                 {doctors.map((doctor) => (
@@ -167,15 +161,14 @@ export default function PoolAtencion() {
                 ))}
               </select>
             </div>
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                className="w-full"
-              >
-                Limpiar filtros
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={clearFilters}
+              size="sm"
+              className="h-8"
+            >
+              Limpiar filtros
+            </Button>
           </div>
         </CardContent>
       </Card>

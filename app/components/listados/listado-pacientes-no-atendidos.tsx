@@ -63,21 +63,19 @@ export function ListadoPacientesNoAtendidos() {
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form onSubmit={handleFilter} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Fecha</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full" />
+        <CardContent className="py-3 px-4 sm:px-6">
+          <Form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-medium text-foreground border-r border-border pr-3">Filtros</span>
+            <div className="flex flex-col gap-1 min-w-[110px]">
+              <label className="text-xs font-medium">Fecha</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 w-full text-sm" />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Médico</label>
+            <div className="flex flex-col gap-1 min-w-[140px]">
+              <label className="text-xs font-medium">Médico</label>
               <select
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm"
               >
                 <option value="">Todos</option>
                 {doctors.map((d) => (
@@ -85,9 +83,7 @@ export function ListadoPacientesNoAtendidos() {
                 ))}
               </select>
             </div>
-            <div>
-              <Button type="submit">Filtrar</Button>
-            </div>
+            <Button type="submit" size="sm" className="h-8">Filtrar</Button>
           </Form>
         </CardContent>
       </Card>

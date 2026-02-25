@@ -142,35 +142,33 @@ export default function Consultorios() {
     <CrudLayout
       config={config}
       renderFilters={({ filters }) => (
-        <form onSubmit={handleSearch} className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2 items-center">
-            <Input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por nombre..."
-              className="min-w-[200px] max-w-md h-9"
-            />
-            <div className="flex gap-2">
-              <Button type="submit" size="sm" className="h-9">
-                <Search className="h-4 w-4 mr-2" />
-                Buscar
+        <form onSubmit={handleSearch} className="flex flex-wrap gap-3 items-center">
+          <Input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por nombre..."
+            className="min-w-[200px] max-w-md h-8 text-sm"
+          />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" className="h-8">
+              <Search className="h-4 w-4 mr-2" />
+              Buscar
+            </Button>
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchParams({}, { replace: true });
+                }}
+                className="h-8"
+              >
+                Limpiar
               </Button>
-              {searchQuery && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSearchParams({}, { replace: true });
-                  }}
-                  className="h-9"
-                >
-                  Limpiar
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </form>
       )}

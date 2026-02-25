@@ -38,14 +38,20 @@ export async function action({ request }: Route.ActionArgs) {
   const actionType = formData.get("actionType") as string;
 
   if (actionType === "createPatient") {
-    // Crear paciente nuevo
+    const birthDateRaw = (formData.get("birthDate") as string)?.trim() || null;
+    const birthDate = birthDateRaw && birthDateRaw.length >= 10 ? birthDateRaw.slice(0, 10) : null;
+    const insuranceCompany = (formData.get("insuranceCompany") as string)?.trim() || null;
+    const insuranceNumber = (formData.get("insuranceNumber") as string)?.trim() || null;
     const patientData = {
       firstName: formData.get("firstName") as string,
       lastName: formData.get("lastName") as string,
       documentNumber: formData.get("documentNumber") as string,
       documentType: formData.get("documentType") as string || "DNI",
-      phone: formData.get("phone") as string || undefined,
-      email: formData.get("email") as string || undefined,
+      phone: (formData.get("phone") as string) || undefined,
+      email: (formData.get("email") as string) || undefined,
+      birthDate,
+      insuranceCompany,
+      insuranceNumber,
     };
 
     // Verificar si el paciente ya existe
@@ -308,6 +314,33 @@ export default function AtenderSinTurno() {
                       defaultValue={defaultDni}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Fecha de nacimiento
+                  </label>
+                  <Input name="birthDate" type="date" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Obra social
+                  </label>
+                  <Input
+                    name="insuranceCompany"
+                    placeholder="Opcional"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Número de afiliado
+                  </label>
+                  <Input
+                    name="insuranceNumber"
+                    placeholder="Opcional"
+                  />
                 </div>
 
                 <div>

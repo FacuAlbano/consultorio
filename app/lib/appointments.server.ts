@@ -87,6 +87,8 @@ export async function getAppointments(options: SearchAppointmentsOptions = {}) {
         documentNumber: patients.documentNumber,
         medicalRecordNumber: patients.medicalRecordNumber,
         insuranceCompany: patients.insuranceCompany,
+        insuranceNumber: patients.insuranceNumber,
+        birthDate: patients.birthDate,
       },
       doctor: {
         id: doctors.id,
