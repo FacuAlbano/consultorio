@@ -75,15 +75,17 @@ export async function setDoctorWeeklySchedule(
     return { success: false, error: "No hay horarios válidos. Verifique que la hora de inicio sea menor a la hora de fin." };
   }
   
-  await db.update(doctors).set({ slotDurationMinutes: String(slot), updatedAt: new Date() }).where(eq(doctors.id, doctorId));
-  await db.delete(doctorWeeklySchedule).where(eq(doctorWeeklySchedule.doctorId, doctorId));
-  
-  for (const schedule of validSchedules) {
-    await db.insert(doctorWeeklySchedule).values({
-      doctorId,
-      ...schedule,
-    });
-  }
+  await db.transaction(async (tx) => {
+    await tx.update(doctors).set({ slotDurationMinutes: String(slot), updatedAt: new Date() }).where(eq(doctors.id, doctorId));
+    await tx.delete(doctorWeeklySchedule).where(eq(doctorWeeklySchedule.doctorId, doctorId));
+    
+    for (const schedule of validSchedules) {
+      await tx.insert(doctorWeeklySchedule).values({
+        doctorId,
+        ...schedule,
+      });
+    }
+  });
   
   return { success: true };
 }
