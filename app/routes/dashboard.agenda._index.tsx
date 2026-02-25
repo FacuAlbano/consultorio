@@ -129,6 +129,7 @@ export async function action({ request }: Route.ActionArgs) {
     const updateData: { status?: string; isOverbooking?: boolean } = {};
     if (estado === "attended") { updateData.status = "attended"; updateData.isOverbooking = false; }
     else if (estado === "cancelled") { updateData.status = "cancelled"; updateData.isOverbooking = false; }
+    else if (estado === "no_show") { updateData.status = "no_show"; updateData.isOverbooking = false; }
     else if (estado === "sobre_turno") { updateData.status = "scheduled"; updateData.isOverbooking = true; }
     else if (estado === "scheduled") { updateData.status = "scheduled"; updateData.isOverbooking = false; }
     if (Object.keys(updateData).length === 0) return { success: false as const, error: "Estado no válido" };
@@ -981,12 +982,13 @@ export default function AgendaPage() {
               <Label>Estado</Label>
               <select
                 name="estado"
-                defaultValue={editAppointment.status === "cancelled" ? "cancelled" : editAppointment.status === "attended" ? "attended" : editAppointment.isOverbooking ? "sobre_turno" : "scheduled"}
+                defaultValue={editAppointment.status === "cancelled" ? "cancelled" : editAppointment.status === "attended" ? "attended" : editAppointment.status === "no_show" ? "no_show" : editAppointment.isOverbooking ? "sobre_turno" : "scheduled"}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
                 <option value="scheduled">Programado</option>
                 <option value="attended">Atendido</option>
                 <option value="cancelled">Cancelado</option>
+                <option value="no_show">No asistió</option>
                 <option value="sobre_turno">Sobre turno</option>
               </select>
             </div>

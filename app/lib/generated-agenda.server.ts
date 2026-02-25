@@ -109,11 +109,13 @@ export async function generateAgendaBlocks(input: GenerateAgendaInput): Promise<
     )
   );
   
-  for (const condition of deleteConditions) {
-    await db.delete(generatedAgendaBlocks).where(condition);
-  }
-  
-  await db.insert(generatedAgendaBlocks).values(toInsert);
+  await db.transaction(async (tx) => {
+    for (const condition of deleteConditions) {
+      await tx.delete(generatedAgendaBlocks).where(condition);
+    }
+    
+    await tx.insert(generatedAgendaBlocks).values(toInsert);
+  });
 
   return { success: true, count };
 }
