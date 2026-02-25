@@ -172,17 +172,17 @@ export function ListadoTurnos() {
   const createFetcher = useFetcher<{ success?: boolean; error?: string; createdId?: string }>();
   const editFetcher = useFetcher<{ success?: boolean; error?: string }>();
 
-  const openEdit = (appointmentId: string) => {
+  const openEdit = React.useCallback((appointmentId: string) => {
     const params = new URLSearchParams(searchParams);
     params.set("appointment", appointmentId);
     setSearchParams(params, { replace: true });
-  };
+  }, [searchParams, setSearchParams]);
 
-  const closeEdit = () => {
+  const closeEdit = React.useCallback(() => {
     const params = new URLSearchParams(searchParams);
     params.delete("appointment");
     setSearchParams(params, { replace: true });
-  };
+  }, [searchParams, setSearchParams]);
 
   const editOpen = !!appointmentToEdit;
 
@@ -204,7 +204,7 @@ export function ListadoTurnos() {
     } else if (editFetcher.data?.success === false && editFetcher.data?.error) {
       toast.error(editFetcher.data.error);
     }
-  }, [editFetcher.data, revalidator]);
+  }, [editFetcher.data, revalidator, closeEdit]);
 
   React.useEffect(() => {
     if (actionData?.success && (actionData?.cancelled || actionData?.deleted)) {

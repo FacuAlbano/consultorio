@@ -530,7 +530,18 @@ export default function AgendaPage() {
               Editar agenda
             </Link>
           </Button>
-          <Button size="sm" className="gap-1" onClick={() => setAgendarOpen(true)}>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={PATHS.agendaEditarBloques}>
+              <Pencil className="h-4 w-4 mr-1" />
+              Editar bloques
+            </Link>
+          </Button>
+          <Button size="sm" className="gap-1" onClick={() => {
+            setAgendarDoctorId(doctorId || doctors[0]?.id || "");
+            setAgendarDate(today);
+            setAgendarTime("");
+            setAgendarOpen(true);
+          }}>
             <Plus className="h-4 w-4" />
             Agendar turno
           </Button>
@@ -904,10 +915,6 @@ export default function AgendaPage() {
             setAgendarSelectedPatient(null);
             setAgendarPatientSearch("");
             setAgendarPatientResults([]);
-          } else {
-            setAgendarDoctorId(doctorId || doctors[0]?.id || "");
-            setAgendarDate(today);
-            setAgendarTime("");
           }
         }}
         title="Agendar turno"

@@ -109,11 +109,13 @@ export async function generateAgendaBlocks(input: GenerateAgendaInput): Promise<
     )
   );
   
-  for (const condition of deleteConditions) {
-    await db.delete(generatedAgendaBlocks).where(condition);
-  }
-  
-  await db.insert(generatedAgendaBlocks).values(toInsert);
+  await db.transaction(async (tx) => {
+    for (const condition of deleteConditions) {
+      await tx.delete(generatedAgendaBlocks).where(condition);
+    }
+    
+    await tx.insert(generatedAgendaBlocks).values(toInsert);
+  });
 
   return { success: true, count };
 }
@@ -179,22 +181,6 @@ function timeToMinutes(t: string): number {
   return (h ?? 0) * 60 + (m ?? 0);
 }
 
-/** Genera slots HH:MM entre start y end cada intervalMinutes */
-function buildSlotsBetween(start: string, end: string, intervalMinutes: number): string[] {
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  let startM = (sh ?? 0) * 60 + (sm ?? 0);
-  const endM = (eh ?? 0) * 60 + (em ?? 0);
-  const slots: string[] = [];
-  while (startM < endM) {
-    const h = Math.floor(startM / 60);
-    const m = startM % 60;
-    slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    startM += intervalMinutes;
-  }
-  return slots;
-}
-
 /**
  * Devuelve los slots (HH:MM) de disponibilidad para un médico en una fecha
  * a partir de los bloques generados por "Crear Agenda Propia".
@@ -205,6 +191,7 @@ export async function getSlotsFromGeneratedBlocksForDoctorAndDate(
   dateStr: string
 ): Promise<string[]> {
   if (!isValidUUID(doctorId)) return [];
+  const { buildSlotsBetween } = await import("~/lib/doctor-agenda.server");
   const blocks = await listGeneratedAgendaBlocks({
     doctorId,
     dateFrom: dateStr,
