@@ -600,6 +600,7 @@ export default function AgendaPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border bg-primary/10">
+                          <th className="text-left py-2 px-2 font-medium">Fecha</th>
                           <th className="text-left py-2 px-2 font-medium">Hora</th>
                           <th className="text-left py-2 px-2 font-medium">Tipo de Turno</th>
                           <th className="text-left py-2 px-2 font-medium">Profesional</th>
@@ -614,6 +615,7 @@ export default function AgendaPage() {
                       <tbody>
                         {listAppointments.map(({ appointment, patient, doctor, appointmentType }) => (
                           <tr key={appointment.id} className="border-b border-border/50 hover:bg-muted/30">
+                            <td className="py-2 px-2">{formatDate(appointment.appointmentDate, "es-AR", { day: "2-digit", month: "2-digit" })}</td>
                             <td className="py-2 px-2">{normTime(appointment.appointmentTime)}</td>
                             <td className="py-2 px-2">{appointmentType?.name ?? "—"}</td>
                             <td className="py-2 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>
