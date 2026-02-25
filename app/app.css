@@ -170,12 +170,6 @@ body {
     /* Evitar zoom en inputs en iOS */
     -webkit-text-size-adjust: 100%;
   }
-  /* Área segura para dispositivos con notch/home indicator */
-  @supports (padding-bottom: env(safe-area-inset-bottom)) {
-    .pb-safe {
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-  }
   /* Selects alineados al tema de la página (evitar fondo blanco del nativo) */
   select {
     @apply h-9 w-full min-w-0 rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none;

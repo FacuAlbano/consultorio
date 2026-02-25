@@ -196,6 +196,7 @@ export function Sidebar({ isOpen, onToggle, userInfo, fullWidth }: SidebarProps)
           <Link
             key={item.path || item.label}
             to={item.path}
+            onClick={fullWidth ? onToggle : undefined}
             className={cn(
               "flex items-center justify-center p-2 rounded-lg transition-colors relative group",
               "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -288,7 +289,10 @@ export function Sidebar({ isOpen, onToggle, userInfo, fullWidth }: SidebarProps)
                 <Link 
                   to={item.path} 
                   className="flex-1 text-left truncate"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (fullWidth) onToggle();
+                  }}
                 >
                   {item.label}
                 </Link>
@@ -329,6 +333,7 @@ export function Sidebar({ isOpen, onToggle, userInfo, fullWidth }: SidebarProps)
         {item.path ? (
           <Link
             to={item.path}
+            onClick={fullWidth ? onToggle : undefined}
             className={cn(
               "flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 relative",
               isActive(item.path)
