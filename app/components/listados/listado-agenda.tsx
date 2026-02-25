@@ -38,6 +38,8 @@ export function ListadoAgenda() {
   const fetcher = useFetcher<{ success?: boolean; error?: string; createdId?: string }>();
   const revalidator = useRevalidator();
   const navigate = useNavigate();
+  const prevFetcherStateRef = useRef(fetcher.state);
+  const lastProcessedActionDataRef = useRef<typeof actionData>(undefined);
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,20 +69,37 @@ export function ListadoAgenda() {
   }, [patientSearch]);
 
   useEffect(() => {
-    const data = fetcher.data ?? actionData;
-    if (data?.success) {
+    const prevState = prevFetcherStateRef.current;
+    prevFetcherStateRef.current = fetcher.state;
+    const justFinished = (prevState === "loading" || prevState === "submitting") && fetcher.state === "idle";
+    if (justFinished && fetcher.data) {
+      if (fetcher.data.success) {
+        toast.success("Turno creado correctamente");
+        setCreateOpen(false);
+        setSelectedPatient(null);
+        setPatientSearch("");
+        setPatientResults([]);
+        revalidator.revalidate();
+      } else if (fetcher.data.success === false && fetcher.data.error) {
+        toast.error(fetcher.data.error);
+      }
+      return;
+    }
+    if (!actionData || lastProcessedActionDataRef.current === actionData) return;
+    lastProcessedActionDataRef.current = actionData;
+    if (actionData.success) {
       toast.success("Turno creado correctamente");
       setCreateOpen(false);
       setSelectedPatient(null);
       setPatientSearch("");
       setPatientResults([]);
       revalidator.revalidate();
-    } else if (data?.success === false && data?.error) {
-      toast.error(data.error);
+    } else if (actionData.success === false && actionData.error) {
+      toast.error(actionData.error);
     }
     // No incluir revalidator en deps para evitar bucle
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher.data, actionData]);
+  }, [fetcher.state, fetcher.data, actionData]);
 
   const selectedDoctor = doctors.find((d) => d.id === doctorId);
   const statusLabel: Record<string, string> = {

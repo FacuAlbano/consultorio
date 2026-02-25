@@ -62,8 +62,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     ?.split("=")[1]
     ?.trim();
 
-  // Si no existe la cookie, usar "light" por defecto (no podemos detectar la preferencia del sistema en SSR)
-  const theme = themeCookie === "dark" ? "dark" : "light";
+  // Si no hay cookie, el cliente usará la preferencia del sistema (script inline + useLayoutEffect)
+  const theme =
+    themeCookie === "dark" ? "dark" : themeCookie === "light" ? "light" : "system";
 
   const forwardedHost = request.headers.get("X-Forwarded-Host");
   const forwardedProto = request.headers.get("X-Forwarded-Proto");
@@ -100,12 +101,23 @@ function OgAndTwitterMeta() {
   );
 }
 
+/** Script que se ejecuta antes del paint para evitar parpadeo: aplica tema desde cookie o preferencia del sistema */
+const THEME_INIT_SCRIPT = `
+(function() {
+  var m = document.cookie.match(/\\btheme=([^;]+)/);
+  var theme = m ? m[1].trim() : null;
+  var isDark = theme === 'dark' || (theme !== 'light' && typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.classList.toggle('dark', !!isDark);
+})();
+`;
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <Meta />
         <OgAndTwitterMeta />
         <Links />
@@ -123,13 +135,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const { theme } = useLoaderData<typeof loader>();
   
-  // Aplicar la clase del tema al elemento html inmediatamente (SSR + hidratación del cliente)
+  // Aplicar la clase del tema al elemento html (cookie, o preferencia del sistema si theme === "system")
   React.useLayoutEffect(() => {
     const html = document.documentElement;
     if (theme === "dark") {
       html.classList.add("dark");
-    } else {
+    } else if (theme === "light") {
       html.classList.remove("dark");
+    } else {
+      // theme === "system": respetar preferencia del sistema
+      const media = window.matchMedia("(prefers-color-scheme: dark)");
+      const apply = () => html.classList.toggle("dark", media.matches);
+      apply();
+      media.addEventListener("change", apply);
+      return () => media.removeEventListener("change", apply);
     }
   }, [theme]);
   

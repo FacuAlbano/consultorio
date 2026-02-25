@@ -85,6 +85,7 @@ export default function EliminarAgenda() {
   const [searchParams, setSearchParams] = useSearchParams();
   const fetcher = useFetcher<{ success?: boolean; deleted?: number }>();
   const revalidator = useRevalidator();
+  const prevFetcherStateRef = React.useRef(fetcher.state);
 
   const handleShowTurnos = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,15 +112,18 @@ export default function EliminarAgenda() {
   };
 
   React.useEffect(() => {
-    if (fetcher.data?.success && fetcher.data?.deleted) {
+    const prev = prevFetcherStateRef.current;
+    prevFetcherStateRef.current = fetcher.state;
+    const justFinished = (prev === "loading" || prev === "submitting") && fetcher.state === "idle";
+    if (!justFinished || !fetcher.data) return;
+    if (fetcher.data.success && fetcher.data.deleted) {
       toast.success(fetcher.data.deleted === 1 ? "Turno eliminado" : `${fetcher.data.deleted} turnos eliminados`);
       revalidator.revalidate();
-    } else if (fetcher.data?.success === false && (fetcher.data as { error?: string }).error) {
+    } else if (fetcher.data.success === false && (fetcher.data as { error?: string }).error) {
       toast.error((fetcher.data as { error: string }).error);
     }
-    // No incluir revalidator en deps para evitar bucle
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.state, fetcher.data]);
 
   const periodLabel = (p: string) => (p === "morning" ? "Mañana" : "Tarde");
 

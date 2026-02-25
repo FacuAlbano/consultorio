@@ -469,15 +469,15 @@ export default function AgendaPage() {
     }
   }, [createPatientFetcher.state, createPatientFetcher.data, createPatientContext]);
 
-  const pendingFetcherResponseRef = React.useRef(false);
   const revalidateFnRef = React.useRef(revalidator.revalidate);
   revalidateFnRef.current = revalidator.revalidate;
-  if (fetcher.state === "submitting" || fetcher.state === "loading") {
-    pendingFetcherResponseRef.current = true;
-  }
+  const prevFetcherStateRef = React.useRef(fetcher.state);
   React.useEffect(() => {
-    if (fetcher.state !== "idle" || !fetcher.data || !pendingFetcherResponseRef.current) return;
-    pendingFetcherResponseRef.current = false;
+    const prevState = prevFetcherStateRef.current;
+    prevFetcherStateRef.current = fetcher.state;
+    // Solo procesar cuando pasamos de loading/submitting a idle (respuesta nueva), no en cada re-render
+    const justFinished = (prevState === "loading" || prevState === "submitting") && fetcher.state === "idle";
+    if (!justFinished || !fetcher.data) return;
     if (fetcher.data.success) {
       if ((fetcher.data as { deleted?: boolean }).deleted) {
         toast.success("Turno eliminado");
@@ -501,8 +501,8 @@ export default function AgendaPage() {
     } else if (fetcher.data.success === false && fetcher.data.error) {
       toast.error(fetcher.data.error);
     }
-    // No incluir revalidator en deps para evitar bucle (revalidate → loader → re-render → efecto otra vez)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // No incluir revalidator en deps para evitar bucle
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data]);
 
   React.useEffect(() => {
@@ -772,10 +772,10 @@ export default function AgendaPage() {
                       return (
                         <div
                           key={slotTime}
-                          className="flex items-center gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
+                          className="flex items-start gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
                         >
-                          <div className="w-16 shrink-0 font-medium text-muted-foreground">{slotTime}</div>
-                          <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
+                          <div className="w-16 shrink-0 font-medium text-muted-foreground pt-0.5">{slotTime}</div>
+                          <div className="flex-1 min-w-0 flex flex-col gap-2">
                             {rows.map((row) => (
                               <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap">
                                 <User className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -914,10 +914,10 @@ export default function AgendaPage() {
                 return (
                   <div
                     key={slotTime}
-                    className="flex items-center gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
+                    className="flex items-start gap-4 py-2 px-3 rounded-lg border border-border/50 hover:bg-muted/30"
                   >
-                    <div className="w-16 shrink-0 font-medium text-muted-foreground">{slotTime}</div>
-                    <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
+                    <div className="w-16 shrink-0 font-medium text-muted-foreground pt-0.5">{slotTime}</div>
+                    <div className="flex-1 min-w-0 flex flex-col gap-2">
                       {rows.map((row) => (
                         <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap">
                           <User className="h-4 w-4 text-muted-foreground shrink-0" />

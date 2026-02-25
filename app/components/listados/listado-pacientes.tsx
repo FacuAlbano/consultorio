@@ -131,6 +131,9 @@ export function ListadoPacientes() {
   const actionData = useActionData<{ success?: boolean; error?: string; deleted?: boolean }>();
   const createFetcher = useFetcher<{ success?: boolean; error?: string; createdId?: string }>();
   const editFetcher = useFetcher<{ success?: boolean; error?: string }>();
+  const prevCreateStateRef = React.useRef(createFetcher.state);
+  const prevEditStateRef = React.useRef(editFetcher.state);
+  const lastProcessedActionDataRef = React.useRef<typeof actionData>(undefined);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,38 +162,45 @@ export function ListadoPacientes() {
   };
 
   React.useEffect(() => {
-    if (createFetcher.data?.success) {
+    const prev = prevCreateStateRef.current;
+    prevCreateStateRef.current = createFetcher.state;
+    const justFinished = (prev === "loading" || prev === "submitting") && createFetcher.state === "idle";
+    if (!justFinished || !createFetcher.data) return;
+    if (createFetcher.data.success) {
       toast.success("Paciente creado correctamente");
       setCreateOpen(false);
       revalidator.revalidate();
-    } else if (createFetcher.data?.success === false && createFetcher.data?.error) {
+    } else if (createFetcher.data.success === false && createFetcher.data.error) {
       toast.error(createFetcher.data.error);
     }
-    // Solo reaccionar al cambio de data; revalidator estable para evitar bucle
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createFetcher.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createFetcher.state, createFetcher.data]);
 
   React.useEffect(() => {
-    if (editFetcher.data?.success) {
+    const prev = prevEditStateRef.current;
+    prevEditStateRef.current = editFetcher.state;
+    const justFinished = (prev === "loading" || prev === "submitting") && editFetcher.state === "idle";
+    if (!justFinished || !editFetcher.data) return;
+    if (editFetcher.data.success) {
       toast.success("Paciente actualizado correctamente");
       closeEdit();
       revalidator.revalidate();
-    } else if (editFetcher.data?.success === false && editFetcher.data?.error) {
+    } else if (editFetcher.data.success === false && editFetcher.data.error) {
       toast.error(editFetcher.data.error);
     }
-    // Solo reaccionar al cambio de data; revalidator estable para evitar bucle
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editFetcher.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editFetcher.state, editFetcher.data]);
 
   React.useEffect(() => {
-    if (actionData?.success && actionData?.deleted) {
+    if (!actionData || lastProcessedActionDataRef.current === actionData) return;
+    lastProcessedActionDataRef.current = actionData;
+    if (actionData.success && actionData.deleted) {
       toast.success("Paciente eliminado correctamente");
       revalidator.revalidate();
-    } else if (actionData?.success === false && actionData?.error) {
+    } else if (actionData.success === false && actionData.error) {
       toast.error(actionData.error);
     }
-    // Solo reaccionar al cambio de actionData; revalidator estable para evitar bucle
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
 
   const editOpen = !!patientToEdit;

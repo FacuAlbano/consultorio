@@ -171,6 +171,9 @@ export function ListadoTurnos() {
 
   const createFetcher = useFetcher<{ success?: boolean; error?: string; createdId?: string }>();
   const editFetcher = useFetcher<{ success?: boolean; error?: string }>();
+  const prevCreateStateRef = React.useRef(createFetcher.state);
+  const prevEditStateRef = React.useRef(editFetcher.state);
+  const lastProcessedActionDataRef = React.useRef<typeof actionData>(undefined);
 
   const openEdit = React.useCallback((appointmentId: string) => {
     const params = new URLSearchParams(searchParams);
@@ -187,38 +190,45 @@ export function ListadoTurnos() {
   const editOpen = !!appointmentToEdit;
 
   React.useEffect(() => {
-    if (createFetcher.data?.success) {
+    const prev = prevCreateStateRef.current;
+    prevCreateStateRef.current = createFetcher.state;
+    const justFinished = (prev === "loading" || prev === "submitting") && createFetcher.state === "idle";
+    if (!justFinished || !createFetcher.data) return;
+    if (createFetcher.data.success) {
       toast.success("Turno creado correctamente");
       setCreateOpen(false);
       revalidator.revalidate();
-    } else if (createFetcher.data?.success === false && createFetcher.data?.error) {
+    } else if (createFetcher.data.success === false && createFetcher.data.error) {
       toast.error(createFetcher.data.error);
     }
-    // No incluir revalidator en deps para evitar bucle
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createFetcher.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createFetcher.state, createFetcher.data]);
 
   React.useEffect(() => {
-    if (editFetcher.data?.success) {
+    const prev = prevEditStateRef.current;
+    prevEditStateRef.current = editFetcher.state;
+    const justFinished = (prev === "loading" || prev === "submitting") && editFetcher.state === "idle";
+    if (!justFinished || !editFetcher.data) return;
+    if (editFetcher.data.success) {
       toast.success("Turno actualizado correctamente");
       closeEdit();
       revalidator.revalidate();
-    } else if (editFetcher.data?.success === false && editFetcher.data?.error) {
+    } else if (editFetcher.data.success === false && editFetcher.data.error) {
       toast.error(editFetcher.data.error);
     }
-    // No incluir revalidator en deps para evitar bucle
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editFetcher.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editFetcher.state, editFetcher.data]);
 
   React.useEffect(() => {
-    if (actionData?.success && (actionData?.cancelled || actionData?.deleted)) {
+    if (!actionData || lastProcessedActionDataRef.current === actionData) return;
+    lastProcessedActionDataRef.current = actionData;
+    if (actionData.success && (actionData.cancelled || actionData.deleted)) {
       toast.success(actionData.deleted ? "Turno eliminado" : "Turno cancelado");
       revalidator.revalidate();
-    } else if (actionData?.success === false && actionData?.error) {
+    } else if (actionData.success === false && actionData.error) {
       toast.error(actionData.error);
     }
-    // No incluir revalidator en deps para evitar bucle
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
 
   const handleFilter = (e: React.FormEvent) => {
