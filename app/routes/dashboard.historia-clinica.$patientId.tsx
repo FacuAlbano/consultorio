@@ -3,7 +3,7 @@ import { useLoaderData, Link, useFetcher, useNavigate } from "react-router";
 import type { Route } from "./+types/dashboard.historia-clinica.$patientId";
 import { requireAuth } from "~/lib/middleware";
 import { getPatientById } from "~/lib/patients.server";
-import { getConsultationsByPatientId } from "~/lib/medical-records.server";
+import { getConsultationsByPatientId, getDiagnosesByConsultationIds } from "~/lib/medical-records.server";
 import { getAllDoctors } from "~/lib/doctors.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -14,6 +14,7 @@ import { ArrowLeft, FileText, Plus, Stethoscope, Calendar, Loader2, FileDown } f
 import { PATHS } from "~/lib/constants";
 import { formatDate } from "~/lib/utils";
 import { isValidUUID } from "~/lib/utils";
+import { toast } from "sonner";
 
 const CREATE_INTENT = "create";
 
@@ -32,7 +33,19 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   if (!patient) throw new Response("Paciente no encontrado", { status: 404 });
 
-  return { patient, consultations: consultationsList, doctors };
+  const consultationIds = consultationsList.map((c) => c.consultation.id);
+  const diagnosesList = await getDiagnosesByConsultationIds(consultationIds);
+  const diagnosesByConsultationId = consultationIds.reduce<Record<string, { name: string }[]>>((acc, id) => {
+    acc[id] = diagnosesList.filter((d) => d.medicalConsultationId === id).map((d) => ({ name: d.name }));
+    return acc;
+  }, {});
+
+  const consultations = consultationsList.map((c) => ({
+    ...c,
+    diagnoses: diagnosesByConsultationId[c.consultation.id] ?? [],
+  }));
+
+  return { patient, consultations, doctors };
 }
 
 export default function HistoriaClinicaPaciente() {
@@ -58,8 +71,11 @@ export default function HistoriaClinicaPaciente() {
     if (!nuevaConsultaOpen) return;
     const data = fetcher.data;
     if (data && "createdId" in data && data.createdId) {
+      toast.success("Consulta creada correctamente");
       setNuevaConsultaOpen(false);
       navigate(PATHS.historiaClinicaConsulta(patient.id, data.createdId));
+    } else if (data && data.success === false && data.error) {
+      toast.error(data.error);
     }
   }, [nuevaConsultaOpen, fetcher.data, patient.id, navigate]);
 
@@ -188,11 +204,12 @@ export default function HistoriaClinicaPaciente() {
                       <th className="text-left py-3 px-2 font-medium">Fecha</th>
                       <th className="text-left py-3 px-2 font-medium">Médico</th>
                       <th className="text-left py-3 px-2 font-medium">Motivo</th>
+                      <th className="text-left py-3 px-2 font-medium">Diagnóstico</th>
                       <th className="text-right py-3 px-2 font-medium w-28">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {consultations.map(({ consultation, doctor }) => (
+                    {consultations.map(({ consultation, doctor, diagnoses }) => (
                       <tr
                         key={consultation.id}
                         role="button"
@@ -218,6 +235,9 @@ export default function HistoriaClinicaPaciente() {
                         <td className="py-3 px-2 text-muted-foreground max-w-[200px] truncate" title={consultation.reason ?? ""}>
                           {consultation.reason ?? "—"}
                         </td>
+                        <td className="py-3 px-2 text-muted-foreground max-w-[200px] truncate" title={diagnoses.map((d) => d.name).join(", ")}>
+                          {diagnoses.length > 0 ? diagnoses.map((d) => d.name).join(", ") : "—"}
+                        </td>
                         <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
                           <Button asChild variant="outline" size="sm">
                             <Link to={PATHS.historiaClinicaConsulta(patient.id, consultation.id)}>
@@ -231,7 +251,7 @@ export default function HistoriaClinicaPaciente() {
                 </table>
               </div>
               <div className="md:hidden space-y-3">
-                {consultations.map(({ consultation, doctor }) => (
+                {consultations.map(({ consultation, doctor, diagnoses }) => (
                   <Link
                     key={consultation.id}
                     to={PATHS.historiaClinicaConsulta(patient.id, consultation.id)}
@@ -246,6 +266,12 @@ export default function HistoriaClinicaPaciente() {
                     </div>
                     {consultation.reason && (
                       <p className="text-sm line-clamp-2">{consultation.reason}</p>
+                    )}
+                    {diagnoses.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">Diagnóstico: </span>
+                        {diagnoses.map((d) => d.name).join(", ")}
+                      </p>
                     )}
                     <span className="text-sm text-primary font-medium">Ver consulta</span>
                   </Link>

@@ -7,7 +7,7 @@ import {
   patients,
   doctors,
 } from "~/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { isValidUUID } from "~/lib/utils";
 
 export interface GetConsultationsOptions {
@@ -37,6 +37,16 @@ export async function getConsultationsByPatientId(options: GetConsultationsOptio
     .offset(offset);
 
   return list;
+}
+
+/** Diagnósticos por consulta (para listados). */
+export async function getDiagnosesByConsultationIds(consultationIds: string[]) {
+  if (consultationIds.length === 0) return [];
+  return db
+    .select()
+    .from(diagnoses)
+    .where(inArray(diagnoses.medicalConsultationId, consultationIds))
+    .orderBy(diagnoses.id);
 }
 
 export async function getConsultationById(id: string) {

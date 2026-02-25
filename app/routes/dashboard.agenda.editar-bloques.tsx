@@ -106,6 +106,7 @@ export default function EditarAgendaBloques() {
 
   React.useEffect(() => {
     if (fetcher.data?.success && fetcher.data?.updated) toast.success("Turno actualizado");
+    else if (fetcher.data?.success === false && (fetcher.data as { error?: string }).error) toast.error((fetcher.data as { error: string }).error);
   }, [fetcher.data]);
 
   const periodLabel = (p: string) => (p === "morning" ? "Mañana" : "Tarde");

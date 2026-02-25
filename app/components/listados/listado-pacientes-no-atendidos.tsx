@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useLoaderData, useActionData, useSearchParams, Form, Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -32,7 +33,12 @@ export function ListadoPacientesNoAtendidos() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (actionData?.success) setEditingId(null);
+    if (actionData?.success) {
+      toast.success("Actualización realizada correctamente");
+      setEditingId(null);
+    } else if (actionData?.success === false && actionData?.error) {
+      toast.error(actionData.error);
+    }
   }, [actionData]);
 
   const handleFilter = (e: React.FormEvent) => {

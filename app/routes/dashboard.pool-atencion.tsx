@@ -1,4 +1,4 @@
-import { useLoaderData, useSearchParams, Form, Link, redirect } from "react-router";
+import { useLoaderData, useSearchParams, Form, Link, redirect, useActionData } from "react-router";
 import type { Route } from "./+types/dashboard.pool-atencion";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
@@ -9,8 +9,9 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { PatientSearchInput } from "~/components/patient-search/patient-search-input";
 import { Calendar, Clock, User, Stethoscope, Search, Filter } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PATHS } from "~/lib/constants";
+import { toast } from "sonner";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { tokenType } = await requireAuth(request);
@@ -57,7 +58,14 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function PoolAtencion() {
   const { appointments, doctors, filters } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (actionData?.success === false && actionData?.error) {
+      toast.error(actionData.error);
+    }
+  }, [actionData]);
   const [selectedDate, setSelectedDate] = useState(filters.date);
   const [selectedDoctorId, setSelectedDoctorId] = useState(filters.doctorId || "");
 
