@@ -64,7 +64,7 @@ export default function DashboardPatientProfile() {
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link to={`/pacientes/${patient.id}/editar`}>
+            <Link to={`/dashboard/pacientes/${patient.id}/editar`}>
               <Pencil className="h-4 w-4" /> Editar datos
             </Link>
           </Button>
