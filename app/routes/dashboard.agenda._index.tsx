@@ -55,8 +55,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   const dateTo =
     url.searchParams.get("dateTo") || (view === "lista" ? monthEnd : date);
 
-  const effectiveFrom = view === "lista" ? dateFrom : view === "mes" ? monthStart : date;
-  const effectiveTo = view === "lista" ? dateTo : view === "mes" ? monthEnd : date;
   // En lista cargamos siempre el mes completo para que el calendario muestre los conteos de todos los días
   const queryFrom = view === "lista" ? monthStart : view === "mes" ? monthStart : date;
   const queryTo = view === "lista" ? monthEnd : view === "mes" ? monthEnd : date;
@@ -169,9 +167,9 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: true as const };
 }
 
-/** Estados: Disponible, Atendido, Cancelado, No asistió, Sobre turno */
+/** Estados: Programado, Atendido, Cancelado, No asistió, Sobre turno */
 function StatusBadge({ status, isOverbooking }: { status: string; isOverbooking?: boolean }) {
-  const label = status === "cancelled" ? "Cancelado" : status === "attended" ? "Atendido" : status === "no_show" ? "No asistió" : isOverbooking ? "Sobre turno" : "Disponible";
+  const label = status === "cancelled" ? "Cancelado" : status === "attended" ? "Atendido" : status === "no_show" ? "No asistió" : isOverbooking ? "Sobre turno" : "Programado";
   const variant = status === "cancelled" ? "bg-muted text-muted-foreground" : status === "attended" ? "bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300" : status === "no_show" ? "bg-orange-500/20 text-orange-700 dark:text-orange-300" : isOverbooking ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300";
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${variant}`}>{label}</span>;
 }
@@ -409,6 +407,12 @@ export default function AgendaPage() {
             <Link to={doctorId ? `${PATHS.agendaEditar}?doctorId=${doctorId}` : PATHS.agendaEditar}>
               <Settings className="h-4 w-4 mr-1" />
               Editar agenda
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={PATHS.agendaEditarBloques}>
+              <Pencil className="h-4 w-4 mr-1" />
+              Editar bloques
             </Link>
           </Button>
           <Button size="sm" className="gap-1" onClick={() => setAgendarOpen(true)}>
@@ -980,7 +984,7 @@ export default function AgendaPage() {
                 defaultValue={editAppointment.status === "cancelled" ? "cancelled" : editAppointment.status === "attended" ? "attended" : editAppointment.isOverbooking ? "sobre_turno" : "scheduled"}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               >
-                <option value="scheduled">Disponible</option>
+                <option value="scheduled">Programado</option>
                 <option value="attended">Atendido</option>
                 <option value="cancelled">Cancelado</option>
                 <option value="sobre_turno">Sobre turno</option>
