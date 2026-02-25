@@ -776,49 +776,74 @@ export default function AgendaPage() {
                         >
                           <div className="w-16 shrink-0 font-medium text-muted-foreground pt-0.5">{slotTime}</div>
                           <div className="flex-1 min-w-0 flex flex-col gap-2">
-                            {rows.map((row) => (
-                              <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap">
-                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                {row.patient ? (
-                                  <Link
-                                    to={PATHS.historiaClinicaPaciente(row.patient.id)}
-                                    className="font-medium text-primary underline-offset-4 hover:underline"
-                                  >
-                                    {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
-                                  </Link>
-                                ) : (
-                                  <span className="font-medium">—</span>
-                                )}
-                                <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
-                                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                  Editar
+                            {rows.length === 0 ? (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 gap-1"
+                                  onClick={() => {
+                                    setAgendarDoctorId(doctorId || doctors[0]?.id || "");
+                                    setAgendarDate(date);
+                                    setAgendarTime(slotTime);
+                                    setAgendarOpen(true);
+                                  }}
+                                >
+                                  <CalendarPlus className="h-3.5 w-3.5" />
+                                  Agendar
                                 </Button>
-                                <fetcher.Form method="post" className="inline">
-                                  <input type="hidden" name="_intent" value={INTENT_DELETE} />
-                                  <input type="hidden" name="appointmentId" value={row.appointment.id} />
-                                  <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    Eliminar
-                                  </Button>
-                                </fetcher.Form>
                               </div>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="gap-1 h-9 shrink-0"
-                              onClick={() => {
-                                setAgendarDoctorId(doctorId || rows[0]?.doctor?.id || doctors[0]?.id || "");
-                                setAgendarDate(date);
-                                setAgendarTime(slotTime);
-                                setAgendarOpen(true);
-                              }}
-                            >
-                              <CalendarPlus className="h-4 w-4" />
-                              Agendar
-                            </Button>
+                            ) : (
+                              rows.map((row, rowIndex) => (
+                                <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap w-full">
+                                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  {row.patient ? (
+                                    <Link
+                                      to={PATHS.historiaClinicaPaciente(row.patient.id)}
+                                      className="font-medium text-primary underline-offset-4 hover:underline"
+                                    >
+                                      {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
+                                    </Link>
+                                  ) : (
+                                    <span className="font-medium">—</span>
+                                  )}
+                                  <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
+                                  <span className="flex-1 min-w-2" aria-hidden />
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
+                                      <Pencil className="h-3.5 w-3.5" />
+                                      Editar
+                                    </Button>
+                                    <fetcher.Form method="post" className="inline">
+                                      <input type="hidden" name="_intent" value={INTENT_DELETE} />
+                                      <input type="hidden" name="appointmentId" value={row.appointment.id} />
+                                      <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Eliminar
+                                      </Button>
+                                    </fetcher.Form>
+                                    {rowIndex === rows.length - 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 gap-1"
+                                        onClick={() => {
+                                          setAgendarDoctorId(doctorId || rows[0]?.doctor?.id || doctors[0]?.id || "");
+                                          setAgendarDate(date);
+                                          setAgendarTime(slotTime);
+                                          setAgendarOpen(true);
+                                        }}
+                                      >
+                                        <CalendarPlus className="h-3.5 w-3.5" />
+                                        Agendar
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
                       );
@@ -918,49 +943,74 @@ export default function AgendaPage() {
                   >
                     <div className="w-16 shrink-0 font-medium text-muted-foreground pt-0.5">{slotTime}</div>
                     <div className="flex-1 min-w-0 flex flex-col gap-2">
-                      {rows.map((row) => (
-                        <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap">
-                          <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                          {row.patient ? (
-                            <Link
-                              to={PATHS.historiaClinicaPaciente(row.patient.id)}
-                              className="font-medium text-primary underline-offset-4 hover:underline"
-                            >
-                              {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
-                            </Link>
-                          ) : (
-                            <span className="font-medium">—</span>
-                          )}
-                          <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
-                          <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
-                            <Pencil className="h-3.5 w-3.5" />
-                            Editar
+                      {rows.length === 0 ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1"
+                            onClick={() => {
+                              setAgendarDoctorId(doctorId || doctors[0]?.id || "");
+                              setAgendarDate(date);
+                              setAgendarTime(slotTime);
+                              setAgendarOpen(true);
+                            }}
+                          >
+                            <CalendarPlus className="h-3.5 w-3.5" />
+                            Agendar
                           </Button>
-                          <fetcher.Form method="post" className="inline">
-                            <input type="hidden" name="_intent" value={INTENT_DELETE} />
-                            <input type="hidden" name="appointmentId" value={row.appointment.id} />
-                            <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Eliminar
-                            </Button>
-                          </fetcher.Form>
                         </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-1 h-9 shrink-0"
-                        onClick={() => {
-                          setAgendarDoctorId(doctorId || rows[0]?.doctor?.id || doctors[0]?.id || "");
-                          setAgendarDate(date);
-                          setAgendarTime(slotTime);
-                          setAgendarOpen(true);
-                        }}
-                      >
-                        <CalendarPlus className="h-4 w-4" />
-                        Agendar
-                      </Button>
+                      ) : (
+                        rows.map((row, rowIndex) => (
+                          <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap w-full">
+                            <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                            {row.patient ? (
+                              <Link
+                                to={PATHS.historiaClinicaPaciente(row.patient.id)}
+                                className="font-medium text-primary underline-offset-4 hover:underline"
+                              >
+                                {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
+                              </Link>
+                            ) : (
+                              <span className="font-medium">—</span>
+                            )}
+                            <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
+                            <span className="flex-1 min-w-2" aria-hidden />
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
+                                <Pencil className="h-3.5 w-3.5" />
+                                Editar
+                              </Button>
+                              <fetcher.Form method="post" className="inline">
+                                <input type="hidden" name="_intent" value={INTENT_DELETE} />
+                                <input type="hidden" name="appointmentId" value={row.appointment.id} />
+                                <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive" disabled={fetcher.state !== "idle"}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Eliminar
+                                </Button>
+                              </fetcher.Form>
+                              {rowIndex === rows.length - 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 gap-1"
+                                  onClick={() => {
+                                    setAgendarDoctorId(doctorId || rows[0]?.doctor?.id || doctors[0]?.id || "");
+                                    setAgendarDate(date);
+                                    setAgendarTime(slotTime);
+                                    setAgendarOpen(true);
+                                  }}
+                                >
+                                  <CalendarPlus className="h-3.5 w-3.5" />
+                                  Agendar
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 );
