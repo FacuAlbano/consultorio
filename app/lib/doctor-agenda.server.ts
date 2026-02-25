@@ -131,10 +131,13 @@ export async function isDoctorUnavailableOnDate(doctorId: string, dateStr: strin
  */
 export async function getAvailableSlotsForDoctorAndDate(
   doctorId: string,
-  dateStr: string
+  dateStr: string,
+  skipUnavailableCheck = false
 ): Promise<string[]> {
-  const unavailable = await isDoctorUnavailableOnDate(doctorId, dateStr);
-  if (unavailable) return [];
+  if (!skipUnavailableCheck) {
+    const unavailable = await isDoctorUnavailableOnDate(doctorId, dateStr);
+    if (unavailable) return [];
+  }
   const dayOfWeek = getDayOfWeekFromDate(dateStr);
   const scheduleRows = await db
     .select({ startTime: doctorWeeklySchedule.startTime, endTime: doctorWeeklySchedule.endTime })
@@ -163,7 +166,7 @@ export async function getSlotsForDoctorAndDate(
   const { getSlotsFromGeneratedBlocksForDoctorAndDate } = await import("~/lib/generated-agenda.server");
   const fromBlocks = await getSlotsFromGeneratedBlocksForDoctorAndDate(doctorId, dateStr);
   if (fromBlocks.length > 0) return fromBlocks;
-  return getAvailableSlotsForDoctorAndDate(doctorId, dateStr);
+  return getAvailableSlotsForDoctorAndDate(doctorId, dateStr, true);
 }
 
 export function buildSlotsBetween(start: string, end: string, intervalMinutes: number): string[] {
