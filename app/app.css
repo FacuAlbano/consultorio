@@ -94,7 +94,7 @@ body {
   --accent-foreground: rgb(33, 37, 41);
   --destructive: #f46a6a;
   --border: #e9ecef;
-  --input: #ffffff;
+  --input: #F7F7FA;
   --input-border: #ced4da;
   --ring: #1976d2;
   --chart-1: #1976d2;
@@ -135,7 +135,7 @@ body {
   --accent-foreground: #a6b0cf;
   --destructive: #f46a6a;
   --border: #32394e;
-  --input: #2a3042;
+  --input: #222736;
   --input-border: #353d55;
   --ring: #1976d2;
   --chart-1: #1976d2;
@@ -167,16 +167,24 @@ body {
     @apply bg-background text-foreground;
     font-family: "Poppins", ui-sans-serif, system-ui, sans-serif,
       "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    /* Evitar zoom en inputs en iOS */
+    -webkit-text-size-adjust: 100%;
   }
-  /* Selects alineados al tema de la página (evitar fondo blanco del nativo) */
+  /* Selects alineados al tema de la página (mismo fondo que inputs) */
   select {
-    @apply h-9 w-full min-w-0 rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none;
+    @apply h-9 w-full min-w-0 rounded-md border border-input bg-input text-foreground px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none;
     @apply focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px];
     @apply disabled:pointer-events-none disabled:opacity-50;
     appearance: auto;
   }
   select option {
     @apply bg-background text-foreground;
+  }
+  /* Fondo uniforme de inputs: tema claro #F7F7FA, tema oscuro #222736 */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    background-color: var(--input) !important;
   }
 }
 

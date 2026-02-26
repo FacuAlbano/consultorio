@@ -83,7 +83,7 @@ export default function Index() {
   ];
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-4 md:p-8">
+    <div className="relative min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 pb-8">
       {/* Imagen de fondo con estetoscopio y elementos médicos */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/5">
         <div className="absolute inset-0 opacity-10">
@@ -103,10 +103,10 @@ export default function Index() {
       <div className="relative z-10 w-full max-w-6xl space-y-12">
         {/* Título principal */}
         <div className="text-center space-y-4">
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent drop-shadow-2xl">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent drop-shadow-2xl break-words">
             {userInfo.clinicName.toUpperCase()}
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground mt-4">
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground mt-3 md:mt-4 px-1">
             Sistema de Gestión de Consultorio Médico
           </p>
         </div>
