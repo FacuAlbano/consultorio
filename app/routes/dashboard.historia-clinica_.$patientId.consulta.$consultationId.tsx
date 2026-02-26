@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useLoaderData, useActionData, useNavigate, Link, Form } from "react-router";
+import { useLoaderData, useActionData, useSearchParams, useNavigate, Link, Form } from "react-router";
 import type { Route } from "./+types/dashboard.historia-clinica_.$patientId.consulta.$consultationId";
 import { requireAuth } from "~/lib/middleware";
 import { getPatientById } from "~/lib/patients.server";
@@ -23,9 +23,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { ArrowLeft, Plus, Trash2, FileDown, Printer } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import { ArrowLeft, Plus, Trash2, FileDown, Printer, CheckCircle } from "lucide-react";
 import { PATHS } from "~/lib/constants";
-import { formatDate } from "~/lib/utils";
+import { formatDate, calculateAge } from "~/lib/utils";
 import { isValidUUID } from "~/lib/utils";
 import { toast } from "sonner";
 
@@ -85,7 +93,16 @@ export async function action({ request, params }: Route.ActionArgs) {
       reason: (formData.get("reason") as string) || null,
       notes: (formData.get("notes") as string) || null,
     });
-    if (res.success && res.data) return { success: true, createdId: res.data.id, actionType: INTENTS.create };
+    if (res.success && res.data) {
+      const redirectToAgenda = formData.get("redirectToAgenda") === "1";
+      const payload: { success: true; createdId: string; actionType: string; redirectToAgenda?: boolean; returnDate?: string | null; returnView?: string | null } = { success: true, createdId: res.data.id, actionType: INTENTS.create };
+      if (redirectToAgenda) {
+        payload.redirectToAgenda = true;
+        payload.returnDate = formData.get("returnDate") as string | null;
+        payload.returnView = formData.get("returnView") as string | null;
+      }
+      return payload;
+    }
     return { success: false, error: res.error, actionType: INTENTS.create };
   }
 
@@ -96,7 +113,13 @@ export async function action({ request, params }: Route.ActionArgs) {
       reason: (formData.get("reason") as string) || null,
       notes: (formData.get("notes") as string) || null,
     });
-    return { ...res, actionType: INTENTS.update };
+    const payload = { ...res, actionType: INTENTS.update } as { success: boolean; error?: string; actionType: string; redirectToAgenda?: boolean; returnDate?: string | null; returnView?: string | null };
+    if (res.success && formData.get("redirectToAgenda") === "1") {
+      payload.redirectToAgenda = true;
+      payload.returnDate = formData.get("returnDate") as string | null;
+      payload.returnView = formData.get("returnView") as string | null;
+    }
+    return payload;
   }
 
   if (intent === INTENTS.delete && consultationId && consultationId !== "nueva") {
@@ -184,9 +207,18 @@ export default function ConsultaDetalle() {
     );
   }
 
+  const [searchParams] = useSearchParams();
+  const returnDate = searchParams.get("returnDate") ?? undefined;
+  const returnView = searchParams.get("returnView") ?? undefined;
+  const returnQuery = returnDate ? (returnView ? `?returnDate=${encodeURIComponent(returnDate)}&returnView=${encodeURIComponent(returnView)}` : `?returnDate=${encodeURIComponent(returnDate)}`) : "";
+
+  const [terminadoDialogOpen, setTerminadoDialogOpen] = React.useState(false);
+  const [saveAndExitPending, setSaveAndExitPending] = React.useState<{ returnDate: string; returnView?: string } | null>(null);
+  const consultaFormRef = React.useRef<HTMLFormElement>(null);
+
   const { patient, consultation, doctors, isNew } = loaderData;
   const consultationId = consultation?.consultation.id ?? "nueva";
-  const backUrl = PATHS.historiaClinicaPaciente(patient.id);
+  const backUrl = PATHS.historiaClinicaPaciente(patient.id) + (returnDate ? returnQuery : "");
 
   if (!isNew && !consultation) {
     return (
@@ -213,9 +245,15 @@ export default function ConsultaDetalle() {
   };
 
   React.useEffect(() => {
+    const data = actionData as { redirectToAgenda?: boolean; returnDate?: string | null; returnView?: string | null; createdId?: string; deleted?: boolean } | undefined;
+    if (data?.redirectToAgenda && data?.success && data?.returnDate) {
+      toast.success(data.createdId ? "Consulta creada correctamente" : "Cambios guardados");
+      navigate(PATHS.agendaWithDate(data.returnDate, data.returnView ?? undefined), { replace: true });
+      return;
+    }
     if (actionData && "createdId" in actionData && actionData.createdId) {
       toast.success("Consulta creada correctamente");
-      navigate(PATHS.historiaClinicaConsulta(patient.id, actionData.createdId), { replace: true });
+      navigate(PATHS.historiaClinicaConsulta(patient.id, actionData.createdId) + returnQuery, { replace: true });
       return;
     }
     if (actionData && "deleted" in actionData && actionData.deleted) {
@@ -233,7 +271,14 @@ export default function ConsultaDetalle() {
     } else if (actionData && actionData.success === false && actionData.error) {
       toast.error(actionData.error);
     }
-  }, [actionData, patient.id, backUrl, navigate]);
+  }, [actionData, patient.id, backUrl, navigate, returnQuery]);
+
+  React.useEffect(() => {
+    if (saveAndExitPending && consultaFormRef.current) {
+      consultaFormRef.current.requestSubmit();
+      setSaveAndExitPending(null);
+    }
+  }, [saveAndExitPending]);
 
   const actionTypeMessages: Record<string, string> = {
     [INTENTS.update]: "Consulta actualizada correctamente",
@@ -258,23 +303,103 @@ export default function ConsultaDetalle() {
     }
   }, [actionData]);
 
+  const PatientDataCard = () => (
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-base">Datos del paciente</CardTitle>
+      </CardHeader>
+      <CardContent className="py-2 pt-0">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+          <div>
+            <dt className="text-muted-foreground">Nombre</dt>
+            <dd className="font-medium">{patient.firstName} {patient.lastName}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Edad</dt>
+            <dd className="font-medium">{patient.birthDate ? `${calculateAge(patient.birthDate) ?? "—"} años` : "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Obra social</dt>
+            <dd className="font-medium">{patient.insuranceCompany ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Nº de afiliado</dt>
+            <dd className="font-medium">{patient.insuranceNumber ?? "—"}</dd>
+          </div>
+        </dl>
+      </CardContent>
+    </Card>
+  );
+
   if (isNew) {
     return (
       <div className="space-y-6 p-4 sm:p-6">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label="Volver">
-            <Link to={backUrl}><ArrowLeft className="h-5 w-5" /></Link>
-          </Button>
-          <h1 className="text-xl sm:text-2xl font-bold">Nueva consulta</h1>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label="Volver">
+              <Link to={backUrl}><ArrowLeft className="h-5 w-5" /></Link>
+            </Button>
+            <h1 className="text-xl sm:text-2xl font-bold">Nueva consulta</h1>
+          </div>
+          {returnDate && (
+            <>
+              <Button type="button" className="gap-2 bg-primary" onClick={() => setTerminadoDialogOpen(true)}>
+                <CheckCircle className="h-4 w-4" />
+                Terminado
+              </Button>
+              <Dialog open={terminadoDialogOpen} onOpenChange={setTerminadoDialogOpen}>
+                <DialogContent showCloseButton={false} className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>¿Salir sin guardar?</DialogTitle>
+                    <DialogDescription>
+                      Tiene cambios sin guardar. ¿Desea guardar antes de volver a la agenda?
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <Button type="button" variant="outline" onClick={() => setTerminadoDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setTerminadoDialogOpen(false);
+                        navigate(PATHS.agendaWithDate(returnDate, returnView));
+                      }}
+                    >
+                      Salir sin guardar
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setTerminadoDialogOpen(false);
+                        setSaveAndExitPending({ returnDate, returnView });
+                      }}
+                    >
+                      Guardar y salir
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </div>
+        <PatientDataCard />
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Datos de la consulta</CardTitle>
-            <p className="text-muted-foreground text-sm">{patient.firstName} {patient.lastName}</p>
           </CardHeader>
           <CardContent>
-            <Form method="post" className="space-y-4">
+            <Form method="post" className="space-y-4" ref={consultaFormRef}>
               <input type="hidden" name="_intent" value={INTENTS.create} />
+              {saveAndExitPending && (
+                <>
+                  <input type="hidden" name="redirectToAgenda" value="1" />
+                  <input type="hidden" name="returnDate" value={saveAndExitPending.returnDate} />
+                  <input type="hidden" name="returnView" value={saveAndExitPending.returnView ?? ""} />
+                </>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="consultationDate">Fecha</Label>
@@ -324,6 +449,49 @@ export default function ConsultaDetalle() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {returnDate && (
+            <>
+              <Button type="button" className="gap-2 bg-primary" onClick={() => setTerminadoDialogOpen(true)}>
+                <CheckCircle className="h-4 w-4" />
+                Terminado
+              </Button>
+              <Dialog open={terminadoDialogOpen} onOpenChange={setTerminadoDialogOpen}>
+                <DialogContent showCloseButton={false} className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>¿Salir sin guardar?</DialogTitle>
+                    <DialogDescription>
+                      Tiene cambios sin guardar. ¿Desea guardar antes de volver a la agenda?
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <Button type="button" variant="outline" onClick={() => setTerminadoDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setTerminadoDialogOpen(false);
+                        navigate(PATHS.agendaWithDate(returnDate, returnView));
+                      }}
+                    >
+                      Salir sin guardar
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setTerminadoDialogOpen(false);
+                        setSaveAndExitPending({ returnDate, returnView });
+                      }}
+                    >
+                      Guardar y salir
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
           <Button asChild variant="outline" size="sm" className="gap-1">
             <a href={PATHS.historiaClinicaConsultaPdf(patient.id, c.consultation.id)} download>
               <FileDown className="h-4 w-4" />
@@ -344,13 +512,22 @@ export default function ConsultaDetalle() {
         </div>
       </div>
 
+      <PatientDataCard />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Datos de la consulta</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="space-y-4">
+          <Form method="post" className="space-y-4" ref={consultaFormRef}>
             <input type="hidden" name="_intent" value={INTENTS.update} />
+            {saveAndExitPending && (
+              <>
+                <input type="hidden" name="redirectToAgenda" value="1" />
+                <input type="hidden" name="returnDate" value={saveAndExitPending.returnDate} />
+                <input type="hidden" name="returnView" value={saveAndExitPending.returnView ?? ""} />
+              </>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="consultationDate">Fecha</Label>

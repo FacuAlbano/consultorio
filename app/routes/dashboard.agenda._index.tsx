@@ -800,7 +800,7 @@ export default function AgendaPage() {
                                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                                   {row.patient ? (
                                     <Link
-                                      to={PATHS.historiaClinicaPaciente(row.patient.id)}
+                                      to={PATHS.historiaClinicaPaciente(row.patient.id, { returnDate: date, returnView: "mes" })}
                                       className="font-medium text-primary underline-offset-4 hover:underline"
                                     >
                                       {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
@@ -967,7 +967,7 @@ export default function AgendaPage() {
                             <User className="h-4 w-4 text-muted-foreground shrink-0" />
                             {row.patient ? (
                               <Link
-                                to={PATHS.historiaClinicaPaciente(row.patient.id)}
+                                to={PATHS.historiaClinicaPaciente(row.patient.id, { returnDate: date, returnView: "dia" })}
                                 className="font-medium text-primary underline-offset-4 hover:underline"
                               >
                                 {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}

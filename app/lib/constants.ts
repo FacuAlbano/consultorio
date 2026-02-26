@@ -12,6 +12,9 @@ export const PATHS = {
   atenderSinTurno: "/dashboard/atender-sin-turno",
   /** Vista agenda: turnos, calendario y agendar */
   agenda: "/dashboard/agenda",
+  /** Agenda con fecha (y vista) para volver desde historia clínica */
+  agendaWithDate: (date: string, view?: string) =>
+    view ? `/dashboard/agenda?date=${encodeURIComponent(date)}&view=${encodeURIComponent(view)}` : `/dashboard/agenda?date=${encodeURIComponent(date)}`,
   /** Editar agenda del médico: días y horarios de trabajo, intervalo de turnos */
   agendaEditar: "/dashboard/agenda/editar",
   /** Crear Agenda Propia: generar agenda por rango de fechas, mañana/tarde */
@@ -35,7 +38,13 @@ export const PATHS = {
   listadosTurnosAnulados: "/dashboard/listados/turnos-anulados",
   // Historia Clínica (Etapa 6)
   historiaClinica: "/dashboard/historia-clinica",
-  historiaClinicaPaciente: (patientId: string) => `/dashboard/historia-clinica/${patientId}`,
+  historiaClinicaPaciente: (patientId: string, search?: { returnDate?: string; returnView?: string }) => {
+    const base = `/dashboard/historia-clinica/${patientId}`;
+    if (!search?.returnDate) return base;
+    const p = new URLSearchParams({ returnDate: search.returnDate });
+    if (search.returnView) p.set("returnView", search.returnView);
+    return `${base}?${p.toString()}`;
+  },
   historiaClinicaConsulta: (patientId: string, consultationId: string) =>
     `/dashboard/historia-clinica/${patientId}/consulta/${consultationId}`,
   historiaClinicaConsultaPdf: (patientId: string, consultationId: string) =>

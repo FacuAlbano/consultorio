@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useLoaderData, Link, useFetcher, useNavigate } from "react-router";
+import { useLoaderData, useSearchParams, Link, useFetcher, useNavigate } from "react-router";
 import type { Route } from "./+types/dashboard.historia-clinica.$patientId";
 import { requireAuth } from "~/lib/middleware";
 import { getPatientById } from "~/lib/patients.server";
@@ -10,9 +10,9 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
-import { ArrowLeft, FileText, Plus, Stethoscope, Calendar, Loader2, FileDown } from "lucide-react";
+import { ArrowLeft, FileText, Plus, Stethoscope, Calendar, Loader2, FileDown, CheckCircle } from "lucide-react";
 import { PATHS } from "~/lib/constants";
-import { formatDate } from "~/lib/utils";
+import { formatDate, calculateAge } from "~/lib/utils";
 import { isValidUUID } from "~/lib/utils";
 import { toast } from "sonner";
 
@@ -50,9 +50,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export default function HistoriaClinicaPaciente() {
   const loaderData = useLoaderData<typeof loader>();
+  const [searchParams] = useSearchParams();
+  const returnDate = searchParams.get("returnDate") ?? undefined;
+  const returnView = searchParams.get("returnView") ?? undefined;
   const [nuevaConsultaOpen, setNuevaConsultaOpen] = React.useState(false);
   const fetcher = useFetcher<{ success?: boolean; createdId?: string; error?: string }>();
   const navigate = useNavigate();
+  const returnQuery = returnDate ? (returnView ? `?returnDate=${encodeURIComponent(returnDate)}&returnView=${encodeURIComponent(returnView)}` : `?returnDate=${encodeURIComponent(returnDate)}`) : "";
 
   if (!loaderData?.patient) {
     return (
@@ -73,7 +77,7 @@ export default function HistoriaClinicaPaciente() {
     if (data && "createdId" in data && data.createdId) {
       toast.success("Consulta creada correctamente");
       setNuevaConsultaOpen(false);
-      navigate(PATHS.historiaClinicaConsulta(patient.id, data.createdId));
+      navigate(PATHS.historiaClinicaConsulta(patient.id, data.createdId) + returnQuery);
     } else if (data && data.success === false && data.error) {
       toast.error(data.error);
     }
@@ -100,19 +104,54 @@ export default function HistoriaClinicaPaciente() {
             </p>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
+          {returnDate && (
+            <Button asChild className="gap-2 bg-primary">
+              <Link to={PATHS.agendaWithDate(returnDate, returnView)}>
+                <CheckCircle className="h-4 w-4" />
+                Terminado
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline" className="gap-2">
             <Link to={PATHS.historiaClinicaPacientePdf(patient.id)} target="_blank" rel="noopener noreferrer">
               <FileDown className="h-4 w-4" />
               Exportar a PDF
             </Link>
           </Button>
-          <Button className="gap-2" onClick={() => setNuevaConsultaOpen(true)}>
+          <Button variant="outline" className="gap-2" onClick={() => setNuevaConsultaOpen(true)}>
             <Plus className="h-4 w-4" />
             Nueva consulta
           </Button>
         </div>
       </div>
+
+      {/* Datos afiliatorios del paciente */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">Datos del paciente</CardTitle>
+        </CardHeader>
+        <CardContent className="py-2 pt-0">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+            <div>
+              <dt className="text-muted-foreground">Nombre</dt>
+              <dd className="font-medium">{patient.firstName} {patient.lastName}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Edad</dt>
+              <dd className="font-medium">{patient.birthDate ? `${calculateAge(patient.birthDate) ?? "—"} años` : "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Obra social</dt>
+              <dd className="font-medium">{patient.insuranceCompany ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Nº de afiliado</dt>
+              <dd className="font-medium">{patient.insuranceNumber ?? "—"}</dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
 
       <ResponsiveDialog
         open={nuevaConsultaOpen}
@@ -215,11 +254,11 @@ export default function HistoriaClinicaPaciente() {
                         role="button"
                         tabIndex={0}
                         className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
-                        onClick={() => navigate(PATHS.historiaClinicaConsulta(patient.id, consultation.id))}
+                        onClick={() => navigate(PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            navigate(PATHS.historiaClinicaConsulta(patient.id, consultation.id));
+                            navigate(PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery);
                           }
                         }}
                       >
@@ -240,7 +279,7 @@ export default function HistoriaClinicaPaciente() {
                         </td>
                         <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
                           <Button asChild variant="outline" size="sm">
-                            <Link to={PATHS.historiaClinicaConsulta(patient.id, consultation.id)}>
+                            <Link to={PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery}>
                               Ver
                             </Link>
                           </Button>
@@ -254,7 +293,7 @@ export default function HistoriaClinicaPaciente() {
                 {consultations.map(({ consultation, doctor, diagnoses }) => (
                   <Link
                     key={consultation.id}
-                    to={PATHS.historiaClinicaConsulta(patient.id, consultation.id)}
+                    to={PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery}
                     className="block rounded-lg border p-4 flex flex-col gap-2 hover:bg-muted/30 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2 text-sm">
