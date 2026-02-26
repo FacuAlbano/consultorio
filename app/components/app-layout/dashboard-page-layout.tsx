@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Outlet } from "react-router";
+import { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router";
 import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
 import { useMediaQuery } from "~/hooks/use-media-query";
@@ -17,6 +17,12 @@ interface DashboardPageLayoutProps {
 export function DashboardPageLayout({ userInfo }: DashboardPageLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useMediaQuery("(max-width: 1023px)"); // lg = 1024px
+  const location = useLocation();
+
+  // Cerrar drawer en móvil al navegar (p. ej. al tocar un Link del sidebar)
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [isMobile, location.pathname]);
 
   const handleSidebarToggle = () => {
     setSidebarOpen((prev) => !prev);
