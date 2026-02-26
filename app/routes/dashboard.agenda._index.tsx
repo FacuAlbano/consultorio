@@ -362,6 +362,21 @@ export default function AgendaPage() {
     setSearchParams(params, { replace: true });
   };
 
+  /** Parámetros para volver a la agenda desde historia clínica (misma fecha, vista y filtros) */
+  const agendaReturnSearch = React.useMemo(
+    () => ({
+      returnDate: date,
+      returnView: view === "dia" ? "dia" : "mes",
+      returnDateFrom: dateFrom || undefined,
+      returnDateTo: dateTo || undefined,
+      returnDoctorId: doctorId || undefined,
+      returnConsultingRoomId: consultingRoomId || undefined,
+      returnAppointmentTypeId: appointmentTypeId || undefined,
+      returnStatus: status || undefined,
+    }),
+    [date, view, dateFrom, dateTo, doctorId, consultingRoomId, appointmentTypeId, status]
+  );
+
   const appointmentsByTime = React.useMemo(() => {
     const map = new Map<string, (typeof appointments)[0][]>();
     for (const row of appointments) {
@@ -800,7 +815,7 @@ export default function AgendaPage() {
                                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                                   {row.patient ? (
                                     <Link
-                                      to={PATHS.historiaClinicaPaciente(row.patient.id, { returnDate: date, returnView: "mes" })}
+                                      to={PATHS.historiaClinicaPaciente(row.patient.id, agendaReturnSearch)}
                                       className="font-medium text-primary underline-offset-4 hover:underline"
                                     >
                                       {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
@@ -967,7 +982,7 @@ export default function AgendaPage() {
                             <User className="h-4 w-4 text-muted-foreground shrink-0" />
                             {row.patient ? (
                               <Link
-                                to={PATHS.historiaClinicaPaciente(row.patient.id, { returnDate: date, returnView: "dia" })}
+                                to={PATHS.historiaClinicaPaciente(row.patient.id, agendaReturnSearch)}
                                 className="font-medium text-primary underline-offset-4 hover:underline"
                               >
                                 {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}

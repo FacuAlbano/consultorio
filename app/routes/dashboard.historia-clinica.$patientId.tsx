@@ -53,10 +53,37 @@ export default function HistoriaClinicaPaciente() {
   const [searchParams] = useSearchParams();
   const returnDate = searchParams.get("returnDate") ?? undefined;
   const returnView = searchParams.get("returnView") ?? undefined;
+  const returnDateFrom = searchParams.get("returnDateFrom") ?? undefined;
+  const returnDateTo = searchParams.get("returnDateTo") ?? undefined;
+  const returnDoctorId = searchParams.get("returnDoctorId") ?? undefined;
+  const returnConsultingRoomId = searchParams.get("returnConsultingRoomId") ?? undefined;
+  const returnAppointmentTypeId = searchParams.get("returnAppointmentTypeId") ?? undefined;
+  const returnStatus = searchParams.get("returnStatus") ?? undefined;
   const [nuevaConsultaOpen, setNuevaConsultaOpen] = React.useState(false);
   const fetcher = useFetcher<{ success?: boolean; createdId?: string; error?: string }>();
   const navigate = useNavigate();
-  const returnQuery = returnDate ? (returnView ? `?returnDate=${encodeURIComponent(returnDate)}&returnView=${encodeURIComponent(returnView)}` : `?returnDate=${encodeURIComponent(returnDate)}`) : "";
+  const returnQuery = React.useMemo(() => {
+    if (!returnDate) return "";
+    const p = new URLSearchParams({ returnDate });
+    if (returnView) p.set("returnView", returnView);
+    if (returnDateFrom) p.set("returnDateFrom", returnDateFrom);
+    if (returnDateTo) p.set("returnDateTo", returnDateTo);
+    if (returnDoctorId) p.set("returnDoctorId", returnDoctorId);
+    if (returnConsultingRoomId) p.set("returnConsultingRoomId", returnConsultingRoomId);
+    if (returnAppointmentTypeId) p.set("returnAppointmentTypeId", returnAppointmentTypeId);
+    if (returnStatus) p.set("returnStatus", returnStatus);
+    return `?${p.toString()}`;
+  }, [returnDate, returnView, returnDateFrom, returnDateTo, returnDoctorId, returnConsultingRoomId, returnAppointmentTypeId, returnStatus]);
+  const agendaReturnUrl = returnDate
+    ? PATHS.agendaReturnFilters(returnDate, returnView, {
+        dateFrom: returnDateFrom,
+        dateTo: returnDateTo,
+        doctorId: returnDoctorId,
+        consultingRoomId: returnConsultingRoomId,
+        appointmentTypeId: returnAppointmentTypeId,
+        status: returnStatus,
+      })
+    : "";
 
   if (!loaderData?.patient) {
     return (
@@ -105,9 +132,9 @@ export default function HistoriaClinicaPaciente() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
-          {returnDate && (
+          {agendaReturnUrl && (
             <Button asChild className="gap-2 bg-primary">
-              <Link to={PATHS.agendaWithDate(returnDate, returnView)}>
+              <Link to={agendaReturnUrl}>
                 <CheckCircle className="h-4 w-4" />
                 Terminado
               </Link>
