@@ -192,15 +192,19 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === INTENT_UPDATE) {
     const appointmentId = formData.get("appointmentId") as string;
     const estado = (formData.get("estado") as string) || "";
+    const appointmentTime = (formData.get("appointmentTime") as string)?.trim();
     if (!appointmentId) return { success: false as const, error: "ID de turno requerido" };
-    const updateData: { status?: string; isOverbooking?: boolean } = {};
+    const updateData: { status?: string; isOverbooking?: boolean; appointmentTime?: string } = {};
     if (estado === "attended") { updateData.status = "attended"; updateData.isOverbooking = false; }
     else if (estado === "cancelled") { updateData.status = "cancelled"; updateData.isOverbooking = false; }
     else if (estado === "no_show") { updateData.status = "no_show"; updateData.isOverbooking = false; }
     else if (estado === "en_lista") { updateData.status = "en_lista"; updateData.isOverbooking = false; }
     else if (estado === "sobre_turno") { updateData.status = "scheduled"; updateData.isOverbooking = true; }
     else if (estado === "scheduled") { updateData.status = "scheduled"; updateData.isOverbooking = false; }
-    if (Object.keys(updateData).length === 0) return { success: false as const, error: "Estado no válido" };
+    if (appointmentTime && appointmentTime.length >= 5) {
+      updateData.appointmentTime = appointmentTime.length === 5 ? `${appointmentTime}:00` : appointmentTime;
+    }
+    if (Object.keys(updateData).length === 0) return { success: false as const, error: "Estado o hora no válidos" };
     const result = await updateAppointment(appointmentId, updateData);
     if (!result.success) return { success: false, error: result.error };
     return { success: true as const, updated: true };
@@ -328,8 +332,9 @@ export default function AgendaPage() {
   const [patientSearch, setPatientSearch] = React.useState("");
   const [patientResults, setPatientResults] = React.useState<Array<{ id: string; label: string; documentNumber?: string }>>([]);
   const [selectedPatient, setSelectedPatient] = React.useState<{ id: string; label: string } | null>(null);
-  const [editAppointment, setEditAppointment] = React.useState<{ id: string; status: string; isOverbooking: boolean } | null>(null);
+  const [editAppointment, setEditAppointment] = React.useState<{ id: string; status: string; isOverbooking: boolean; appointmentTime: string } | null>(null);
   const [editEstado, setEditEstado] = React.useState<string>("scheduled");
+  const [editAppointmentTime, setEditAppointmentTime] = React.useState<string>("");
   const [createPatientOpen, setCreatePatientOpen] = React.useState(false);
   const [createPatientContext, setCreatePatientContext] = React.useState<"agendar" | "assign" | null>(null);
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -417,6 +422,24 @@ export default function AgendaPage() {
     return map;
   }, [listAppointments]);
 
+  /** Slots a mostrar en vista lista: slots del médico + horas que tienen turnos (ej. 8:10) */
+  const listDisplaySlots = React.useMemo(() => {
+    const base = slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS;
+    const fromAppointments = Array.from(listAppointmentsByTime.keys());
+    const combined = [...new Set([...base, ...fromAppointments])];
+    combined.sort();
+    return combined;
+  }, [slotsForDay, listAppointmentsByTime]);
+
+  /** Slots a mostrar en vista día: slots del médico + horas que tienen turnos */
+  const displaySlotsDia = React.useMemo(() => {
+    const base = slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS;
+    const fromAppointments = Array.from(appointmentsByTime.keys());
+    const combined = [...new Set([...base, ...fromAppointments])];
+    combined.sort();
+    return combined;
+  }, [slotsForDay, appointmentsByTime]);
+
   React.useEffect(() => {
     if (!patientSearch.trim() || patientSearch.length < 2) {
       setPatientResults([]);
@@ -451,6 +474,7 @@ export default function AgendaPage() {
                   ? "sobre_turno"
                   : "scheduled"
       );
+      setEditAppointmentTime(editAppointment.appointmentTime || "");
     }
   }, [editAppointment]);
 
@@ -782,7 +806,7 @@ export default function AgendaPage() {
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {(slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
+                    {listDisplaySlots.map((slotTime) => {
                       const rows = listAppointmentsByTime.get(slotTime) || [];
                       return (
                         <div
@@ -826,7 +850,7 @@ export default function AgendaPage() {
                                   <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
                                   <span className="flex-1 min-w-2" aria-hidden />
                                   <div className="flex items-center gap-2 shrink-0">
-                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
+                                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking, appointmentTime: normTime(row.appointment.appointmentTime) })}>
                                       <Pencil className="h-3.5 w-3.5" />
                                       Editar
                                     </Button>
@@ -949,7 +973,7 @@ export default function AgendaPage() {
               </p>
             ) : (
             <div className="space-y-2">
-              {(slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS).map((slotTime) => {
+              {displaySlotsDia.map((slotTime) => {
                 const rows = appointmentsByTime.get(slotTime) || [];
                 return (
                   <div
@@ -993,7 +1017,7 @@ export default function AgendaPage() {
                             <StatusBadge status={row.appointment.status} isOverbooking={row.appointment.isOverbooking} />
                             <span className="flex-1 min-w-2" aria-hidden />
                             <div className="flex items-center gap-2 shrink-0">
-                              <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking })}>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 gap-1" onClick={() => setEditAppointment({ id: row.appointment.id, status: row.appointment.status, isOverbooking: row.appointment.isOverbooking, appointmentTime: normTime(row.appointment.appointmentTime) })}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 Editar
                               </Button>
@@ -1079,18 +1103,33 @@ export default function AgendaPage() {
           </div>
           <div className="space-y-2">
             <Label>Hora *</Label>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            <Input
+              type="time"
+              className="flex h-9 w-full rounded-md border border-input px-3 py-1 text-sm"
               value={agendarTime}
               onChange={(e) => setAgendarTime(e.target.value)}
-            >
-              <option value="">Seleccionar hora</option>
-              {agendarSlots.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            />
+            {agendarSlots.length > 0 && (
+              <p className="text-xs text-muted-foreground">O elija un slot generado:</p>
+            )}
+            {agendarSlots.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {agendarSlots.map((s) => (
+                  <Button
+                    key={s}
+                    type="button"
+                    variant={agendarTime === s ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => setAgendarTime(s)}
+                  >
+                    {s}
+                  </Button>
+                ))}
+              </div>
+            )}
             {agendarDoctorId && agendarDate && agendarSlots.length === 0 && (
-              <p className="text-xs text-muted-foreground">Sin horarios para ese día. Configure la agenda del médico en Editar agenda.</p>
+              <p className="text-xs text-muted-foreground">Sin horarios para ese día. Puede escribir cualquier hora (ej. 8:10) o configurar la agenda del médico en Editar agenda.</p>
             )}
           </div>
           <div className="space-y-2">
@@ -1178,6 +1217,16 @@ export default function AgendaPage() {
           <fetcher.Form method="post" className="space-y-4">
             <input type="hidden" name="_intent" value={INTENT_UPDATE} />
             <input type="hidden" name="appointmentId" value={editAppointment.id} />
+            <input type="hidden" name="appointmentTime" value={editAppointmentTime} />
+            <div className="space-y-2">
+              <Label>Hora</Label>
+              <Input
+                type="time"
+                className="flex h-9 w-full rounded-md border border-input px-3 py-1 text-sm"
+                value={editAppointmentTime}
+                onChange={(e) => setEditAppointmentTime(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Estado</Label>
               <select

@@ -14,6 +14,7 @@ import { PatientSearchInput } from "~/components/patient-search/patient-search-i
 import { UserPlus, Stethoscope, Clock, User, Loader2, CheckCircle2, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { PATHS } from "~/lib/constants";
+import { isValidUUID } from "~/lib/utils";
 
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -81,16 +82,23 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (actionType === "createAppointment") {
     const patientId = formData.get("patientId") as string;
-    const doctorId = (formData.get("doctorId") as string) || undefined;
+    const doctorId = (formData.get("doctorId") as string)?.trim() || "";
     const appointmentDate = formData.get("appointmentDate") as string;
     const appointmentTime = formData.get("appointmentTime") as string;
     const notes = (formData.get("notes") as string) || undefined;
+
+    if (!patientId || !appointmentDate || !appointmentTime) {
+      return { success: false, error: "Paciente, fecha y hora son obligatorios" };
+    }
+    if (!doctorId || !isValidUUID(doctorId)) {
+      return { success: false, error: "Seleccione un médico para que el turno aparezca en la agenda al filtrar por médico." };
+    }
 
     const appointmentData = {
       patientId,
       doctorId,
       appointmentDate,
-      appointmentTime,
+      appointmentTime: appointmentTime.length === 5 ? `${appointmentTime}:00` : appointmentTime,
       notes,
       status: "scheduled" as const,
       isOverbooking: false,
@@ -106,7 +114,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     const consultationRes = await createConsultation({
       patientId,
-      doctorId: doctorId || null,
+      doctorId,
       appointmentId: result.data.id,
       consultationDate: appointmentDate,
       notes: notes || null,
@@ -419,13 +427,14 @@ export default function AtenderSinTurno() {
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     <Stethoscope className="h-4 w-4 inline mr-1" />
-                    Médico (Opcional)
+                    Médico *
                   </label>
                   <select
                     name="doctorId"
+                    required
                     className="w-full h-10 px-3 rounded-md border border-input bg-background text-foreground text-sm"
                   >
-                    <option value="">Sin asignar</option>
+                    <option value="">Seleccione un médico</option>
                     {doctors.map((doctor) => (
                       <option key={doctor.id} value={doctor.id}>
                         {doctor.firstName} {doctor.lastName}
