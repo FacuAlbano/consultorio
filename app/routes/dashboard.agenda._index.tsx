@@ -468,7 +468,7 @@ export default function AgendaPage() {
     const fromAppointments = Array.from(listAppointmentsByTime.keys());
     const combined = [...new Set([...base, ...fromAppointments])];
     combined.sort();
-    return excludedSlotsForDay.length > 0 ? combined.filter((s) => !excludedSlotsForDay.includes(s)) : combined;
+    return excludedSlotsForDay.length > 0 ? combined.filter((s) => !excludedSlotsForDay.includes(s) || listAppointmentsByTime.has(s)) : combined;
   }, [slotsForDay, listAppointmentsByTime, excludedSlotsForDay]);
 
   /** Slots a mostrar en vista día: slots del médico + horas que tienen turnos, menos los excluidos */
@@ -477,7 +477,7 @@ export default function AgendaPage() {
     const fromAppointments = Array.from(appointmentsByTime.keys());
     const combined = [...new Set([...base, ...fromAppointments])];
     combined.sort();
-    return excludedSlotsForDay.length > 0 ? combined.filter((s) => !excludedSlotsForDay.includes(s)) : combined;
+    return excludedSlotsForDay.length > 0 ? combined.filter((s) => !excludedSlotsForDay.includes(s) || appointmentsByTime.has(s)) : combined;
   }, [slotsForDay, appointmentsByTime, excludedSlotsForDay]);
 
   /** Slots disponibles en el modal Agendar: se ocultan los que el usuario excluyó para ese médico+fecha */
