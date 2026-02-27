@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker, type DayPickerProps, UI, DayFlag, SelectionState, useDayPicker } from "react-day-picker";
+import { es } from "react-day-picker/locale";
 
 import { cn } from "~/lib/utils";
 import { buttonVariants } from "~/components/ui/button";
@@ -64,6 +65,7 @@ function Calendar({
 }: CalendarProps) {
   return (
     <DayPicker
+      locale={es}
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{
