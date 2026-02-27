@@ -266,6 +266,7 @@ export default function ConsultaDetalle() {
     if (returnStatus) p.set("returnStatus", returnStatus);
     return `?${p.toString()}`;
   }, [returnDate, returnView, returnDateFrom, returnDateTo, returnDoctorId, returnConsultingRoomId, returnAppointmentTypeId, returnStatus]);
+  /** Siempre tener una URL a agenda: con filtros si vinimos desde agenda, si no agenda por defecto */
   const agendaReturnUrl = returnDate
     ? PATHS.agendaReturnFilters(returnDate, returnView, {
         dateFrom: returnDateFrom,
@@ -275,7 +276,7 @@ export default function ConsultaDetalle() {
         appointmentTypeId: returnAppointmentTypeId,
         status: returnStatus,
       })
-    : "";
+    : PATHS.agenda;
 
   const [terminadoDialogOpen, setTerminadoDialogOpen] = React.useState(false);
   const [saveAndExitPending, setSaveAndExitPending] = React.useState<{
@@ -332,16 +333,18 @@ export default function ConsultaDetalle() {
       createdId?: string;
       deleted?: boolean;
     } | undefined;
-    if (data?.redirectToAgenda && data?.success && data?.returnDate) {
+    if (data?.redirectToAgenda && data?.success) {
       toast.success(data.createdId ? "Consulta creada correctamente" : "Cambios guardados");
-      const url = PATHS.agendaReturnFilters(data.returnDate, data.returnView ?? undefined, {
-        dateFrom: data.returnDateFrom ?? undefined,
-        dateTo: data.returnDateTo ?? undefined,
-        doctorId: data.returnDoctorId ?? undefined,
-        consultingRoomId: data.returnConsultingRoomId ?? undefined,
-        appointmentTypeId: data.returnAppointmentTypeId ?? undefined,
-        status: data.returnStatus ?? undefined,
-      });
+      const url = data.returnDate
+        ? PATHS.agendaReturnFilters(data.returnDate, data.returnView ?? undefined, {
+            dateFrom: data.returnDateFrom ?? undefined,
+            dateTo: data.returnDateTo ?? undefined,
+            doctorId: data.returnDoctorId ?? undefined,
+            consultingRoomId: data.returnConsultingRoomId ?? undefined,
+            appointmentTypeId: data.returnAppointmentTypeId ?? undefined,
+            status: data.returnStatus ?? undefined,
+          })
+        : PATHS.agenda;
       navigate(url, { replace: true });
       return;
     }
@@ -435,8 +438,7 @@ export default function ConsultaDetalle() {
             </Button>
             <h1 className="text-xl sm:text-2xl font-bold">Nueva consulta</h1>
           </div>
-          {agendaReturnUrl && (
-            <>
+          <>
               <Button type="button" className="gap-2 bg-primary" onClick={() => setTerminadoDialogOpen(true)}>
                 <CheckCircle className="h-4 w-4" />
                 Terminado
@@ -486,7 +488,6 @@ export default function ConsultaDetalle() {
                 </DialogContent>
               </Dialog>
             </>
-          )}
         </div>
         <PatientDataCard />
         <Card>
@@ -558,7 +559,6 @@ export default function ConsultaDetalle() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {agendaReturnUrl && (
             <>
               <Button type="button" className="gap-2 bg-primary" onClick={() => setTerminadoDialogOpen(true)}>
                 <CheckCircle className="h-4 w-4" />
@@ -609,7 +609,6 @@ export default function ConsultaDetalle() {
                 </DialogContent>
               </Dialog>
             </>
-          )}
           <Button asChild variant="outline" size="sm" className="gap-1">
             <a href={PATHS.historiaClinicaConsultaPdf(patient.id, c.consultation.id)} download>
               <FileDown className="h-4 w-4" />
