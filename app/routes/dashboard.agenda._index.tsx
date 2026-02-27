@@ -447,11 +447,12 @@ export default function AgendaPage() {
     return map;
   }, [listAppointments]);
 
-  const excludedSlotsKey = doctorId && date ? `${doctorId}|${date}` : "";
+  /** Clave para slots excluidos: médico+fecha, o solo fecha si no hay médico (vista Mes sin filtrar) */
+  const excludedSlotsKey = date ? `${doctorId || ""}|${date}` : "";
   const excludedSlotsForDay = excludedSlotsKey ? excludedSlotsMap[excludedSlotsKey] ?? [] : [];
 
   const excludeEmptySlot = React.useCallback((slotTime: string) => {
-    if (!excludedSlotsKey) return;
+    if (!date) return;
     setExcludedSlotsMap((prev) => {
       const list = prev[excludedSlotsKey] ?? [];
       if (list.includes(slotTime)) return prev;
