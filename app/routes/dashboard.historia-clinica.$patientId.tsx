@@ -74,6 +74,7 @@ export default function HistoriaClinicaPaciente() {
     if (returnStatus) p.set("returnStatus", returnStatus);
     return `?${p.toString()}`;
   }, [returnDate, returnView, returnDateFrom, returnDateTo, returnDoctorId, returnConsultingRoomId, returnAppointmentTypeId, returnStatus]);
+  /** Siempre tener una URL a agenda: con filtros si vinimos desde agenda, si no agenda por defecto */
   const agendaReturnUrl = returnDate
     ? PATHS.agendaReturnFilters(returnDate, returnView, {
         dateFrom: returnDateFrom,
@@ -83,7 +84,7 @@ export default function HistoriaClinicaPaciente() {
         appointmentTypeId: returnAppointmentTypeId,
         status: returnStatus,
       })
-    : "";
+    : PATHS.agenda;
 
   if (!loaderData?.patient) {
     return (
@@ -132,14 +133,12 @@ export default function HistoriaClinicaPaciente() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
-          {agendaReturnUrl && (
-            <Button asChild className="gap-2 bg-primary">
-              <Link to={agendaReturnUrl}>
-                <CheckCircle className="h-4 w-4" />
-                Terminado
-              </Link>
-            </Button>
-          )}
+          <Button asChild className="gap-2 bg-primary">
+            <Link to={agendaReturnUrl}>
+              <CheckCircle className="h-4 w-4" />
+              Terminado
+            </Link>
+          </Button>
           <Button asChild variant="outline" className="gap-2">
             <Link to={PATHS.historiaClinicaPacientePdf(patient.id)} target="_blank" rel="noopener noreferrer">
               <FileDown className="h-4 w-4" />

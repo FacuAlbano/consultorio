@@ -16,6 +16,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
+import { RegistrarPacienteFormFields } from "~/components/patient-form-create-fields";
 import { Search, Users, Plus, Loader2, UserPlus } from "lucide-react";
 import type { Patient } from "~/db/schema";
 
@@ -361,17 +362,17 @@ export function ListadoPacientes() {
         </CardContent>
       </Card>
 
-      <ResponsiveDialog open={createOpen} onOpenChange={setCreateOpen} title="Nuevo paciente" description="Complete los datos del paciente">
+      <ResponsiveDialog open={createOpen} onOpenChange={setCreateOpen} title="Registrar Nuevo Paciente" description="Complete los datos del paciente">
         <createFetcher.Form method="post" className="space-y-4">
           <input type="hidden" name="_intent" value={INTENTS.create} />
-          <PatientFormFields
+          <RegistrarPacienteFormFields
             defaultDocumentNumber={filterType === "document" ? initialQuery : undefined}
-            insuranceCompanies={insuranceCompanies.map((c) => ({ id: c.id, name: c.name }))}
+            className="space-y-4"
           />
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end pt-2">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
             <Button type="submit" disabled={createFetcher.state !== "idle"}>
-              {createFetcher.state !== "idle" ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : "Crear paciente"}
+              {createFetcher.state !== "idle" ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : "Crear Paciente"}
             </Button>
           </div>
           {createFetcher.data?.success === false && createFetcher.data?.error && (

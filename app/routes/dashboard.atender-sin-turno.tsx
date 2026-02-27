@@ -15,6 +15,7 @@ import { UserPlus, Stethoscope, Clock, User, Loader2, CheckCircle2, FileText } f
 import { useState, useEffect } from "react";
 import { PATHS } from "~/lib/constants";
 import { isValidUUID } from "~/lib/utils";
+import { RegistrarPacienteFormFields } from "~/components/patient-form-create-fields";
 
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -272,107 +273,7 @@ export default function AtenderSinTurno() {
             <CardContent>
               <Form method="post" className="space-y-4">
                 <input type="hidden" name="actionType" value="createPatient" />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Nombre *
-                    </label>
-                    <Input
-                      name="firstName"
-                      required
-                      placeholder="Nombre"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Apellido *
-                    </label>
-                    <Input
-                      name="lastName"
-                      required
-                      placeholder="Apellido"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Tipo Documento
-                    </label>
-                    <select
-                      name="documentType"
-                      defaultValue="DNI"
-                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-foreground text-sm"
-                    >
-                      <option value="DNI">DNI</option>
-                      <option value="LC">LC</option>
-                      <option value="LE">LE</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Número Documento *
-                    </label>
-                    <Input
-                      name="documentNumber"
-                      required
-                      placeholder="12345678"
-                      defaultValue={defaultDni}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Fecha de nacimiento
-                  </label>
-                  <Input name="birthDate" type="date" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Obra social
-                  </label>
-                  <Input
-                    name="insuranceCompany"
-                    placeholder="Opcional"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Número de afiliado
-                  </label>
-                  <Input
-                    name="insuranceNumber"
-                    placeholder="Opcional"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Teléfono
-                  </label>
-                  <Input
-                    name="phone"
-                    type="tel"
-                    placeholder="(011) 1234-5678"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Email
-                  </label>
-                  <Input
-                    type="email"
-                    name="email"
-                    placeholder="email@ejemplo.com"
-                  />
-                </div>
-
+                <RegistrarPacienteFormFields defaultDocumentNumber={defaultDni} className="space-y-4" />
                 <Button
                   type="submit"
                   className="w-full"

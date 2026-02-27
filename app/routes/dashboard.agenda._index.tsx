@@ -19,6 +19,7 @@ import { Calendar as CalendarIcon, Clock, Plus, Loader2, User, List, Settings, P
 import { Calendar } from "~/components/ui/calendar";
 import type { DayButtonProps } from "react-day-picker";
 import { PATHS } from "~/lib/constants";
+import { RegistrarPacienteFormFields } from "~/components/patient-form-create-fields";
 
 /**
  * Agenda de Turnos
@@ -41,6 +42,28 @@ function buildDefaultSlots(): string[] {
   return slots;
 }
 const DEFAULT_SLOTS = buildDefaultSlots();
+
+const STORAGE_KEY_EXCLUDED_SLOTS = "consultorio_agenda_excluded_slots";
+
+function getExcludedSlotsFromStorage(): Record<string, string[]> {
+  if (typeof sessionStorage === "undefined") return {};
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_EXCLUDED_SLOTS);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string[]>;
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveExcludedSlotsToStorage(data: Record<string, string[]>) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY_EXCLUDED_SLOTS, JSON.stringify(data));
+  } catch {
+    /* ignore */
+  }
+}
 
 /** Normaliza hora "HH:MM:SS" o "HH:MM" a "HH:MM" */
 function normTime(t: string): string {
@@ -337,6 +360,8 @@ export default function AgendaPage() {
   const [editAppointmentTime, setEditAppointmentTime] = React.useState<string>("");
   const [createPatientOpen, setCreatePatientOpen] = React.useState(false);
   const [createPatientContext, setCreatePatientContext] = React.useState<"agendar" | "assign" | null>(null);
+  /** Slots vacíos que el usuario eligió ocultar (por doctor+fecha), persistidos en sessionStorage */
+  const [excludedSlotsMap, setExcludedSlotsMap] = React.useState<Record<string, string[]>>(getExcludedSlotsFromStorage);
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const createPatientFetcher = useFetcher<typeof action>();
 
@@ -422,23 +447,46 @@ export default function AgendaPage() {
     return map;
   }, [listAppointments]);
 
-  /** Slots a mostrar en vista lista: slots del médico + horas que tienen turnos (ej. 8:10) */
+  /** Clave para slots excluidos: médico+fecha, o solo fecha si no hay médico (vista Mes sin filtrar) */
+  const excludedSlotsKey = date ? `${doctorId || ""}|${date}` : "";
+  const excludedSlotsForDay = excludedSlotsKey ? excludedSlotsMap[excludedSlotsKey] ?? [] : [];
+
+  const excludeEmptySlot = React.useCallback((slotTime: string) => {
+    if (!date) return;
+    setExcludedSlotsMap((prev) => {
+      const list = prev[excludedSlotsKey] ?? [];
+      if (list.includes(slotTime)) return prev;
+      const next = { ...prev, [excludedSlotsKey]: [...list, slotTime] };
+      saveExcludedSlotsToStorage(next);
+      return next;
+    });
+  }, [excludedSlotsKey]);
+
+  /** Slots a mostrar en vista lista: slots del médico + horas que tienen turnos, menos los excluidos */
   const listDisplaySlots = React.useMemo(() => {
     const base = slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS;
     const fromAppointments = Array.from(listAppointmentsByTime.keys());
     const combined = [...new Set([...base, ...fromAppointments])];
     combined.sort();
-    return combined;
-  }, [slotsForDay, listAppointmentsByTime]);
+    return excludedSlotsForDay.length > 0 ? combined.filter((s) => !excludedSlotsForDay.includes(s) || listAppointmentsByTime.has(s)) : combined;
+  }, [slotsForDay, listAppointmentsByTime, excludedSlotsForDay]);
 
-  /** Slots a mostrar en vista día: slots del médico + horas que tienen turnos */
+  /** Slots a mostrar en vista día: slots del médico + horas que tienen turnos, menos los excluidos */
   const displaySlotsDia = React.useMemo(() => {
     const base = slotsForDay.length > 0 ? slotsForDay : DEFAULT_SLOTS;
     const fromAppointments = Array.from(appointmentsByTime.keys());
     const combined = [...new Set([...base, ...fromAppointments])];
     combined.sort();
-    return combined;
-  }, [slotsForDay, appointmentsByTime]);
+    return excludedSlotsForDay.length > 0 ? combined.filter((s) => !excludedSlotsForDay.includes(s) || appointmentsByTime.has(s)) : combined;
+  }, [slotsForDay, appointmentsByTime, excludedSlotsForDay]);
+
+  /** Slots disponibles en el modal Agendar: se ocultan los que el usuario excluyó para ese médico+fecha */
+  const agendarSlotsFiltered = React.useMemo(() => {
+    const key = agendarDoctorId && agendarDate ? `${agendarDoctorId}|${agendarDate}` : "";
+    const excluded = key ? excludedSlotsMap[key] ?? [] : [];
+    if (excluded.length === 0) return agendarSlots;
+    return agendarSlots.filter((s) => !excluded.includes(s));
+  }, [agendarSlots, agendarDoctorId, agendarDate, excludedSlotsMap]);
 
   React.useEffect(() => {
     if (!patientSearch.trim() || patientSearch.length < 2) {
@@ -832,6 +880,17 @@ export default function AgendaPage() {
                                   <CalendarPlus className="h-3.5 w-3.5" />
                                   Agendar
                                 </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 gap-1 text-muted-foreground hover:text-destructive"
+                                  onClick={() => excludeEmptySlot(slotTime)}
+                                  title="Quitar este espacio vacío de la lista"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Eliminar slot
+                                </Button>
                               </div>
                             ) : (
                               rows.map((row, rowIndex) => (
@@ -982,25 +1041,36 @@ export default function AgendaPage() {
                   >
                     <div className="w-12 sm:w-16 shrink-0 font-medium text-muted-foreground text-sm sm:text-base pt-0.5">{slotTime}</div>
                     <div className="flex-1 min-w-0 flex flex-col gap-2">
-                      {rows.length === 0 ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-1"
-                            onClick={() => {
-                              setAgendarDoctorId(doctorId || doctors[0]?.id || "");
-                              setAgendarDate(date);
-                              setAgendarTime(slotTime);
-                              setAgendarOpen(true);
-                            }}
-                          >
-                            <CalendarPlus className="h-3.5 w-3.5" />
-                            Agendar
-                          </Button>
-                        </div>
-                      ) : (
+{rows.length === 0 ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1"
+                          onClick={() => {
+                            setAgendarDoctorId(doctorId || doctors[0]?.id || "");
+                            setAgendarDate(date);
+                            setAgendarTime(slotTime);
+                            setAgendarOpen(true);
+                          }}
+                        >
+                          <CalendarPlus className="h-3.5 w-3.5" />
+                          Agendar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1 text-muted-foreground hover:text-destructive"
+                          onClick={() => excludeEmptySlot(slotTime)}
+                          title="Quitar este espacio vacío de la lista"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Eliminar slot
+                        </Button>
+                      </div>
+                    ) : (
                         rows.map((row, rowIndex) => (
                           <div key={row.appointment.id} className="flex items-center gap-2 flex-wrap w-full">
                             <User className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1109,12 +1179,12 @@ export default function AgendaPage() {
               value={agendarTime}
               onChange={(e) => setAgendarTime(e.target.value)}
             />
-            {agendarSlots.length > 0 && (
+            {agendarSlotsFiltered.length > 0 && (
               <p className="text-xs text-muted-foreground">O elija un slot generado:</p>
             )}
-            {agendarSlots.length > 0 && (
+            {agendarSlotsFiltered.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {agendarSlots.map((s) => (
+                {agendarSlotsFiltered.map((s) => (
                   <Button
                     key={s}
                     type="button"
@@ -1128,7 +1198,7 @@ export default function AgendaPage() {
                 ))}
               </div>
             )}
-            {agendarDoctorId && agendarDate && agendarSlots.length === 0 && (
+            {agendarDoctorId && agendarDate && agendarSlotsFiltered.length === 0 && (
               <p className="text-xs text-muted-foreground">Sin horarios para ese día. Puede escribir cualquier hora (ej. 8:10) o configurar la agenda del médico en Editar agenda.</p>
             )}
           </div>
@@ -1374,60 +1444,12 @@ export default function AgendaPage() {
             setCreatePatientContext(null);
           }
         }}
-        title="Crear paciente"
+        title="Registrar Nuevo Paciente"
         description="Complete los datos del nuevo paciente. Se asignará al turno al guardar."
       >
         <CreatePatientForm method="post" className="space-y-4">
           <input type="hidden" name="_intent" value={INTENT_CREATE_PATIENT} />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cp-firstName">Nombre *</Label>
-              <Input id="cp-firstName" name="firstName" required placeholder="Nombre" className="h-9" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cp-lastName">Apellido *</Label>
-              <Input id="cp-lastName" name="lastName" required placeholder="Apellido" className="h-9" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cp-documentType">Tipo documento</Label>
-              <select
-                id="cp-documentType"
-                name="documentType"
-                defaultValue="DNI"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-              >
-                <option value="DNI">DNI</option>
-                <option value="LC">LC</option>
-                <option value="LE">LE</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cp-documentNumber">Número documento *</Label>
-              <Input id="cp-documentNumber" name="documentNumber" required placeholder="12345678" className="h-9" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cp-birthDate">Fecha de nacimiento</Label>
-            <Input id="cp-birthDate" name="birthDate" type="date" className="h-9" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cp-insuranceCompany">Obra social</Label>
-            <Input id="cp-insuranceCompany" name="insuranceCompany" placeholder="Opcional" className="h-9" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cp-insuranceNumber">Número de afiliado</Label>
-            <Input id="cp-insuranceNumber" name="insuranceNumber" placeholder="Opcional" className="h-9" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cp-phone">Teléfono</Label>
-            <Input id="cp-phone" name="phone" type="tel" placeholder="Opcional" className="h-9" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cp-email">Email</Label>
-            <Input id="cp-email" name="email" type="email" placeholder="Opcional" className="h-9" />
-          </div>
+          <RegistrarPacienteFormFields idPrefix="cp-" className="space-y-4" />
           {createPatientFetcher.data && (createPatientFetcher.data as { success?: boolean }).success === false && (createPatientFetcher.data as { error?: string }).error && (
             <p className="text-sm text-destructive">{(createPatientFetcher.data as { error: string }).error}</p>
           )}
@@ -1436,7 +1458,7 @@ export default function AgendaPage() {
               Cancelar
             </Button>
             <Button type="submit" disabled={createPatientFetcher.state !== "idle"}>
-              {createPatientFetcher.state !== "idle" ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : "Crear paciente"}
+              {createPatientFetcher.state !== "idle" ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : "Crear Paciente"}
             </Button>
           </div>
         </CreatePatientForm>

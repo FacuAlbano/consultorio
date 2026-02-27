@@ -278,11 +278,14 @@ export async function actionListado(request: Request, tipo: ListadoTipo) {
         }
         const existing = await getPatientByDocument(documentNumber);
         if (existing) return { success: false, error: "Ya existe un paciente con ese número de documento" };
+        const birthDateRaw = (formData.get("birthDate") as string)?.trim() || null;
+        const birthDate = birthDateRaw && birthDateRaw.length >= 10 ? birthDateRaw.slice(0, 10) : null;
         const result = await createPatient({
           firstName,
           lastName,
           documentNumber,
           documentType,
+          birthDate,
           phone: (formData.get("phone") as string)?.trim() || null,
           email: (formData.get("email") as string)?.trim() || null,
           medicalRecordNumber: (formData.get("medicalRecordNumber") as string)?.trim() || null,
