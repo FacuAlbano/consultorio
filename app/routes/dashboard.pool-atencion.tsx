@@ -2,8 +2,9 @@ import { useLoaderData, useSearchParams, Form, Link, redirect, useActionData } f
 import type { Route } from "./+types/dashboard.pool-atencion";
 import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
-import { getAppointments, markAppointmentAsAttended } from "~/lib/appointments.server";
+import { getAppointments, markAppointmentAsAttended, updateAppointment } from "~/lib/appointments.server";
 import { getAllDoctors } from "~/lib/doctors.server";
+import { getConsultationIdsByAppointmentIds } from "~/lib/medical-records.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -12,6 +13,7 @@ import { Calendar, Clock, User, Stethoscope, Search, Filter } from "lucide-react
 import { useState, useEffect } from "react";
 import { PATHS } from "~/lib/constants";
 import { toast } from "sonner";
+import { cn } from "~/lib/utils";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { tokenType } = await requireAuth(request);
@@ -33,10 +35,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Obtener lista de médicos para el filtro
   const doctors = await getAllDoctors({ limit: 100 });
 
+  // Para cada turno, saber si ya tiene consulta (así "Historia clínica" abre esa consulta)
+  const appointmentIds = appointmentsData.map((a) => a.appointment.id);
+  const consultationIdsByAppointmentId = await getConsultationIdsByAppointmentIds(appointmentIds);
+
   return {
     userInfo,
     appointments: appointmentsData,
     doctors,
+    consultationIdsByAppointmentId,
     filters: {
       date,
       doctorId: doctorId || null,
@@ -44,10 +51,50 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
+/** Valores que puede enviar el select de estado (igual que en Agenda) */
+const ESTADO_VALUES = ["scheduled", "en_lista", "attended", "cancelled", "no_show", "sobre_turno"] as const;
+
+/** Opciones de estado: idénticas a Agenda (mismo orden, mismos labels, mismas clases) */
+const ESTADO_OPTIONS = [
+  { value: "scheduled", label: "En espera", badgeClass: "bg-sky-500/20 text-sky-800 dark:text-sky-200", selectClass: "bg-sky-500/20 border-sky-500/50 text-sky-800 dark:text-sky-200" },
+  { value: "en_lista", label: "En lista", badgeClass: "bg-yellow-500/20 text-yellow-800 dark:text-yellow-200", selectClass: "bg-yellow-500/20 border-yellow-500/50 text-yellow-800 dark:text-yellow-200" },
+  { value: "attended", label: "Atendido", badgeClass: "bg-green-600/20 text-green-700 dark:text-green-300", selectClass: "bg-green-600/20 border-green-600/50 text-green-800 dark:text-green-200" },
+  { value: "cancelled", label: "Cancelado", badgeClass: "bg-red-600/20 text-red-700 dark:text-red-300", selectClass: "bg-red-600/20 border-red-600/50 text-red-800 dark:text-red-200" },
+  { value: "no_show", label: "No asistió", badgeClass: "bg-rose-200 text-rose-900 dark:bg-rose-900/60 dark:text-rose-100", selectClass: "bg-rose-200 text-rose-900 border-rose-400 dark:bg-rose-900/60 dark:text-rose-100 dark:border-rose-700" },
+  { value: "sobre_turno", label: "Sobre turno", badgeClass: "bg-amber-500/20 text-amber-700 dark:text-amber-300", selectClass: "bg-amber-500/20 border-amber-500/50 text-amber-800 dark:text-amber-200" },
+] as const;
+
+/** Valor a mostrar en el select según status + isOverbooking (misma lógica que Agenda getEstadoDisplay) */
+function getEstadoSelectValue(status: string, isOverbooking?: boolean): string {
+  if (status === "cancelled") return "cancelled";
+  if (status === "attended") return "attended";
+  if (status === "no_show") return "no_show";
+  if (status === "en_lista") return "en_lista";
+  if (status === "scheduled" && isOverbooking) return "sobre_turno";
+  return "scheduled";
+}
+
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
   const formData = await request.formData();
-  if (formData.get("_intent") !== "atender") return null;
+  const intent = formData.get("_intent");
+
+  if (intent === "updateStatus") {
+    const appointmentId = formData.get("appointmentId") as string;
+    const estado = (formData.get("status") as string) || "";
+    if (!appointmentId || !ESTADO_VALUES.includes(estado as (typeof ESTADO_VALUES)[number])) {
+      return { success: false, error: "Datos inválidos" };
+    }
+    const updateData: { status: string; isOverbooking?: boolean } =
+      estado === "sobre_turno"
+        ? { status: "scheduled", isOverbooking: true }
+        : { status: estado, isOverbooking: false };
+    const result = await updateAppointment(appointmentId, updateData);
+    if (!result.success) return result;
+    return { success: true, statusUpdated: true };
+  }
+
+  if (intent !== "atender") return null;
   const appointmentId = formData.get("appointmentId") as string;
   const patientId = formData.get("patientId") as string;
   if (!appointmentId || !patientId) return { success: false, error: "Datos incompletos" };
@@ -57,13 +104,16 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function PoolAtencion() {
-  const { appointments, doctors, filters } = useLoaderData<typeof loader>();
+  const { appointments, doctors, consultationIdsByAppointmentId, filters } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    if (actionData?.success === false && actionData?.error) {
+    if (actionData && "error" in actionData && actionData.success === false && actionData.error) {
       toast.error(actionData.error);
+    }
+    if (actionData && "statusUpdated" in actionData && actionData.success === true && actionData.statusUpdated) {
+      toast.success("Estado actualizado");
     }
   }, [actionData]);
   const [selectedDate, setSelectedDate] = useState(filters.date);
@@ -102,22 +152,11 @@ export default function PoolAtencion() {
     return time.substring(0, 5); // HH:MM
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      scheduled: { label: "Programado", className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
-      attended: { label: "Atendido", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
-      cancelled: { label: "Cancelado", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
-      no_show: { label: "No asistió", className: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200" },
-    };
+  const getStatusSelectClass = (status: string) =>
+    ESTADO_OPTIONS.find((o) => o.value === status)?.selectClass ?? "border-input bg-transparent";
 
-    const statusInfo = statusMap[status] || { label: status, className: "bg-gray-100 text-gray-800" };
-
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusInfo.className}`}>
-        {statusInfo.label}
-      </span>
-    );
-  };
+  /** Params para que desde la consulta la flecha "atrás" vuelva al pool con los mismos filtros */
+  const poolReturnSearch = `returnTo=pool&returnDate=${encodeURIComponent(filters.date)}${filters.doctorId ? `&returnDoctorId=${encodeURIComponent(filters.doctorId)}` : ""}`;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -282,7 +321,25 @@ export default function PoolAtencion() {
                         </div>
                       </td>
                       <td className="p-3">
-                        {getStatusBadge(item.appointment.status)}
+                        <Form method="post" className="inline-block w-full max-w-[180px]">
+                          <input type="hidden" name="_intent" value="updateStatus" />
+                          <input type="hidden" name="appointmentId" value={item.appointment.id} />
+                          <select
+                            name="status"
+                            defaultValue={getEstadoSelectValue(item.appointment.status, item.appointment.isOverbooking)}
+                            onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                            className={cn(
+                              "flex h-10 w-full rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+                              getStatusSelectClass(getEstadoSelectValue(item.appointment.status, item.appointment.isOverbooking))
+                            )}
+                          >
+                            {ESTADO_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </Form>
                       </td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-2">
@@ -299,10 +356,22 @@ export default function PoolAtencion() {
                           {item.patient && (
                             <>
                               <Button asChild size="sm" variant="outline" className="text-xs">
-                                <Link to={PATHS.patientProfile(item.patient.id)}>Ver paciente</Link>
+                                <Link
+                                  to={`${PATHS.historiaClinicaConsulta(item.patient.id, "nueva")}?date=${encodeURIComponent(item.appointment.appointmentDate)}&appointmentId=${encodeURIComponent(item.appointment.id)}&${poolReturnSearch}`}
+                                >
+                                  Ver paciente
+                                </Link>
                               </Button>
                               <Button asChild size="sm" variant="ghost" className="text-xs">
-                                <Link to={PATHS.historiaClinicaPaciente(item.patient.id)}>Historia clínica</Link>
+                                <Link
+                                  to={
+                                    consultationIdsByAppointmentId[item.appointment.id]
+                                      ? `${PATHS.historiaClinicaConsulta(item.patient.id, consultationIdsByAppointmentId[item.appointment.id])}?${poolReturnSearch}`
+                                      : `${PATHS.historiaClinicaConsulta(item.patient.id, "nueva")}?date=${encodeURIComponent(item.appointment.appointmentDate)}&appointmentId=${encodeURIComponent(item.appointment.id)}&${poolReturnSearch}`
+                                  }
+                                >
+                                  Historia clínica
+                                </Link>
                               </Button>
                             </>
                           )}

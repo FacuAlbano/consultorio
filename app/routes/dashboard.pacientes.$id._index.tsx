@@ -1,11 +1,11 @@
-import { useLoaderData, Link, useNavigate } from "react-router";
+import { useLoaderData, Link, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/dashboard.pacientes.$id._index";
 import { getPatientById } from "~/lib/patients.server";
 import { requireAuth } from "~/lib/middleware";
 import { isValidUUID, calculateAge, formatDate } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { User, FileText, Phone, CreditCard, Calendar, MessageCircle, Pencil, ClipboardList, ArrowLeft } from "lucide-react";
+import { User, FileText, Phone, CreditCard, Calendar, MessageCircle, Pencil, ClipboardList, ArrowLeft, Edit3 } from "lucide-react";
 import { PATHS } from "~/lib/constants";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -32,7 +32,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export default function DashboardPatientProfileIndex() {
   const { patient } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const age = calculateAge(patient.birthDate);
+  const dateFromPool = searchParams.get("date") ?? undefined;
+  const appointmentIdFromPool = searchParams.get("appointmentId") ?? undefined;
+  const nuevaConsultaUrl =
+    PATHS.historiaClinicaConsulta(patient.id, "nueva") +
+    (dateFromPool ? `?date=${encodeURIComponent(dateFromPool)}` : "") +
+    (appointmentIdFromPool ? `${dateFromPool ? "&" : "?"}appointmentId=${encodeURIComponent(appointmentIdFromPool)}` : "");
 
   return (
     <div className="p-4 md:p-6 min-h-0 flex flex-col">
@@ -58,6 +65,11 @@ export default function DashboardPatientProfileIndex() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" className="gap-2">
+            <Link to={nuevaConsultaUrl}>
+              <Edit3 className="h-4 w-4" /> Escribir historia clínica
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link to={PATHS.historiaClinicaPaciente(patient.id)}>
               <ClipboardList className="h-4 w-4" /> Historia clínica

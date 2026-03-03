@@ -85,10 +85,12 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (!patientId || !isValidUUID(patientId)) return { success: false, error: "Paciente inválido", actionType: null };
 
   if (intent === INTENTS.create) {
+    const appointmentIdRaw = formData.get("appointmentId") as string | null;
+    const appointmentId = appointmentIdRaw && isValidUUID(appointmentIdRaw) ? appointmentIdRaw : null;
     const res = await createConsultation({
       patientId,
       doctorId: (formData.get("doctorId") as string) || null,
-      appointmentId: null,
+      appointmentId,
       consultationDate: (formData.get("consultationDate") as string) || new Date().toISOString().slice(0, 10),
       reason: (formData.get("reason") as string) || null,
       notes: (formData.get("notes") as string) || null,
@@ -246,6 +248,9 @@ export default function ConsultaDetalle() {
   }
 
   const [searchParams] = useSearchParams();
+  const defaultConsultationDate = searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  const appointmentIdFromUrl = searchParams.get("appointmentId") ?? undefined;
+  const returnTo = searchParams.get("returnTo") ?? undefined;
   const returnDate = searchParams.get("returnDate") ?? undefined;
   const returnView = searchParams.get("returnView") ?? undefined;
   const returnDateFrom = searchParams.get("returnDateFrom") ?? undefined;
@@ -280,7 +285,7 @@ export default function ConsultaDetalle() {
 
   const [terminadoDialogOpen, setTerminadoDialogOpen] = React.useState(false);
   const [saveAndExitPending, setSaveAndExitPending] = React.useState<{
-    returnDate: string;
+    returnDate?: string;
     returnView?: string;
     returnDateFrom?: string;
     returnDateTo?: string;
@@ -293,7 +298,10 @@ export default function ConsultaDetalle() {
 
   const { patient, consultation, doctors, isNew } = loaderData;
   const consultationId = consultation?.consultation.id ?? "nueva";
-  const backUrl = PATHS.historiaClinicaPaciente(patient.id) + (returnDate ? returnQuery : "");
+  const backUrl =
+    returnTo === "pool"
+      ? PATHS.poolAtencion + "?" + new URLSearchParams({ date: returnDate || new Date().toISOString().slice(0, 10), ...(returnDoctorId && { doctorId: returnDoctorId }) }).toString()
+      : PATHS.historiaClinicaPaciente(patient.id) + (returnDate ? returnQuery : "");
 
   if (!isNew && !consultation) {
     return (
@@ -321,6 +329,7 @@ export default function ConsultaDetalle() {
 
   React.useEffect(() => {
     const data = actionData as {
+      success?: boolean;
       redirectToAgenda?: boolean;
       returnDate?: string | null;
       returnView?: string | null;
@@ -497,10 +506,11 @@ export default function ConsultaDetalle() {
           <CardContent>
             <Form method="post" className="space-y-4" ref={consultaFormRef}>
               <input type="hidden" name="_intent" value={INTENTS.create} />
+              {appointmentIdFromUrl && <input type="hidden" name="appointmentId" value={appointmentIdFromUrl} />}
               {saveAndExitPending && (
                 <>
                   <input type="hidden" name="redirectToAgenda" value="1" />
-                  <input type="hidden" name="returnDate" value={saveAndExitPending.returnDate} />
+                  <input type="hidden" name="returnDate" value={saveAndExitPending.returnDate ?? ""} />
                   <input type="hidden" name="returnView" value={saveAndExitPending.returnView ?? ""} />
                   {saveAndExitPending.returnDateFrom && <input type="hidden" name="returnDateFrom" value={saveAndExitPending.returnDateFrom} />}
                   {saveAndExitPending.returnDateTo && <input type="hidden" name="returnDateTo" value={saveAndExitPending.returnDateTo} />}
@@ -513,7 +523,7 @@ export default function ConsultaDetalle() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="consultationDate">Fecha</Label>
-                  <Input id="consultationDate" name="consultationDate" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
+                  <Input id="consultationDate" name="consultationDate" type="date" required defaultValue={defaultConsultationDate} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="doctorId">Médico</Label>
@@ -641,7 +651,7 @@ export default function ConsultaDetalle() {
             {saveAndExitPending && (
               <>
                 <input type="hidden" name="redirectToAgenda" value="1" />
-                <input type="hidden" name="returnDate" value={saveAndExitPending.returnDate} />
+                <input type="hidden" name="returnDate" value={saveAndExitPending.returnDate ?? ""} />
                 <input type="hidden" name="returnView" value={saveAndExitPending.returnView ?? ""} />
                 {saveAndExitPending.returnDateFrom && <input type="hidden" name="returnDateFrom" value={saveAndExitPending.returnDateFrom} />}
                 {saveAndExitPending.returnDateTo && <input type="hidden" name="returnDateTo" value={saveAndExitPending.returnDateTo} />}
