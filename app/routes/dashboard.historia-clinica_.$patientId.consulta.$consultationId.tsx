@@ -102,6 +102,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         createdId: string;
         actionType: string;
         redirectToAgenda?: boolean;
+        returnTo?: string | null;
         returnDate?: string | null;
         returnView?: string | null;
         returnDateFrom?: string | null;
@@ -113,6 +114,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       } = { success: true, createdId: res.data.id, actionType: INTENTS.create };
       if (redirectToAgenda) {
         payload.redirectToAgenda = true;
+        payload.returnTo = formData.get("returnTo") as string | null;
         payload.returnDate = formData.get("returnDate") as string | null;
         payload.returnView = formData.get("returnView") as string | null;
         payload.returnDateFrom = formData.get("returnDateFrom") as string | null;
@@ -139,6 +141,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       error?: string;
       actionType: string;
       redirectToAgenda?: boolean;
+      returnTo?: string | null;
       returnDate?: string | null;
       returnView?: string | null;
       returnDateFrom?: string | null;
@@ -150,6 +153,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     };
     if (res.success && formData.get("redirectToAgenda") === "1") {
       payload.redirectToAgenda = true;
+      payload.returnTo = formData.get("returnTo") as string | null;
       payload.returnDate = formData.get("returnDate") as string | null;
       payload.returnView = formData.get("returnView") as string | null;
       payload.returnDateFrom = formData.get("returnDateFrom") as string | null;
@@ -262,6 +266,7 @@ export default function ConsultaDetalle() {
   const returnQuery = React.useMemo(() => {
     if (!returnDate) return "";
     const p = new URLSearchParams({ returnDate });
+    if (returnTo) p.set("returnTo", returnTo);
     if (returnView) p.set("returnView", returnView);
     if (returnDateFrom) p.set("returnDateFrom", returnDateFrom);
     if (returnDateTo) p.set("returnDateTo", returnDateTo);
@@ -270,21 +275,25 @@ export default function ConsultaDetalle() {
     if (returnAppointmentTypeId) p.set("returnAppointmentTypeId", returnAppointmentTypeId);
     if (returnStatus) p.set("returnStatus", returnStatus);
     return `?${p.toString()}`;
-  }, [returnDate, returnView, returnDateFrom, returnDateTo, returnDoctorId, returnConsultingRoomId, returnAppointmentTypeId, returnStatus]);
+  }, [returnTo, returnDate, returnView, returnDateFrom, returnDateTo, returnDoctorId, returnConsultingRoomId, returnAppointmentTypeId, returnStatus]);
   /** Siempre tener una URL a agenda: con filtros si vinimos desde agenda, si no agenda por defecto */
-  const agendaReturnUrl = returnDate
-    ? PATHS.agendaReturnFilters(returnDate, returnView, {
-        dateFrom: returnDateFrom,
-        dateTo: returnDateTo,
-        doctorId: returnDoctorId,
-        consultingRoomId: returnConsultingRoomId,
-        appointmentTypeId: returnAppointmentTypeId,
-        status: returnStatus,
-      })
-    : PATHS.agenda;
+  const agendaReturnUrl =
+    returnTo === "pool"
+      ? PATHS.poolAtencion + "?" + new URLSearchParams({ date: returnDate || new Date().toISOString().slice(0, 10), ...(returnDoctorId && { doctorId: returnDoctorId }) }).toString()
+      : returnDate
+        ? PATHS.agendaReturnFilters(returnDate, returnView, {
+            dateFrom: returnDateFrom,
+            dateTo: returnDateTo,
+            doctorId: returnDoctorId,
+            consultingRoomId: returnConsultingRoomId,
+            appointmentTypeId: returnAppointmentTypeId,
+            status: returnStatus,
+          })
+        : PATHS.agenda;
 
   const [terminadoDialogOpen, setTerminadoDialogOpen] = React.useState(false);
   const [saveAndExitPending, setSaveAndExitPending] = React.useState<{
+    returnTo?: string;
     returnDate?: string;
     returnView?: string;
     returnDateFrom?: string;
@@ -331,6 +340,7 @@ export default function ConsultaDetalle() {
     const data = actionData as {
       success?: boolean;
       redirectToAgenda?: boolean;
+      returnTo?: string | null;
       returnDate?: string | null;
       returnView?: string | null;
       returnDateFrom?: string | null;
@@ -344,16 +354,25 @@ export default function ConsultaDetalle() {
     } | undefined;
     if (data?.redirectToAgenda && data?.success) {
       toast.success(data.createdId ? "Consulta creada correctamente" : "Cambios guardados");
-      const url = data.returnDate
-        ? PATHS.agendaReturnFilters(data.returnDate, data.returnView ?? undefined, {
-            dateFrom: data.returnDateFrom ?? undefined,
-            dateTo: data.returnDateTo ?? undefined,
-            doctorId: data.returnDoctorId ?? undefined,
-            consultingRoomId: data.returnConsultingRoomId ?? undefined,
-            appointmentTypeId: data.returnAppointmentTypeId ?? undefined,
-            status: data.returnStatus ?? undefined,
-          })
-        : PATHS.agenda;
+      let url: string;
+      if (data.returnTo === "pool") {
+        const poolParams = new URLSearchParams({
+          date: data.returnDate || new Date().toISOString().slice(0, 10),
+          ...(data.returnDoctorId && { doctorId: data.returnDoctorId }),
+        });
+        url = PATHS.poolAtencion + "?" + poolParams.toString();
+      } else {
+        url = data.returnDate
+          ? PATHS.agendaReturnFilters(data.returnDate, data.returnView ?? undefined, {
+              dateFrom: data.returnDateFrom ?? undefined,
+              dateTo: data.returnDateTo ?? undefined,
+              doctorId: data.returnDoctorId ?? undefined,
+              consultingRoomId: data.returnConsultingRoomId ?? undefined,
+              appointmentTypeId: data.returnAppointmentTypeId ?? undefined,
+              status: data.returnStatus ?? undefined,
+            })
+          : PATHS.agenda;
+      }
       navigate(url, { replace: true });
       return;
     }
@@ -480,6 +499,7 @@ export default function ConsultaDetalle() {
                       onClick={() => {
                         setTerminadoDialogOpen(false);
                         setSaveAndExitPending({
+                          returnTo,
                           returnDate,
                           returnView,
                           returnDateFrom,
@@ -510,6 +530,7 @@ export default function ConsultaDetalle() {
               {saveAndExitPending && (
                 <>
                   <input type="hidden" name="redirectToAgenda" value="1" />
+                  {saveAndExitPending.returnTo && <input type="hidden" name="returnTo" value={saveAndExitPending.returnTo} />}
                   <input type="hidden" name="returnDate" value={saveAndExitPending.returnDate ?? ""} />
                   <input type="hidden" name="returnView" value={saveAndExitPending.returnView ?? ""} />
                   {saveAndExitPending.returnDateFrom && <input type="hidden" name="returnDateFrom" value={saveAndExitPending.returnDateFrom} />}
@@ -602,6 +623,7 @@ export default function ConsultaDetalle() {
                       onClick={() => {
                         setTerminadoDialogOpen(false);
                         setSaveAndExitPending({
+                          returnTo,
                           returnDate,
                           returnView,
                           returnDateFrom,
@@ -651,6 +673,7 @@ export default function ConsultaDetalle() {
             {saveAndExitPending && (
               <>
                 <input type="hidden" name="redirectToAgenda" value="1" />
+                {saveAndExitPending.returnTo && <input type="hidden" name="returnTo" value={saveAndExitPending.returnTo} />}
                 <input type="hidden" name="returnDate" value={saveAndExitPending.returnDate ?? ""} />
                 <input type="hidden" name="returnView" value={saveAndExitPending.returnView ?? ""} />
                 {saveAndExitPending.returnDateFrom && <input type="hidden" name="returnDateFrom" value={saveAndExitPending.returnDateFrom} />}
