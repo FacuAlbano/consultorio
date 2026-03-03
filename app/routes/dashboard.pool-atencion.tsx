@@ -326,6 +326,7 @@ export default function PoolAtencion() {
                           <input type="hidden" name="appointmentId" value={item.appointment.id} />
                           <select
                             name="status"
+                            key={`${item.appointment.id}-${item.appointment.status}-${item.appointment.isOverbooking}`}
                             defaultValue={getEstadoSelectValue(item.appointment.status, item.appointment.isOverbooking)}
                             onChange={(e) => e.currentTarget.form?.requestSubmit()}
                             className={cn(
