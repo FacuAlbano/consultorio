@@ -39,6 +39,29 @@ export async function getConsultationsByPatientId(options: GetConsultationsOptio
   return list;
 }
 
+/**
+ * Devuelve el id de consulta asociado a cada appointmentId (solo donde exista una consulta con ese turno).
+ * Útil para el pool de atención: saber si al abrir "Historia clínica" ir a la consulta existente o a nueva.
+ */
+export async function getConsultationIdsByAppointmentIds(appointmentIds: string[]): Promise<Record<string, string>> {
+  const validIds = appointmentIds.filter((id) => isValidUUID(id));
+  if (validIds.length === 0) return {};
+
+  const rows = await db
+    .select({
+      appointmentId: medicalConsultations.appointmentId,
+      id: medicalConsultations.id,
+    })
+    .from(medicalConsultations)
+    .where(inArray(medicalConsultations.appointmentId, validIds));
+
+  const map: Record<string, string> = {};
+  for (const row of rows) {
+    if (row.appointmentId) map[row.appointmentId] = row.id;
+  }
+  return map;
+}
+
 /** Diagnósticos por consulta (para listados). */
 export async function getDiagnosesByConsultationIds(consultationIds: string[]) {
   if (consultationIds.length === 0) return [];
