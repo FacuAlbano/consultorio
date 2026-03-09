@@ -10,10 +10,17 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { PatientSearchInput } from "~/components/patient-search/patient-search-input";
 import { Calendar, Clock, User, Stethoscope, Search, Filter } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PATHS } from "~/lib/constants";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { tokenType } = await requireAuth(request);
@@ -54,14 +61,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 /** Valores que puede enviar el select de estado (igual que en Agenda) */
 const ESTADO_VALUES = ["scheduled", "en_lista", "attended", "cancelled", "no_show", "sobre_turno"] as const;
 
-/** Opciones de estado: idénticas a Agenda (mismo orden, mismos labels, mismas clases) */
+/** Mismos colores y estilos que calendario (agenda): badgeClass + borde = selectClass de agenda */
 const ESTADO_OPTIONS = [
-  { value: "scheduled", label: "En espera", badgeClass: "bg-sky-500/20 text-sky-800 dark:text-sky-200", selectClass: "bg-sky-500/20 border-sky-500/50 text-sky-800 dark:text-sky-200" },
-  { value: "en_lista", label: "En lista", badgeClass: "bg-yellow-500/20 text-yellow-800 dark:text-yellow-200", selectClass: "bg-yellow-500/20 border-yellow-500/50 text-yellow-800 dark:text-yellow-200" },
-  { value: "attended", label: "Atendido", badgeClass: "bg-green-600/20 text-green-700 dark:text-green-300", selectClass: "bg-green-600/20 border-green-600/50 text-green-800 dark:text-green-200" },
-  { value: "cancelled", label: "Cancelado", badgeClass: "bg-red-600/20 text-red-700 dark:text-red-300", selectClass: "bg-red-600/20 border-red-600/50 text-red-800 dark:text-red-200" },
-  { value: "no_show", label: "No asistió", badgeClass: "bg-rose-200 text-rose-900 dark:bg-rose-900/60 dark:text-rose-100", selectClass: "bg-rose-200 text-rose-900 border-rose-400 dark:bg-rose-900/60 dark:text-rose-100 dark:border-rose-700" },
-  { value: "sobre_turno", label: "Sobre turno", badgeClass: "bg-amber-500/20 text-amber-700 dark:text-amber-300", selectClass: "bg-amber-500/20 border-amber-500/50 text-amber-800 dark:text-amber-200" },
+  { value: "scheduled", label: "En espera", pillClass: "bg-sky-500/20 border-sky-500/50 text-sky-800 dark:text-sky-200" },
+  { value: "en_lista", label: "En lista", pillClass: "bg-yellow-500/20 border-yellow-500/50 text-yellow-800 dark:text-yellow-200" },
+  { value: "attended", label: "Atendido", pillClass: "bg-green-600/20 border-green-600/50 text-green-800 dark:text-green-200" },
+  { value: "cancelled", label: "Cancelado", pillClass: "bg-red-600/20 border-red-600/50 text-red-800 dark:text-red-200" },
+  { value: "no_show", label: "No asistió", pillClass: "bg-rose-200 text-rose-900 border-rose-400 dark:bg-rose-900/60 dark:text-rose-100 dark:border-rose-700" },
+  { value: "sobre_turno", label: "Sobre turno", pillClass: "bg-amber-500/20 border-amber-500/50 text-amber-800 dark:text-amber-200" },
 ] as const;
 
 /** Valor a mostrar en el select según status + isOverbooking (misma lógica que Agenda getEstadoDisplay) */
@@ -118,6 +125,7 @@ export default function PoolAtencion() {
   }, [actionData]);
   const [selectedDate, setSelectedDate] = useState(filters.date);
   const [selectedDoctorId, setSelectedDoctorId] = useState(filters.doctorId || "");
+  const statusFormRefs = useRef<Record<string, HTMLFormElement | null>>({});
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
@@ -152,8 +160,8 @@ export default function PoolAtencion() {
     return time.substring(0, 5); // HH:MM
   };
 
-  const getStatusSelectClass = (status: string) =>
-    ESTADO_OPTIONS.find((o) => o.value === status)?.selectClass ?? "border-input bg-transparent";
+  const getStatusPillClass = (status: string) =>
+    ESTADO_OPTIONS.find((o) => o.value === status)?.pillClass ?? "bg-muted text-muted-foreground border border-border";
 
   /** Params para que desde la consulta la flecha "atrás" vuelva al pool con los mismos filtros */
   const poolReturnSearch = `returnTo=pool&returnDate=${encodeURIComponent(filters.date)}${filters.doctorId ? `&returnDoctorId=${encodeURIComponent(filters.doctorId)}` : ""}`;
@@ -321,25 +329,44 @@ export default function PoolAtencion() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <Form method="post" className="inline-block w-full max-w-[180px]">
+                        <Form
+                          method="post"
+                          className="inline-block"
+                          ref={(el) => {
+                            statusFormRefs.current[item.appointment.id] = el;
+                          }}
+                        >
                           <input type="hidden" name="_intent" value="updateStatus" />
                           <input type="hidden" name="appointmentId" value={item.appointment.id} />
-                          <select
-                            name="status"
+                          <input type="hidden" name="status" id={`status-${item.appointment.id}`} defaultValue={getEstadoSelectValue(item.appointment.status, item.appointment.isOverbooking)} />
+                          <Select
                             key={`${item.appointment.id}-${item.appointment.status}-${item.appointment.isOverbooking}`}
-                            defaultValue={getEstadoSelectValue(item.appointment.status, item.appointment.isOverbooking)}
-                            onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                            className={cn(
-                              "flex h-10 w-full rounded-md border px-3 py-2 text-sm font-medium transition-colors",
-                              getStatusSelectClass(getEstadoSelectValue(item.appointment.status, item.appointment.isOverbooking))
-                            )}
+                            value={getEstadoSelectValue(item.appointment.status, item.appointment.isOverbooking)}
+                            onValueChange={(v) => {
+                              const form = statusFormRefs.current[item.appointment.id];
+                              const input = form?.querySelector<HTMLInputElement>(`#status-${item.appointment.id}`);
+                              if (input && form) {
+                                input.value = v;
+                                form.requestSubmit();
+                              }
+                            }}
                           >
-                            {ESTADO_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger
+                              className={cn(
+                                "inline-flex w-auto min-w-[86px] rounded-full border px-3 py-1 text-xs font-medium shadow-none",
+                                getStatusPillClass(getEstadoSelectValue(item.appointment.status, item.appointment.isOverbooking))
+                              )}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ESTADO_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </Form>
                       </td>
                       <td className="p-3">
