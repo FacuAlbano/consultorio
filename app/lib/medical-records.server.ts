@@ -40,6 +40,30 @@ export async function getConsultationsByPatientId(options: GetConsultationsOptio
 }
 
 /**
+ * Devuelve la última consulta (por fecha) de cada paciente.
+ * Útil para pool: si el turno no tiene consulta vinculada, abrir la última del paciente.
+ */
+export async function getLatestConsultationIdByPatientIds(patientIds: string[]): Promise<Record<string, string>> {
+  const validIds = patientIds.filter((id) => isValidUUID(id));
+  if (validIds.length === 0) return {};
+
+  const rows = await db
+    .select({
+      patientId: medicalConsultations.patientId,
+      id: medicalConsultations.id,
+    })
+    .from(medicalConsultations)
+    .where(inArray(medicalConsultations.patientId, validIds))
+    .orderBy(desc(medicalConsultations.consultationDate));
+
+  const map: Record<string, string> = {};
+  for (const row of rows) {
+    if (row.patientId && !map[row.patientId]) map[row.patientId] = row.id;
+  }
+  return map;
+}
+
+/**
  * Devuelve el id de consulta asociado a cada appointmentId (solo donde exista una consulta con ese turno).
  * Útil para el pool de atención: saber si al abrir "Historia clínica" ir a la consulta existente o a nueva.
  */
