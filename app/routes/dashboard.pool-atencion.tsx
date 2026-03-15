@@ -383,7 +383,7 @@ export default function PoolAtencion() {
                       </td>
                       <td className="p-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          {item.appointment.status === "scheduled" && item.patient && (
+                          {(item.appointment.status === "scheduled" || item.appointment.status === "en_lista") && item.patient && (
                             <Form method="post" className="inline-flex">
                               <input type="hidden" name="_intent" value="atender" />
                               <input type="hidden" name="appointmentId" value={item.appointment.id} />

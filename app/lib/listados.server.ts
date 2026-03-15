@@ -49,7 +49,9 @@ export async function loadListado(request: Request, tipo: ListadoTipo) {
         getAppointments({ date: today, limit: 500 }),
         getPatientsCount(),
       ]);
-      const turnosProgramados = turnosHoy.filter((t) => t.appointment.status === "scheduled").length;
+      const turnosProgramados = turnosHoy.filter(
+        (t) => t.appointment.status === "scheduled" || t.appointment.status === "en_lista"
+      ).length;
       const turnosAtendidos = turnosHoy.filter((t) => t.appointment.status === "attended").length;
       const turnosCancelados = turnosHoy.filter((t) => t.appointment.status === "cancelled").length;
       const noAsistieron = turnosHoy.filter((t) => t.appointment.status === "no_show").length;
@@ -360,7 +362,7 @@ export async function actionListado(request: Request, tipo: ListadoTipo) {
           appointmentDate,
           appointmentTime: timeNormalized,
           notes,
-          status: "scheduled",
+          status: "en_lista",
           isOverbooking: false,
         });
         if (!result.success) return { success: false, error: result.error };
@@ -390,7 +392,7 @@ export async function actionListado(request: Request, tipo: ListadoTipo) {
           appointmentDate,
           appointmentTime,
           notes,
-          status: "scheduled",
+          status: "en_lista",
           isOverbooking: false,
         });
         if (!result.success) return { success: false, error: result.error };
