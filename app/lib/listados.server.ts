@@ -360,7 +360,7 @@ export async function actionListado(request: Request, tipo: ListadoTipo) {
           appointmentDate,
           appointmentTime: timeNormalized,
           notes,
-          status: "scheduled",
+          status: "en_lista",
           isOverbooking: false,
         });
         if (!result.success) return { success: false, error: result.error };
@@ -390,7 +390,7 @@ export async function actionListado(request: Request, tipo: ListadoTipo) {
           appointmentDate,
           appointmentTime,
           notes,
-          status: "scheduled",
+          status: "en_lista",
           isOverbooking: false,
         });
         if (!result.success) return { success: false, error: result.error };

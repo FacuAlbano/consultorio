@@ -256,7 +256,7 @@ export async function action({ request }: Route.ActionArgs) {
     appointmentDate,
     appointmentTime: appointmentTime.length === 5 ? `${appointmentTime}:00` : appointmentTime,
     notes,
-    status: "scheduled",
+    status: "en_lista",
     isOverbooking: !!isOverbooking,
   });
   if (!result.success) return { success: false, error: result.error };
