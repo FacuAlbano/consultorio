@@ -51,6 +51,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export default function HistoriaClinicaPaciente() {
   const loaderData = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo") ?? undefined;
   const returnDate = searchParams.get("returnDate") ?? undefined;
   const returnView = searchParams.get("returnView") ?? undefined;
   const returnDateFrom = searchParams.get("returnDateFrom") ?? undefined;
@@ -74,6 +75,11 @@ export default function HistoriaClinicaPaciente() {
     if (returnStatus) p.set("returnStatus", returnStatus);
     return `?${p.toString()}`;
   }, [returnDate, returnView, returnDateFrom, returnDateTo, returnDoctorId, returnConsultingRoomId, returnAppointmentTypeId, returnStatus]);
+  /** Si vinimos del pool, volver al pool con fecha y médico */
+  const poolReturnUrl =
+    returnTo === "pool" && returnDate
+      ? `${PATHS.poolAtencion}?returnTo=pool&returnDate=${encodeURIComponent(returnDate)}${returnDoctorId ? `&returnDoctorId=${encodeURIComponent(returnDoctorId)}` : ""}`
+      : null;
   /** Siempre tener una URL a agenda: con filtros si vinimos desde agenda, si no agenda por defecto */
   const agendaReturnUrl = returnDate
     ? PATHS.agendaReturnFilters(returnDate, returnView, {
@@ -119,7 +125,7 @@ export default function HistoriaClinicaPaciente() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label="Volver">
-            <Link to={PATHS.historiaClinica}>
+            <Link to={poolReturnUrl ?? PATHS.historiaClinica}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -134,7 +140,7 @@ export default function HistoriaClinicaPaciente() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
           <Button asChild className="gap-2 bg-primary">
-            <Link to={agendaReturnUrl}>
+            <Link to={poolReturnUrl ?? agendaReturnUrl}>
               <CheckCircle className="h-4 w-4" />
               Terminado
             </Link>
