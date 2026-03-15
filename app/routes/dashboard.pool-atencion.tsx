@@ -4,12 +4,12 @@ import { requireAuth } from "~/lib/middleware";
 import { getUserInfo } from "~/lib/user-info";
 import { getAppointments, markAppointmentAsAttended, updateAppointment } from "~/lib/appointments.server";
 import { getAllDoctors } from "~/lib/doctors.server";
-import { getConsultationIdsByAppointmentIds } from "~/lib/medical-records.server";
+import { getConsultationIdsByAppointmentIds, getLatestConsultationIdByPatientIds } from "~/lib/medical-records.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { PatientSearchInput } from "~/components/patient-search/patient-search-input";
-import { Calendar, Clock, User, Stethoscope, Search, Filter } from "lucide-react";
+import { Calendar, Clock, User, Stethoscope, Search, Filter, FileText, Plus, FolderOpen } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { PATHS } from "~/lib/constants";
 import { toast } from "sonner";
@@ -42,15 +42,18 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Obtener lista de médicos para el filtro
   const doctors = await getAllDoctors({ limit: 100 });
 
-  // Para cada turno, saber si ya tiene consulta (así "Historia clínica" abre esa consulta)
+  // Para cada turno: consulta vinculada al turno, o última consulta del paciente (para abrir algo al toque)
   const appointmentIds = appointmentsData.map((a) => a.appointment.id);
   const consultationIdsByAppointmentId = await getConsultationIdsByAppointmentIds(appointmentIds);
+  const patientIds = [...new Set(appointmentsData.map((a) => a.patient?.id).filter(Boolean) as string[])];
+  const latestConsultationIdByPatientId = await getLatestConsultationIdByPatientIds(patientIds);
 
   return {
     userInfo,
     appointments: appointmentsData,
     doctors,
     consultationIdsByAppointmentId,
+    latestConsultationIdByPatientId,
     filters: {
       date,
       doctorId: doctorId || null,
@@ -111,7 +114,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function PoolAtencion() {
-  const { appointments, doctors, consultationIdsByAppointmentId, filters } = useLoaderData<typeof loader>();
+  const { appointments, doctors, consultationIdsByAppointmentId, latestConsultationIdByPatientId, filters } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -325,7 +328,16 @@ export default function PoolAtencion() {
                       </td>
                       <td className="p-3">
                         <div className="font-medium">
-                          {item.patient?.firstName} {item.patient?.lastName}
+                          {item.patient ? (
+                            <Link
+                              to={`${PATHS.patientProfile(item.patient.id)}?date=${encodeURIComponent(item.appointment.appointmentDate)}&appointmentId=${encodeURIComponent(item.appointment.id)}&${poolReturnSearch}`}
+                              className="text-primary underline-offset-4 hover:underline"
+                            >
+                              {item.patient.firstName} {item.patient.lastName}
+                            </Link>
+                          ) : (
+                            "-"
+                          )}
                         </div>
                       </td>
                       <td className="p-3">
@@ -370,35 +382,65 @@ export default function PoolAtencion() {
                         </Form>
                       </td>
                       <td className="p-3">
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {(item.appointment.status === "scheduled" || item.appointment.status === "en_lista") && item.patient && (
-                            <Form method="post">
+                            <Form method="post" className="inline-flex">
                               <input type="hidden" name="_intent" value="atender" />
                               <input type="hidden" name="appointmentId" value={item.appointment.id} />
                               <input type="hidden" name="patientId" value={item.patient.id} />
-                              <Button type="submit" size="sm" variant="default" className="text-xs">
+                              <Button type="submit" size="sm" variant="default" className="min-w-[7.25rem] h-8 justify-center gap-1.5 text-xs">
+                                <Stethoscope className="h-3.5 w-3.5 shrink-0" />
                                 Atender
                               </Button>
                             </Form>
                           )}
                           {item.patient && (
                             <>
-                              <Button asChild size="sm" variant="outline" className="text-xs">
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="min-w-[7.25rem] h-8 justify-center gap-1.5 text-xs border-slate-500/50 bg-slate-500/5 hover:bg-slate-500/15 hover:border-slate-500/70"
+                                title="Ver listado de consultas del paciente"
+                              >
+                                <Link to={`${PATHS.historiaClinicaPaciente(item.patient.id)}?${poolReturnSearch}`}>
+                                  <FileText className="h-3.5 w-3.5 shrink-0" />
+                                  Historia clínica
+                                </Link>
+                              </Button>
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="min-w-[7.25rem] h-8 justify-center gap-1.5 text-xs border-emerald-500/50 bg-emerald-500/5 hover:bg-emerald-500/15 hover:border-emerald-500/70 text-emerald-700 dark:text-emerald-400"
+                                title="Ir a nueva consulta para escribir"
+                              >
                                 <Link
                                   to={`${PATHS.historiaClinicaConsulta(item.patient.id, "nueva")}?date=${encodeURIComponent(item.appointment.appointmentDate)}&appointmentId=${encodeURIComponent(item.appointment.id)}&${poolReturnSearch}`}
                                 >
-                                  Ver paciente
+                                  <Plus className="h-3.5 w-3.5 shrink-0" />
+                                  Nueva consulta
                                 </Link>
                               </Button>
-                              <Button asChild size="sm" variant="ghost" className="text-xs">
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="min-w-[7.25rem] h-8 justify-center gap-1.5 text-xs border-blue-500/50 bg-blue-500/5 hover:bg-blue-500/15 hover:border-blue-500/70 text-blue-700 dark:text-blue-400"
+                                title="Abrir la consulta del día o la última para ver o editar"
+                              >
                                 <Link
                                   to={
-                                    consultationIdsByAppointmentId[item.appointment.id]
-                                      ? `${PATHS.historiaClinicaConsulta(item.patient.id, consultationIdsByAppointmentId[item.appointment.id])}?${poolReturnSearch}`
-                                      : `${PATHS.historiaClinicaConsulta(item.patient.id, "nueva")}?date=${encodeURIComponent(item.appointment.appointmentDate)}&appointmentId=${encodeURIComponent(item.appointment.id)}&${poolReturnSearch}`
+                                    (() => {
+                                      const consultId = consultationIdsByAppointmentId[item.appointment.id] ?? latestConsultationIdByPatientId[item.patient.id];
+                                      return consultId
+                                        ? `${PATHS.historiaClinicaConsulta(item.patient.id, consultId)}?${poolReturnSearch}`
+                                        : `${PATHS.historiaClinicaConsulta(item.patient.id, "nueva")}?date=${encodeURIComponent(item.appointment.appointmentDate)}&appointmentId=${encodeURIComponent(item.appointment.id)}&${poolReturnSearch}`;
+                                    })()
                                   }
                                 >
-                                  Historia clínica
+                                  <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                                  Abrir consulta
                                 </Link>
                               </Button>
                             </>
