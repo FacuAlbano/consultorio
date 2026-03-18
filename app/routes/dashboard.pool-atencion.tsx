@@ -110,7 +110,19 @@ export async function action({ request }: Route.ActionArgs) {
   if (!appointmentId || !patientId) return { success: false, error: "Datos incompletos" };
   const result = await markAppointmentAsAttended(appointmentId);
   if (!result.success) return result;
-  throw redirect(PATHS.historiaClinicaConsulta(patientId, "nueva"));
+
+  const url = new URL(request.url);
+  const today = new Date();
+  const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const poolDate = url.searchParams.get("date") || localDate;
+  const poolDoctorId = url.searchParams.get("doctorId") || "";
+  const returnParams = new URLSearchParams({
+    returnTo: "pool",
+    returnDate: poolDate,
+  });
+  if (poolDoctorId) returnParams.set("returnDoctorId", poolDoctorId);
+
+  throw redirect(`${PATHS.historiaClinicaConsulta(patientId, "nueva")}?date=${encodeURIComponent(poolDate)}&appointmentId=${encodeURIComponent(appointmentId)}&${returnParams.toString()}`);
 }
 
 export default function PoolAtencion() {
