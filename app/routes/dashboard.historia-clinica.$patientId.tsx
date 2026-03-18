@@ -66,6 +66,7 @@ export default function HistoriaClinicaPaciente() {
   const returnQuery = React.useMemo(() => {
     if (!returnDate) return "";
     const p = new URLSearchParams({ returnDate });
+    if (returnTo) p.set("returnTo", returnTo);
     if (returnView) p.set("returnView", returnView);
     if (returnDateFrom) p.set("returnDateFrom", returnDateFrom);
     if (returnDateTo) p.set("returnDateTo", returnDateTo);
@@ -74,7 +75,7 @@ export default function HistoriaClinicaPaciente() {
     if (returnAppointmentTypeId) p.set("returnAppointmentTypeId", returnAppointmentTypeId);
     if (returnStatus) p.set("returnStatus", returnStatus);
     return `?${p.toString()}`;
-  }, [returnDate, returnView, returnDateFrom, returnDateTo, returnDoctorId, returnConsultingRoomId, returnAppointmentTypeId, returnStatus]);
+  }, [returnTo, returnDate, returnView, returnDateFrom, returnDateTo, returnDoctorId, returnConsultingRoomId, returnAppointmentTypeId, returnStatus]);
   /** Si vinimos del pool, volver al pool con fecha y médico */
   const poolReturnUrl =
     returnTo === "pool" && returnDate
