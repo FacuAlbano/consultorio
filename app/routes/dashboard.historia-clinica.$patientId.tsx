@@ -3,20 +3,51 @@ import { useLoaderData, useSearchParams, Link, useFetcher, useNavigate } from "r
 import type { Route } from "./+types/dashboard.historia-clinica.$patientId";
 import { requireAuth } from "~/lib/middleware";
 import { getPatientById } from "~/lib/patients.server";
-import { getConsultationsByPatientId, getDiagnosesByConsultationIds } from "~/lib/medical-records.server";
+import { getConsultationsByPatientId, getConsultationById, updateConsultation } from "~/lib/medical-records.server";
 import { getAllDoctors } from "~/lib/doctors.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
-import { ArrowLeft, FileText, Plus, Stethoscope, Calendar, Loader2, FileDown, CheckCircle } from "lucide-react";
+import { ArrowLeft, FileText, Plus, Stethoscope, Calendar, Loader2, FileDown, CheckCircle, Pencil } from "lucide-react";
 import { PATHS } from "~/lib/constants";
 import { formatDate, calculateAge } from "~/lib/utils";
 import { isValidUUID } from "~/lib/utils";
 import { toast } from "sonner";
 
 const CREATE_INTENT = "create";
+const UPDATE_NOTES_INTENT = "updateNotes";
+
+export async function action({ request, params }: Route.ActionArgs) {
+  await requireAuth(request);
+  const { patientId } = params;
+  if (!patientId || !isValidUUID(patientId)) {
+    return { success: false as const, error: "Paciente inválido" };
+  }
+
+  const formData = await request.formData();
+  const intent = formData.get("_intent");
+
+  if (intent === UPDATE_NOTES_INTENT) {
+    const consultationId = (formData.get("consultationId") as string) || "";
+    const notes = (formData.get("notes") as string) ?? "";
+    if (!consultationId || !isValidUUID(consultationId)) {
+      return { success: false as const, error: "Consulta inválida" };
+    }
+    const existing = await getConsultationById(consultationId);
+    if (!existing || existing.consultation.patientId !== patientId) {
+      return { success: false as const, error: "No se pudo actualizar la nota" };
+    }
+    const result = await updateConsultation(consultationId, { notes: notes.trim() || null });
+    if (!result.success) {
+      return { success: false as const, error: result.error ?? "Error al guardar" };
+    }
+    return { success: true as const, consultationId };
+  }
+
+  return null;
+}
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
@@ -33,19 +64,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   if (!patient) throw new Response("Paciente no encontrado", { status: 404 });
 
-  const consultationIds = consultationsList.map((c) => c.consultation.id);
-  const diagnosesList = await getDiagnosesByConsultationIds(consultationIds);
-  const diagnosesByConsultationId = consultationIds.reduce<Record<string, { name: string }[]>>((acc, id) => {
-    acc[id] = diagnosesList.filter((d) => d.medicalConsultationId === id).map((d) => ({ name: d.name }));
-    return acc;
-  }, {});
-
-  const consultations = consultationsList.map((c) => ({
-    ...c,
-    diagnoses: diagnosesByConsultationId[c.consultation.id] ?? [],
-  }));
-
-  return { patient, consultations, doctors };
+  return { patient, consultations: consultationsList, doctors };
 }
 
 export default function HistoriaClinicaPaciente() {
@@ -62,7 +81,14 @@ export default function HistoriaClinicaPaciente() {
   const returnStatus = searchParams.get("returnStatus") ?? undefined;
   const [nuevaConsultaOpen, setNuevaConsultaOpen] = React.useState(false);
   const fetcher = useFetcher<{ success?: boolean; createdId?: string; error?: string }>();
+  const notesFetcher = useFetcher<{ success?: boolean; error?: string; consultationId?: string }>();
   const navigate = useNavigate();
+  const [notesEdit, setNotesEdit] = React.useState<{
+    consultationId: string;
+    draft: string;
+    mode: "inline" | "dialog";
+  } | null>(null);
+
   const returnQuery = React.useMemo(() => {
     if (!returnDate) return "";
     const p = new URLSearchParams({ returnDate });
@@ -105,6 +131,24 @@ export default function HistoriaClinicaPaciente() {
   }
 
   const { patient, consultations, doctors } = loaderData;
+  const notesActionPath = PATHS.historiaClinicaPaciente(patient.id);
+
+  const notesSubmitDone = React.useRef(false);
+  React.useEffect(() => {
+    if (notesFetcher.state === "submitting" || notesFetcher.state === "loading") {
+      notesSubmitDone.current = true;
+      return;
+    }
+    if (notesFetcher.state !== "idle" || !notesSubmitDone.current) return;
+    notesSubmitDone.current = false;
+    const d = notesFetcher.data;
+    if (d && "success" in d && d.success) {
+      toast.success("Notas guardadas");
+      setNotesEdit((prev) => (prev?.consultationId === d.consultationId ? null : prev));
+    } else if (d && "error" in d && d.error) {
+      toast.error(d.error);
+    }
+  }, [notesFetcher.state, notesFetcher.data]);
 
   React.useEffect(() => {
     if (!nuevaConsultaOpen) return;
@@ -273,82 +317,218 @@ export default function HistoriaClinicaPaciente() {
                 <table className="w-full text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-2 font-medium">Fecha</th>
-                      <th className="text-left py-3 px-2 font-medium">Médico</th>
-                      <th className="text-left py-3 px-2 font-medium">Motivo</th>
-                      <th className="text-left py-3 px-2 font-medium">Diagnóstico</th>
+                      <th className="text-left py-3 px-2 font-medium w-36">Fecha</th>
+                      <th className="text-left py-3 px-2 font-medium min-w-[220px]">Notas</th>
+                      <th className="text-left py-3 px-2 font-medium w-44">Médico</th>
                       <th className="text-right py-3 px-2 font-medium w-28">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {consultations.map(({ consultation, doctor, diagnoses }) => (
-                      <tr
-                        key={consultation.id}
-                        role="button"
-                        tabIndex={0}
-                        className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
-                        onClick={() => navigate(PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            navigate(PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery);
-                          }
-                        }}
-                      >
-                        <td className="py-3 px-2">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {formatDate(consultation.consultationDate)}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2">
-                          {doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}
-                        </td>
-                        <td className="py-3 px-2 text-muted-foreground max-w-[200px] truncate" title={consultation.reason ?? ""}>
-                          {consultation.reason ?? "—"}
-                        </td>
-                        <td className="py-3 px-2 text-muted-foreground max-w-[200px] truncate" title={diagnoses.map((d) => d.name).join(", ")}>
-                          {diagnoses.length > 0 ? diagnoses.map((d) => d.name).join(", ") : "—"}
-                        </td>
-                        <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button asChild variant="outline" size="sm">
-                            <Link to={PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery}>
-                              Ver
-                            </Link>
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                    {consultations.map(({ consultation, doctor }) => {
+                      const editingInline =
+                        notesEdit?.consultationId === consultation.id && notesEdit.mode === "inline";
+                      return (
+                        <tr key={consultation.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
+                          <td className="py-3 px-2">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                              {formatDate(consultation.consultationDate)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 max-w-xl">
+                            {editingInline ? (
+                              <notesFetcher.Form
+                                method="post"
+                                action={notesActionPath}
+                                className="space-y-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input type="hidden" name="_intent" value={UPDATE_NOTES_INTENT} />
+                                <input type="hidden" name="consultationId" value={consultation.id} />
+                                <textarea
+                                  name="notes"
+                                  value={notesEdit.draft}
+                                  onChange={(e) =>
+                                    setNotesEdit((prev) =>
+                                      prev && prev.consultationId === consultation.id
+                                        ? { ...prev, draft: e.target.value }
+                                        : prev
+                                    )
+                                  }
+                                  rows={5}
+                                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm min-h-[100px] resize-y"
+                                  placeholder="Notas del profesional"
+                                  aria-label="Editar notas de la consulta"
+                                />
+                                <div className="flex flex-wrap gap-2">
+                                  <Button
+                                    type="submit"
+                                    size="sm"
+                                    disabled={notesFetcher.state !== "idle"}
+                                  >
+                                    {notesFetcher.state !== "idle" ? (
+                                      <>
+                                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                        Guardando…
+                                      </>
+                                    ) : (
+                                      "Guardar"
+                                    )}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setNotesEdit(null)}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              </notesFetcher.Form>
+                            ) : (
+                              <button
+                                type="button"
+                                className="w-full text-left rounded-md border border-transparent hover:border-border hover:bg-muted/50 px-2 py-1.5 -mx-2 -my-1.5 transition-colors group"
+                                onClick={() =>
+                                  setNotesEdit({
+                                    consultationId: consultation.id,
+                                    draft: consultation.notes ?? "",
+                                    mode: "inline",
+                                  })
+                                }
+                              >
+                                <span className="flex items-start gap-2">
+                                  <Pencil className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-70 group-hover:opacity-100" />
+                                  <span className="line-clamp-4 whitespace-pre-wrap break-words">
+                                    {consultation.notes?.trim() ? (
+                                      consultation.notes
+                                    ) : (
+                                      <span className="text-muted-foreground italic">
+                                        Sin notas — clic para escribir
+                                      </span>
+                                    )}
+                                  </span>
+                                </span>
+                              </button>
+                            )}
+                          </td>
+                          <td className="py-3 px-2">
+                            {doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}
+                          </td>
+                          <td className="py-3 px-2 text-right">
+                            <Button asChild variant="outline" size="sm">
+                              <Link to={PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery}>
+                                Ver
+                              </Link>
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
               <div className="md:hidden space-y-3">
-                {consultations.map(({ consultation, doctor, diagnoses }) => (
-                  <Link
+                {consultations.map(({ consultation, doctor }) => (
+                  <div
                     key={consultation.id}
-                    to={PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery}
-                    className="block rounded-lg border p-4 flex flex-col gap-2 hover:bg-muted/30 transition-colors cursor-pointer"
+                    className="rounded-lg border p-4 flex flex-col gap-3 bg-card"
                   >
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {formatDate(consultation.consultationDate)}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        {formatDate(consultation.consultationDate)}
+                      </div>
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={PATHS.historiaClinicaConsulta(patient.id, consultation.id) + returnQuery}>
+                          Ver consulta
+                        </Link>
+                      </Button>
                     </div>
-                    <div className="text-muted-foreground text-sm">
-                      {doctor ? `${doctor.firstName} ${doctor.lastName}` : "Sin médico"}
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Médico: </span>
+                      {doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}
                     </div>
-                    {consultation.reason && (
-                      <p className="text-sm line-clamp-2">{consultation.reason}</p>
-                    )}
-                    {diagnoses.length > 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">Diagnóstico: </span>
-                        {diagnoses.map((d) => d.name).join(", ")}
-                      </p>
-                    )}
-                    <span className="text-sm text-primary font-medium">Ver consulta</span>
-                  </Link>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Notas</p>
+                      <button
+                        type="button"
+                        className="w-full text-left text-sm rounded-md border border-dashed border-border hover:bg-muted/50 px-3 py-2 transition-colors"
+                        onClick={() =>
+                          setNotesEdit({
+                            consultationId: consultation.id,
+                            draft: consultation.notes ?? "",
+                            mode: "dialog",
+                          })
+                        }
+                      >
+                        {consultation.notes?.trim() ? (
+                          <span className="line-clamp-4 whitespace-pre-wrap break-words">{consultation.notes}</span>
+                        ) : (
+                          <span className="text-muted-foreground italic">Tocar para agregar o editar notas</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
+
+              <ResponsiveDialog
+                open={
+                  !!notesEdit &&
+                  notesEdit.mode === "dialog" &&
+                  consultations.some((c) => c.consultation.id === notesEdit.consultationId)
+                }
+                onOpenChange={(open) => {
+                  if (!open) setNotesEdit(null);
+                }}
+                title="Notas de la consulta"
+                description={
+                  notesEdit
+                    ? formatDate(
+                        consultations.find((c) => c.consultation.id === notesEdit.consultationId)?.consultation
+                          .consultationDate ?? ""
+                      )
+                    : ""
+                }
+              >
+                {notesEdit && notesEdit.mode === "dialog" && (
+                  <notesFetcher.Form method="post" action={notesActionPath} className="space-y-4">
+                    <input type="hidden" name="_intent" value={UPDATE_NOTES_INTENT} />
+                    <input type="hidden" name="consultationId" value={notesEdit.consultationId} />
+                    <textarea
+                      name="notes"
+                      value={notesEdit.draft}
+                      onChange={(e) =>
+                        setNotesEdit((prev) =>
+                          prev && prev.consultationId === notesEdit.consultationId
+                            ? { ...prev, draft: e.target.value }
+                            : prev
+                        )
+                      }
+                      rows={8}
+                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm min-h-[160px]"
+                      placeholder="Notas del profesional"
+                      aria-label="Notas"
+                    />
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                      <Button type="button" variant="outline" onClick={() => setNotesEdit(null)}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={notesFetcher.state !== "idle"}>
+                        {notesFetcher.state !== "idle" ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Guardando…
+                          </>
+                        ) : (
+                          "Guardar notas"
+                        )}
+                      </Button>
+                    </div>
+                  </notesFetcher.Form>
+                )}
+              </ResponsiveDialog>
             </>
           )}
         </CardContent>
