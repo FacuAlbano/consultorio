@@ -144,7 +144,7 @@ export default function HistoriaClinicaPaciente() {
     const d = notesFetcher.data;
     if (d && "success" in d && d.success) {
       toast.success("Notas guardadas");
-      setNotesEdit(null);
+      setNotesEdit((prev) => prev?.consultationId === d.consultationId ? null : prev);
     } else if (d && "error" in d && d.error) {
       toast.error(d.error);
     }
