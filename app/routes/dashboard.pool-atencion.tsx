@@ -279,9 +279,8 @@ export default function PoolAtencion() {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left p-3 text-sm font-medium text-muted-foreground">Hora Turno</th>
-                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Hora Recepción</th>
-                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Sobre Turno</th>
-                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Médico/Práctica</th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Obra social</th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Nº afiliado</th>
                     <th className="text-left p-3 text-sm font-medium text-muted-foreground">HC/Nro. Documento</th>
                     <th className="text-left p-3 text-sm font-medium text-muted-foreground">Paciente</th>
                     <th className="text-left p-3 text-sm font-medium text-muted-foreground">Estado</th>
@@ -301,32 +300,10 @@ export default function PoolAtencion() {
                         </div>
                       </td>
                       <td className="p-3 text-muted-foreground">
-                        {formatTime(item.appointment.receptionTime)}
+                        {item.patient?.insuranceCompany || "-"}
                       </td>
-                      <td className="p-3">
-                        {item.appointment.isOverbooking ? (
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                            Sí
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        {item.doctor ? (
-                          <div>
-                            <div className="font-medium">
-                              {item.doctor.firstName} {item.doctor.lastName}
-                            </div>
-                            {item.doctor.practice && (
-                              <div className="text-sm text-muted-foreground">
-                                {item.doctor.practice}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                      <td className="p-3 text-muted-foreground">
+                        {item.patient?.insuranceNumber || "-"}
                       </td>
                       <td className="p-3">
                         <div className="text-sm">
@@ -345,7 +322,7 @@ export default function PoolAtencion() {
                               to={`${PATHS.patientProfile(item.patient.id)}?date=${encodeURIComponent(item.appointment.appointmentDate)}&appointmentId=${encodeURIComponent(item.appointment.id)}&${poolReturnSearch}`}
                               className="text-primary underline-offset-4 hover:underline"
                             >
-                              {item.patient.firstName} {item.patient.lastName}
+                              {item.patient.lastName}, {item.patient.firstName}
                             </Link>
                           ) : (
                             "-"

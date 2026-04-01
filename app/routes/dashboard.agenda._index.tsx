@@ -901,7 +901,7 @@ export default function AgendaPage() {
                                       to={PATHS.historiaClinicaPaciente(row.patient.id, agendaReturnSearch)}
                                       className="font-medium text-primary underline-offset-4 hover:underline"
                                     >
-                                      {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
+                                      {capitalizeWords(`${row.patient.lastName}, ${row.patient.firstName}`)}
                                     </Link>
                                   ) : (
                                     <span className="font-medium">—</span>
@@ -1079,7 +1079,7 @@ export default function AgendaPage() {
                                 to={PATHS.historiaClinicaPaciente(row.patient.id, agendaReturnSearch)}
                                 className="font-medium text-primary underline-offset-4 hover:underline"
                               >
-                                {capitalizeWords(`${row.patient.firstName} ${row.patient.lastName}`)}
+                                {capitalizeWords(`${row.patient.lastName}, ${row.patient.firstName}`)}
                               </Link>
                             ) : (
                               <span className="font-medium">—</span>
