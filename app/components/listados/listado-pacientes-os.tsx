@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { CreditCard, ExternalLink, BarChart3, Users, Building2, PieChart } from "lucide-react";
 import { useState } from "react";
-import { formatDate } from "~/lib/utils";
+import { formatDate, formatPatientDisplayName } from "~/lib/utils";
 
 export function ListadoPacientesOS() {
   const {
@@ -181,7 +181,7 @@ export function ListadoPacientesOS() {
                     >
                       <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
-                      <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
+                      <td className="py-3 px-2">{patient ? formatPatientDisplayName(patient) : "—"}</td>
                       <td className="py-3 px-2">{patient?.insuranceCompany ?? "—"}</td>
                       <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                         {patient && (

@@ -5,7 +5,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { ClipboardX, ExternalLink, Download, FileText } from "lucide-react";
 import { useState } from "react";
-import { formatDate } from "~/lib/utils";
+import { formatDate, formatPatientDisplayName } from "~/lib/utils";
 
 function exportToCSV(
   appointments: Array<{
@@ -18,7 +18,7 @@ function exportToCSV(
   const rows = appointments.map(({ appointment, patient, doctor }) => [
     formatDate(appointment.appointmentDate),
     appointment.appointmentTime,
-    patient ? `${patient.firstName} ${patient.lastName}` : "",
+    patient ? formatPatientDisplayName(patient) : "",
     patient?.documentNumber ?? "",
     doctor ? `${doctor.firstName} ${doctor.lastName}` : "",
     appointment.notes ?? "",
@@ -197,7 +197,7 @@ export function ListadoTurnosAnulados() {
                     >
                       <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
-                      <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
+                      <td className="py-3 px-2">{patient ? formatPatientDisplayName(patient) : "—"}</td>
                       <td className="py-3 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>
                       <td className="py-3 px-2 text-muted-foreground max-w-[200px] truncate" title={appointment.notes ?? ""}>
                         {appointment.notes ?? "—"}

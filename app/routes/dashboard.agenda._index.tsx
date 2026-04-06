@@ -9,7 +9,7 @@ import { getAllDoctors } from "~/lib/doctors.server";
 import { getAllConsultingRooms } from "~/lib/consulting-rooms.server";
 import { getAllAppointmentTypes } from "~/lib/appointment-types.server";
 import { getSlotsForDoctorAndDate } from "~/lib/doctor-agenda.server";
-import { cn, formatDate, getTodayLocalISO, calculateAge, capitalizeWords } from "~/lib/utils";
+import { cn, formatDate, getTodayLocalISO, calculateAge, capitalizeWords, formatPatientDisplayName } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -180,7 +180,7 @@ export async function action({ request }: Route.ActionArgs) {
         success: false as const,
         error: "Ya existe un paciente con ese número de documento",
         patientId: existing.id,
-        patientLabel: `${existing.firstName} ${existing.lastName}`,
+        patientLabel: formatPatientDisplayName(existing),
       };
     }
     const result = await createPatient({
@@ -200,7 +200,7 @@ export async function action({ request }: Route.ActionArgs) {
     return {
       success: true as const,
       patientId: result.data.id,
-      patientLabel: `${result.data.firstName} ${result.data.lastName}`,
+      patientLabel: formatPatientDisplayName(result.data),
     };
   }
 
@@ -901,7 +901,7 @@ export default function AgendaPage() {
                                       to={PATHS.historiaClinicaPaciente(row.patient.id, agendaReturnSearch)}
                                       className="font-medium text-primary underline-offset-4 hover:underline"
                                     >
-                                      {capitalizeWords(`${row.patient.lastName}, ${row.patient.firstName}`)}
+                                      {capitalizeWords(formatPatientDisplayName(row.patient))}
                                     </Link>
                                   ) : (
                                     <span className="font-medium">—</span>
@@ -1079,7 +1079,7 @@ export default function AgendaPage() {
                                 to={PATHS.historiaClinicaPaciente(row.patient.id, agendaReturnSearch)}
                                 className="font-medium text-primary underline-offset-4 hover:underline"
                               >
-                                {capitalizeWords(`${row.patient.lastName}, ${row.patient.firstName}`)}
+                                {capitalizeWords(formatPatientDisplayName(row.patient))}
                               </Link>
                             ) : (
                               <span className="font-medium">—</span>

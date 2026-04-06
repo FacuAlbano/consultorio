@@ -6,7 +6,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { UserX, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
-import { formatDate } from "~/lib/utils";
+import { formatDate, formatPatientDisplayName } from "~/lib/utils";
 
 export function ListadoPacientesNoAtendidos() {
   const { appointments, doctors, date: initialDate, doctorId: initialDoctorId } = useLoaderData<{
@@ -137,7 +137,7 @@ export function ListadoPacientesNoAtendidos() {
                       >
                         <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                         <td className="py-3 px-2">{appointment.appointmentTime}</td>
-                        <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
+                        <td className="py-3 px-2">{patient ? formatPatientDisplayName(patient) : "—"}</td>
                         <td className="py-3 px-2">{patient?.documentNumber ?? "—"}</td>
                         <td className="py-3 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>
                         <td className="py-3 px-2 max-w-[180px]" onClick={(e) => e.stopPropagation()}>

@@ -97,3 +97,16 @@ export function capitalizeWords(str: string | null | undefined): string {
     .map((word) => (word.length === 0 ? "" : word[0].toUpperCase() + word.slice(1).toLowerCase()))
     .join(" ");
 }
+
+/** Nombre para mostrar del paciente: apellido(s), nombre(s). */
+export function formatPatientDisplayName(
+  patient: { firstName: string; lastName: string } | null | undefined
+): string {
+  if (!patient) return "";
+  const fn = (patient.firstName ?? "").trim();
+  const ln = (patient.lastName ?? "").trim();
+  if (!ln && !fn) return "";
+  if (!ln) return fn;
+  if (!fn) return ln;
+  return `${ln}, ${fn}`;
+}
