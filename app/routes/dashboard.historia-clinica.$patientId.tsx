@@ -12,7 +12,7 @@ import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
 import { ArrowLeft, FileText, Plus, Stethoscope, Calendar, Loader2, FileDown, CheckCircle, Pencil } from "lucide-react";
 import { PATHS } from "~/lib/constants";
-import { formatDate, calculateAge } from "~/lib/utils";
+import { formatDate, calculateAge, formatPatientDisplayName } from "~/lib/utils";
 import { isValidUUID } from "~/lib/utils";
 import { toast } from "sonner";
 
@@ -176,7 +176,7 @@ export default function HistoriaClinicaPaciente() {
           </Button>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
-              {patient.firstName} {patient.lastName}
+              {formatPatientDisplayName(patient)}
             </h1>
             <p className="text-muted-foreground text-sm">
               HC: {patient.medicalRecordNumber ?? "—"} · DNI: {patient.documentNumber}
@@ -212,7 +212,7 @@ export default function HistoriaClinicaPaciente() {
           <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2 text-sm">
             <div>
               <dt className="text-muted-foreground">Nombre</dt>
-              <dd className="font-medium">{patient.firstName} {patient.lastName}</dd>
+              <dd className="font-medium">{formatPatientDisplayName(patient)}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Edad</dt>
@@ -234,7 +234,7 @@ export default function HistoriaClinicaPaciente() {
         open={nuevaConsultaOpen}
         onOpenChange={setNuevaConsultaOpen}
         title="Nueva consulta"
-        description={`${patient.firstName} ${patient.lastName}`}
+        description={formatPatientDisplayName(patient)}
       >
         <fetcher.Form method="post" action={createAction} className="space-y-4">
           <input type="hidden" name="_intent" value={CREATE_INTENT} />

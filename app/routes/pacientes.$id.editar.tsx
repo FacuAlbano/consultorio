@@ -5,7 +5,7 @@ import { getPatientById } from "~/lib/patients.server";
 import { updatePatient } from "~/lib/patients.server";
 import { getAllInsuranceCompanies } from "~/lib/insurance-companies.server";
 import { requireAuth } from "~/lib/middleware";
-import { isValidUUID } from "~/lib/utils";
+import { isValidUUID, formatPatientDisplayName } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -102,7 +102,7 @@ export default function EditarPaciente() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Editar datos del paciente</h1>
             <p className="text-muted-foreground text-sm">
-              {patient.firstName} {patient.lastName}
+              {formatPatientDisplayName(patient)}
             </p>
           </div>
         </div>

@@ -8,7 +8,7 @@ import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
 import { Calendar, Stethoscope, ExternalLink, Plus, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { formatDate } from "~/lib/utils";
+import { formatDate, formatPatientDisplayName } from "~/lib/utils";
 
 const INTENT_CREATE = "create";
 
@@ -197,7 +197,7 @@ export function ListadoAgenda() {
                         }}
                       >
                         <td className="py-3 px-2">{appointment.appointmentTime}</td>
-                        <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
+                        <td className="py-3 px-2">{patient ? formatPatientDisplayName(patient) : "—"}</td>
                         <td className="py-3 px-2">{statusLabel[appointment.status] ?? appointment.status}</td>
                         <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                           {patient && (

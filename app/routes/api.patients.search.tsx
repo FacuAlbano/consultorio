@@ -1,7 +1,7 @@
 import type { Route } from "./+types/api.patients.search";
 import { searchPatients } from "~/lib/patients.server";
 import { requireAuthApi } from "~/lib/middleware";
-import { calculateAge } from "~/lib/utils";
+import { calculateAge, formatPatientDisplayName } from "~/lib/utils";
 
 /**
  * API route para búsqueda de pacientes
@@ -33,9 +33,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Formatear resultados para el autocompletado (incluir datos filiatorios: edad, teléfono)
   const formattedResults = patients.map((patient) => {
     const age = calculateAge(patient.birthDate);
+    const displayName = formatPatientDisplayName(patient);
     return {
       id: patient.id,
-      label: `${patient.firstName} ${patient.lastName}`,
+      label: displayName,
       documentNumber: patient.documentNumber,
       medicalRecordNumber: patient.medicalRecordNumber,
       insuranceCompany: patient.insuranceCompany,
@@ -43,7 +44,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       birthDate: patient.birthDate,
       age: age ?? undefined,
       phone: patient.phone ?? undefined,
-      fullInfo: `${patient.firstName} ${patient.lastName} - DNI: ${patient.documentNumber}${patient.medicalRecordNumber ? ` - HC: ${patient.medicalRecordNumber}` : ""}`,
+      fullInfo: `${displayName} - DNI: ${patient.documentNumber}${patient.medicalRecordNumber ? ` - HC: ${patient.medicalRecordNumber}` : ""}`,
     };
   });
 

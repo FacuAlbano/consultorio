@@ -8,6 +8,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { FileSearch, User, FileText } from "lucide-react";
 import { PATHS } from "~/lib/constants";
+import { formatPatientDisplayName } from "~/lib/utils";
 import { useState } from "react";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -132,7 +133,7 @@ export default function HistoriaClinicaIndex() {
                       }}
                     >
                       <td className="py-3 px-2">
-                        <span className="font-medium">{p.firstName} {p.lastName}</span>
+                        <span className="font-medium">{formatPatientDisplayName(p)}</span>
                       </td>
                       <td className="py-3 px-2 hidden sm:table-cell text-muted-foreground">{p.medicalRecordNumber ?? "—"}</td>
                       <td className="py-3 px-2 hidden md:table-cell text-muted-foreground">{p.documentNumber}</td>
@@ -156,7 +157,7 @@ export default function HistoriaClinicaIndex() {
                   to={PATHS.historiaClinicaPaciente(p.id)}
                   className="block rounded-lg border p-4 flex flex-col gap-2 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
-                  <div className="font-medium">{p.firstName} {p.lastName}</div>
+                  <div className="font-medium">{formatPatientDisplayName(p)}</div>
                   <div className="text-muted-foreground text-sm">
                     HC: {p.medicalRecordNumber ?? "—"} · DNI: {p.documentNumber}
                   </div>

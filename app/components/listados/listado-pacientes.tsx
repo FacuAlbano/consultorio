@@ -10,7 +10,7 @@ import {
   Link,
 } from "react-router";
 import { toast } from "sonner";
-import { calculateAge } from "~/lib/utils";
+import { calculateAge, formatPatientDisplayName } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -312,7 +312,7 @@ export function ListadoPacientes() {
                           }
                         }}
                       >
-                        <td className="py-3 px-2 font-medium">{patient.firstName} {patient.lastName}</td>
+                        <td className="py-3 px-2 font-medium">{formatPatientDisplayName(patient)}</td>
                         <td className="py-3 px-2">{patient.documentNumber}</td>
                         <td className="py-3 px-2">{patient.medicalRecordNumber ?? "—"}</td>
                         <td className="py-3 px-2">{age != null ? `${age} años` : "—"}</td>
@@ -385,7 +385,7 @@ export function ListadoPacientes() {
         open={editOpen}
         onOpenChange={(open) => !open && closeEdit()}
         title="Editar paciente"
-        description={patientToEdit ? `${patientToEdit.firstName} ${patientToEdit.lastName}` : ""}
+        description={patientToEdit ? formatPatientDisplayName(patientToEdit) : ""}
       >
         {patientToEdit && (
           <editFetcher.Form method="post" className="space-y-4">
