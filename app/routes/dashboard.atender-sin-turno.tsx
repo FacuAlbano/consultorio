@@ -101,7 +101,7 @@ export async function action({ request }: Route.ActionArgs) {
       appointmentDate,
       appointmentTime: appointmentTime.length === 5 ? `${appointmentTime}:00` : appointmentTime,
       notes,
-      status: "en_lista" as const,
+      status: "attended" as const,
       isOverbooking: false,
     };
 
