@@ -14,7 +14,7 @@ import { PatientSearchInput } from "~/components/patient-search/patient-search-i
 import { UserPlus, Stethoscope, Clock, User, Loader2, CheckCircle2, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { PATHS } from "~/lib/constants";
-import { isValidUUID } from "~/lib/utils";
+import { isValidUUID, formatPatientDisplayName } from "~/lib/utils";
 import { RegistrarPacienteFormFields } from "~/components/patient-form-create-fields";
 
 
@@ -251,7 +251,7 @@ export default function AtenderSinTurno() {
               {selectedPatient && (
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="font-medium">
-                    {selectedPatient.firstName} {selectedPatient.lastName}
+                    {formatPatientDisplayName(selectedPatient)}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     DNI: {selectedPatient.documentNumber}
@@ -311,7 +311,7 @@ export default function AtenderSinTurno() {
             {selectedPatient && (
               <div className="mb-6 p-4 bg-muted rounded-lg">
                 <p className="font-medium text-lg">
-                  {selectedPatient.firstName} {selectedPatient.lastName}
+                  {formatPatientDisplayName(selectedPatient)}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   DNI: {selectedPatient.documentNumber}

@@ -16,7 +16,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ResponsiveDialog } from "~/components/crud/responsive-dialog";
 import { ClipboardList, Plus, Loader2, ExternalLink, Pencil, Trash2 } from "lucide-react";
-import { formatDate } from "~/lib/utils";
+import { formatDate, formatPatientDisplayName } from "~/lib/utils";
 
 const INTENTS = { create: "create", update: "update", cancel: "cancel", delete: "delete" } as const;
 
@@ -82,7 +82,7 @@ function TurnoFormFields({
         >
           <option value="">Seleccionar paciente</option>
           {patients.map((p) => (
-            <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+            <option key={p.id} value={p.id}>{formatPatientDisplayName(p)}</option>
           ))}
         </select>
       </div>
@@ -338,7 +338,7 @@ export function ListadoTurnos() {
                     >
                       <td className="py-3 px-2">{formatDate(appointment.appointmentDate)}</td>
                       <td className="py-3 px-2">{appointment.appointmentTime}</td>
-                      <td className="py-3 px-2">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</td>
+                      <td className="py-3 px-2">{patient ? formatPatientDisplayName(patient) : "—"}</td>
                       <td className="py-3 px-2">{doctor ? `${doctor.firstName} ${doctor.lastName}` : "—"}</td>
                       <td className="py-3 px-2">{statusLabel[appointment.status] ?? appointment.status}</td>
                       <td className="py-3 px-2 space-x-2" onClick={(e) => e.stopPropagation()}>

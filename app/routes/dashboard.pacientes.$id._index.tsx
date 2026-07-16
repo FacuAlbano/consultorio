@@ -2,7 +2,7 @@ import { useLoaderData, Link, useNavigate, useSearchParams } from "react-router"
 import type { Route } from "./+types/dashboard.pacientes.$id._index";
 import { getPatientById } from "~/lib/patients.server";
 import { requireAuth } from "~/lib/middleware";
-import { isValidUUID, calculateAge, formatDate } from "~/lib/utils";
+import { isValidUUID, calculateAge, formatDate, formatPatientDisplayName } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { User, FileText, Phone, CreditCard, Calendar, MessageCircle, Pencil, ClipboardList, ArrowLeft, Edit3 } from "lucide-react";
@@ -57,7 +57,7 @@ export default function DashboardPatientProfileIndex() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              {patient.firstName} {patient.lastName}
+              {formatPatientDisplayName(patient)}
             </h1>
             <p className="text-muted-foreground mt-0.5 text-sm">
               Perfil del Paciente
@@ -141,7 +141,7 @@ export default function DashboardPatientProfileIndex() {
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground">Nombre completo</p>
-              <p className="font-medium">{patient.firstName} {patient.lastName}</p>
+              <p className="font-medium">{formatPatientDisplayName(patient)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Tipo y número de documento</p>

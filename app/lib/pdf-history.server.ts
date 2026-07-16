@@ -1,3 +1,5 @@
+import { formatPatientDisplayName } from "~/lib/utils";
+
 export type ConsultationPdfData = {
   patient: { firstName: string; lastName: string; documentNumber: string; medicalRecordNumber: string | null; birthDate: string | null };
   consultationDate: string;
@@ -33,7 +35,7 @@ export async function generateConsultationPdf(data: ConsultationPdfData): Promis
   y += 10;
 
   doc.setFontSize(normalFont);
-  y = wrapText(doc, `Paciente: ${data.patient.firstName} ${data.patient.lastName}`, margin, y, pageWidth - 2 * margin) + 2;
+  y = wrapText(doc, `Paciente: ${formatPatientDisplayName(data.patient)}`, margin, y, pageWidth - 2 * margin) + 2;
   y = wrapText(doc, `HC: ${data.patient.medicalRecordNumber ?? "—"}  |  DNI: ${data.patient.documentNumber}`, margin, y, pageWidth - 2 * margin) + 2;
   if (data.patient.birthDate) {
     y = wrapText(doc, `Fecha de nacimiento: ${data.patient.birthDate}`, margin, y, pageWidth - 2 * margin) + 2;
@@ -158,7 +160,7 @@ export async function generatePatientHistoryPdf(data: PatientHistoryPdfData): Pr
   y += 12;
 
   doc.setFontSize(normalFont);
-  y = wrapText(doc, `Paciente: ${data.patient.firstName} ${data.patient.lastName}`, margin, y, pageWidth - 2 * margin) + 2;
+  y = wrapText(doc, `Paciente: ${formatPatientDisplayName(data.patient)}`, margin, y, pageWidth - 2 * margin) + 2;
   y = wrapText(doc, `HC: ${data.patient.medicalRecordNumber ?? "—"}  |  DNI: ${data.patient.documentNumber}`, margin, y, pageWidth - 2 * margin) + 2;
   if (data.patient.birthDate) {
     y = wrapText(doc, `Fecha de nacimiento: ${data.patient.birthDate}`, margin, y, pageWidth - 2 * margin) + 2;

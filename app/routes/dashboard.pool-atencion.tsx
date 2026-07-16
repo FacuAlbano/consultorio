@@ -13,7 +13,7 @@ import { Calendar, Clock, User, Stethoscope, Search, Filter, FileText, Plus, Fol
 import { useState, useEffect, useRef } from "react";
 import { PATHS } from "~/lib/constants";
 import { toast } from "sonner";
-import { cn } from "~/lib/utils";
+import { cn, formatPatientDisplayName } from "~/lib/utils";
 import {
   Select,
   SelectContent,
@@ -322,7 +322,7 @@ export default function PoolAtencion() {
                               to={`${PATHS.patientProfile(item.patient.id)}?date=${encodeURIComponent(item.appointment.appointmentDate)}&appointmentId=${encodeURIComponent(item.appointment.id)}&${poolReturnSearch}`}
                               className="text-primary underline-offset-4 hover:underline"
                             >
-                              {item.patient.lastName}, {item.patient.firstName}
+                              {formatPatientDisplayName(item.patient)}
                             </Link>
                           ) : (
                             "-"
